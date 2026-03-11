@@ -1,10 +1,17 @@
 import { Roles } from "@/types/globals";
 import db from "@/lib/db";
-import { getAuthUserId } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
 
 function mapRoleToRoute(role: Roles) {
   if (role === "LAB_TECHNICIAN") return "lab_scientist";
   return role.toLowerCase();
+}
+
+function normalizeRouteRole(role: string) {
+  const r = role.trim().toLowerCase();
+  if (r === "lab_technician" || r === "lab technician") return "lab_scientist";
+  if (r === "lab_scientist" || r === "lab scientist") return "lab_scientist";
+  return r;
 }
 
 export const checkRole = async (role: Roles) => {
@@ -13,16 +20,24 @@ export const checkRole = async (role: Roles) => {
 };
 
 export const getRole = async () => {
-  const userId = await getAuthUserId();
-  if (!userId) return "sign-in";
+  const user = await getAuthUser();
+  if (!user) return "sign-in";
 
-  const [staff, doctor] = await Promise.all([
-    db.staff.findUnique({ where: { id: userId }, select: { role: true } }),
-    db.doctor.findUnique({ where: { id: userId }, select: { id: true } }),
-  ]);
+  const appRole =
+    (user.app_metadata as { role?: string } | null | undefined)?.role ?? null;
+  if (appRole) return normalizeRouteRole(appRole);
 
-  if (staff) return mapRoleToRoute(staff.role);
-  if (doctor) return "doctor";
+  try {
+    const [staff, doctor] = await Promise.all([
+      db.staff.findUnique({ where: { id: user.id }, select: { role: true } }),
+      db.doctor.findUnique({ where: { id: user.id }, select: { id: true } }),
+    ]);
 
-  return "patient";
+    if (staff) return mapRoleToRoute(staff.role);
+    if (doctor) return "doctor";
+
+    return "patient";
+  } catch {
+    return "patient";
+  }
 };
