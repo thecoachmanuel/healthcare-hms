@@ -64,6 +64,12 @@ export const PatientFormSchema = z.object({
   img: z.string().optional(),
 });
 
+export const PatientUpdateSchema = PatientFormSchema.extend({
+  privacy_consent: z.boolean().optional(),
+  service_consent: z.boolean().optional(),
+  medical_consent: z.boolean().optional(),
+});
+
 export const AppointmentSchema = z.object({
   doctor_id: z.string().min(1, "Select physician"),
   type: z.string().min(1, "Select type of appointment"),

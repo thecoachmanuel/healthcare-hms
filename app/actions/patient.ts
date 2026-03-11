@@ -1,10 +1,45 @@
 "use server";
 
 import db from "@/lib/db";
-import { PatientFormSchema } from "@/lib/schema";
+import { PatientFormSchema, PatientUpdateSchema } from "@/lib/schema";
 import { requireAuthUserId } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+function digitsOnly(value: unknown) {
+  if (typeof value !== "string") return value;
+  return value.replace(/\D/g, "");
+}
+
+function normalizePatientPayload(input: any) {
+  const gender =
+    typeof input?.gender === "string" ? input.gender.toUpperCase() : input?.gender;
+  const marital_status =
+    typeof input?.marital_status === "string"
+      ? input.marital_status.toLowerCase()
+      : input?.marital_status;
+  const relationRaw =
+    typeof input?.relation === "string" ? input.relation.toLowerCase() : input?.relation;
+  const relation =
+    relationRaw === "mother" ||
+    relationRaw === "father" ||
+    relationRaw === "husband" ||
+    relationRaw === "wife" ||
+    relationRaw === "other"
+      ? relationRaw
+      : relationRaw
+      ? "other"
+      : relationRaw;
+
+  return {
+    ...input,
+    gender,
+    marital_status,
+    relation,
+    phone: digitsOnly(input?.phone),
+    emergency_contact_number: digitsOnly(input?.emergency_contact_number),
+  };
+}
 
 export async function updatePatient(data: any, pid: string) {
   try {
@@ -13,7 +48,7 @@ export async function updatePatient(data: any, pid: string) {
       return { success: false, error: true, msg: "Unauthorized" };
     }
 
-    const validateData = PatientFormSchema.safeParse(data);
+    const validateData = PatientUpdateSchema.safeParse(normalizePatientPayload(data));
 
     if (!validateData.success) {
       return {
@@ -49,7 +84,7 @@ export async function updatePatient(data: any, pid: string) {
 }
 export async function createNewPatient(data: any, pid: string) {
   try {
-    const validateData = PatientFormSchema.safeParse(data);
+    const validateData = PatientFormSchema.safeParse(normalizePatientPayload(data));
 
     if (!validateData.success) {
       return {

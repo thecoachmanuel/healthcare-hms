@@ -116,8 +116,7 @@ export const NewPatient = ({ data, type }: DataProps) => {
       setProfileFile(null);
       router.push("/patient");
     } else {
-      console.log(res);
-      toast.error("Failed to create patient");
+      toast.error(res?.msg ?? (type === "update" ? "Failed to update patient" : "Failed to create patient"));
     }
   };
 
