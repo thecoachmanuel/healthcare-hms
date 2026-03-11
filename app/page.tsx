@@ -61,7 +61,7 @@ export default async function Home() {
       </div>
       <footer className="mt-8">
         <p className="text-center text-sm">
-          &copy; 2024 Healthcare HMS. All rights reserved.
+          &copy; 2026 Healthcare HMS. All rights reserved.
         </p>
       </footer>
     </div>
