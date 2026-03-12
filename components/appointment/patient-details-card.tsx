@@ -1,19 +1,25 @@
-import { Patient } from "@prisma/client";
+import { Doctor, Patient } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import Image from "next/image";
 import { calculateAge } from "@/utils";
 import { Calendar, Home, Info, Mail, Phone } from "lucide-react";
 import { format } from "date-fns";
 
-export const PatientDetailsCard = ({ data }: { data: Patient }) => {
+export const PatientDetailsCard = ({
+  patient,
+  physician,
+}: {
+  patient: Patient;
+  physician?: Doctor | null;
+}) => {
   return (
     <Card className="shadow-none bg-white">
       <CardHeader>
         <CardTitle>Patient Details</CardTitle>
         <div className="relative size-20 xl:size-24 rounded-full overflow-hidden">
           <Image
-            src={data.img || "/user.jpg"}
-            alt={data?.first_name}
+            src={patient.img || "/user.jpg"}
+            alt={patient?.first_name}
             width={100}
             height={100}
             className="rounded-full"
@@ -22,13 +28,13 @@ export const PatientDetailsCard = ({ data }: { data: Patient }) => {
 
         <div>
           <h2 className="text-lg font-semibold">
-            {data?.first_name} {data?.last_name}
+            {patient?.first_name} {patient?.last_name}
           </h2>
           <p className="text-sm text-gray-500">
-            {data?.email} - {data?.phone}
+            {patient?.email} - {patient?.phone}
           </p>
           <p className="text-sm text-gray-500">
-            {data?.gender} - {calculateAge(data?.date_of_birth)}
+            {patient?.gender} - {calculateAge(patient?.date_of_birth)}
           </p>
         </div>
       </CardHeader>
@@ -39,7 +45,7 @@ export const PatientDetailsCard = ({ data }: { data: Patient }) => {
           <div>
             <p className="text-sm text-gray-500">Date of Birth</p>
             <p className="text-base font-medium text-muted-foreground">
-              {format(new Date(data?.date_of_birth), "MMM d, yyyy")}
+              {format(new Date(patient?.date_of_birth), "MMM d, yyyy")}
             </p>
           </div>
         </div>
@@ -48,7 +54,7 @@ export const PatientDetailsCard = ({ data }: { data: Patient }) => {
           <div>
             <p className="text-sm text-gray-500">Address</p>
             <p className="text-base font-medium text-muted-foreground">
-              {data?.address}
+              {patient?.address}
             </p>
           </div>
         </div>
@@ -57,7 +63,7 @@ export const PatientDetailsCard = ({ data }: { data: Patient }) => {
           <div>
             <p className="text-sm text-gray-500">Email</p>
             <p className="text-base font-medium text-muted-foreground">
-              {data?.email}
+              {patient?.email}
             </p>
           </div>
         </div>
@@ -66,7 +72,7 @@ export const PatientDetailsCard = ({ data }: { data: Patient }) => {
           <div>
             <p className="text-sm text-gray-500">Phone</p>
             <p className="text-base font-medium text-muted-foreground">
-              {data?.phone}
+              {patient?.phone}
             </p>
           </div>
         </div>
@@ -75,7 +81,9 @@ export const PatientDetailsCard = ({ data }: { data: Patient }) => {
           <div>
             <p className="text-sm text-gray-500">Physician</p>
             <p className="text-base font-medium text-muted-foreground">
-              Dr Codewave, MBBS, FCPS
+              {physician
+                ? `${physician.name}${physician.specialization ? ` — ${physician.specialization}` : ""}`
+                : "Not assigned"}
             </p>
           </div>
         </div>
@@ -83,7 +91,7 @@ export const PatientDetailsCard = ({ data }: { data: Patient }) => {
           <div>
             <p className="text-sm text-gray-500">Active Conditions</p>
             <p className="text-base font-medium text-muted-foreground">
-              {data?.medical_conditions}
+              {patient?.medical_conditions}
             </p>
           </div>
         </div>
@@ -91,7 +99,7 @@ export const PatientDetailsCard = ({ data }: { data: Patient }) => {
           <div>
             <p className="text-sm text-gray-500">Allergies</p>
             <p className="text-base font-medium text-muted-foreground">
-              {data?.allergies}
+              {patient?.allergies}
             </p>
           </div>
         </div>

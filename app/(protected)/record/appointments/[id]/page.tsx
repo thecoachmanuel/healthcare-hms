@@ -8,6 +8,7 @@ import { PaymentsContainer } from "@/components/appointment/payment-container";
 import { VitalSigns } from "@/components/appointment/vital-signs";
 import { MedicalHistoryContainer } from "@/components/medical-history-container";
 import { getAppointmentWithMedicalRecordsById } from "@/utils/services/appointment";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const AppointmentDetailsPage = async ({
   params,
@@ -44,6 +45,15 @@ const AppointmentDetailsPage = async ({
             />
           </>
         )}
+        {cat === "lab-test" && (
+          <Card className="shadow-none">
+            <CardHeader>
+              <CardTitle>Lab Test</CardTitle>
+              <CardDescription>Manage lab requests and results for this appointment.</CardDescription>
+            </CardHeader>
+            <CardContent className="text-sm text-gray-500">Coming soon.</CardContent>
+          </Card>
+        )}
         {cat === "diagnosis" && (
           <DiagnosisContainer
             id={id}
@@ -62,7 +72,7 @@ const AppointmentDetailsPage = async ({
       {/* RIGHT */}
       <div className="flex-1 space-y-6">
         <AppointmentQuickLinks staffId={data?.doctor_id as string} />
-        <PatientDetailsCard data={data?.patient!} />
+        <PatientDetailsCard patient={data?.patient!} physician={data?.doctor} />
       </div>
     </div>
   );
