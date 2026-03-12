@@ -66,7 +66,7 @@ export const AddService = () => {
             <Plus size={22} className="text-gray-500" /> Add New Service
           </Button>
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <CardHeader className="px-0">
             <DialogTitle>Add New Service</DialogTitle>
             <CardDescription>

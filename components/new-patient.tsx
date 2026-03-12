@@ -81,6 +81,7 @@ export const NewPatient = ({ data, type }: DataProps) => {
       medical_conditions: "",
       insurance_number: "",
       insurance_provider: "",
+      hospital_number: "",
       medical_history: "",
     },
   });
@@ -325,6 +326,13 @@ export const NewPatient = ({ data, type }: DataProps) => {
                   name="insurance_number"
                   placeholder="Insurance number"
                   label="Insurance number"
+                />
+                <CustomInput
+                  type="input"
+                  control={form.control}
+                  name="hospital_number"
+                  placeholder="Leave blank to auto-assign"
+                  label="Hospital number"
                 />
               </div>
             </div>

@@ -73,7 +73,7 @@ export const BillsContainer = async ({ id }: { id: string }) => {
   const isPharmacist = await checkRole("PHARMACIST");
   const isCashier = await checkRole("CASHIER");
 
-  const canAddGeneral = isAdmin || isDoctor || isNurse;
+  const canAddGeneral = isAdmin || isDoctor || isNurse || (await checkRole("RECORD_OFFICER"));
   const canAddLab = isAdmin || isLabScientist || isLabTechnician;
   const canAddMeds = isAdmin || isPharmacist;
   const canFinalize = isAdmin || isCashier;

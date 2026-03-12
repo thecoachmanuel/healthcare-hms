@@ -67,7 +67,7 @@ export const UpdateLabTest = ({
           Update
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[60%] 2xl:max-w-[40%]">
+      <DialogContent className="sm:max-w-[60%] 2xl:max-w-[40%] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Update Lab Result</DialogTitle>
         </DialogHeader>
@@ -108,4 +108,3 @@ export const UpdateLabTest = ({
     </Dialog>
   );
 };
-

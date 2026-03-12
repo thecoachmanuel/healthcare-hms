@@ -59,7 +59,7 @@ export const RequestLabTest = ({
           Request Lab Test
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[60%] 2xl:max-w-[40%]">
+      <DialogContent className="sm:max-w-[60%] 2xl:max-w-[40%] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Request Lab Test</DialogTitle>
         </DialogHeader>
@@ -92,4 +92,3 @@ export const RequestLabTest = ({
     </Dialog>
   );
 };
-

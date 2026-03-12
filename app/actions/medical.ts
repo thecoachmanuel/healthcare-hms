@@ -429,17 +429,28 @@ export async function markPatientBillPaid(data: any) {
         amount_paid: amountPaid,
         payment_status: status,
         paid_at: status === "PAID" ? new Date() : null,
+        notes: validated.data.coverage_notes ?? undefined,
       },
     });
 
     await recomputePayment(bill.bill_id);
+    await db.payment.update({
+      where: { id: bill.bill_id },
+      data: {
+        coverage_type: (validated.data.coverage_type as any) ?? undefined,
+        coverage_notes: validated.data.coverage_notes ?? undefined,
+        coverage_reference: validated.data.coverage_reference ?? undefined,
+        payment_reason: validated.data.payment_reason ?? undefined,
+        payment_method: (validated.data.payment_method as any) ?? undefined,
+      },
+    });
     await db.auditLog.create({
       data: {
         user_id: userId,
         record_id: String(billId),
         action: "UPDATE",
         model: "PatientBills",
-        details: `amount_paid=${amountPaid} status=${status}`,
+        details: `amount_paid=${amountPaid} status=${status} coverage=${validated.data.coverage_type ?? "NONE"}`,
       },
     });
 

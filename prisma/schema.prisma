@@ -19,6 +19,7 @@ enum Role {
   LAB_SCIENTIST
   LAB_TECHNICIAN
   PHARMACIST
+  RECORD_OFFICER
   PATIENT
   CASHIER
 }
@@ -66,6 +67,7 @@ enum PaymentStatus {
 
 model Patient {
   id                       String   @id //clerk userId
+  hospital_number          String?  @unique
   first_name               String
   last_name                String
   date_of_birth            DateTime
@@ -187,6 +189,10 @@ model Payment {
   discount        Float
   total_amount    Float
   amount_paid     Float
+  coverage_type   CoverageType @default(NONE)
+  coverage_notes  String?
+  coverage_reference String?
+  payment_reason  String?
 
   payment_method  PaymentMethod @default(CASH)
   status          PaymentStatus @default(UNPAID)
@@ -213,6 +219,7 @@ model PatientBills {
   paid_at         DateTime?
   issued_by_id    String?
   issued_by_role  Role?
+  notes           String?
   service         Services @relation(fields: [service_id], references: [id])
   payment         Payment @relation(fields: [bill_id], references: [id], onDelete: Cascade)
 
@@ -307,6 +314,26 @@ model AuditLog {
   updated_at  DateTime @updatedAt
 }
 
+model Notification {
+  id          Int   @id @default(autoincrement())
+  user_id     String
+  title       String
+  body        String
+  read        Boolean @default(false)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model SiteSettings {
+  id          Int    @id @default(autoincrement())
+  site_name   String
+  logo_url    String?
+  homepage_text  String?
+  updated_by_id String?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
 model Rating {
   id         Int      @id @default(autoincrement())
   staff_id   String
@@ -341,6 +368,14 @@ enum PrescriptionStatus {
   ISSUED
   DISPENSED
   CANCELLED
+}
+
+enum CoverageType {
+  NONE
+  INSURANCE
+  NHIA
+  WAIVER
+  OTHER
 }
 
 model Prescription {

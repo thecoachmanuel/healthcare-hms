@@ -10,6 +10,7 @@ import { LabTestContainer } from "@/components/appointment/lab-test-container";
 import { MedicalHistoryContainer } from "@/components/medical-history-container";
 import { PrescriptionContainer } from "@/components/appointment/prescription-container";
 import { getAppointmentWithMedicalRecordsById } from "@/utils/services/appointment";
+import db from "@/lib/db";
 
 const AppointmentDetailsPage = async ({
   params,
@@ -23,11 +24,19 @@ const AppointmentDetailsPage = async ({
   const cat = (search?.cat as string) || "charts";
 
   const { data } = await getAppointmentWithMedicalRecordsById(Number(id));
+  const prescriptionCount = await db.prescription.count({
+    where: { appointment_id: Number(id) },
+  });
 
   return (
     <div className="flex p-6 flex-col-reverse lg:flex-row w-full min-h-screen gap-10">
       {/* LEFT */}
       <div className="w-full lg:w-[65%] flex flex-col gap-6">
+        {data?.status === "COMPLETED" && prescriptionCount === 0 && (
+          <div className="bg-yellow-50 border border-yellow-200 text-yellow-700 p-3 rounded-md">
+            Appointment completed. Please create a prescription for the patient.
+          </div>
+        )}
         {cat === "charts" && <ChartContainer id={data?.patient_id!} />}
         {cat === "appointments" && (
           <>

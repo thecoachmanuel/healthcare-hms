@@ -43,6 +43,7 @@ export const AddBills = ({ id, appId, servicesData }: DataProps) => {
       quantity: undefined,
       unit_cost: undefined,
       total_cost: undefined,
+      notes: "",
     },
   });
 
@@ -109,7 +110,7 @@ export const AddBills = ({ id, appId, servicesData }: DataProps) => {
             Add Bill
           </Button>
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <CardHeader className="px-0">
             <DialogTitle>Add Patient Bill</DialogTitle>
             <CardDescription>
@@ -165,6 +166,13 @@ export const AddBills = ({ id, appId, servicesData }: DataProps) => {
                 label="Service Date"
                 placeholder=""
                 inputType="date"
+              />
+              <CustomInput
+                type="textarea"
+                control={form.control}
+                name="notes"
+                label="Notes (Insurance/NHIA/Comments)"
+                placeholder="Enter relevant insurance number or notes for cashier"
               />
 
               <Button

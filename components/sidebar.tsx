@@ -28,6 +28,7 @@ const ACCESS_LEVELS_ALL = [
   "cashier",
   "pharmacist",
   "patient",
+  "record_officer",
 ];
 
 const SidebarIcon = ({ icon: Icon }: { icon: LucideIcon }) => {
@@ -79,7 +80,7 @@ export const Sidebar = async () => {
         {
           name: "Patients",
           href: "/record/patients",
-          access: ["admin", "doctor", "nurse"],
+          access: ["admin", "doctor", "nurse", "record_officer"],
           icon: UsersRound,
         },
         {
@@ -147,6 +148,12 @@ export const Sidebar = async () => {
           href: "/patient/prescriptions",
           access: ["patient"],
           icon: Pill,
+        },
+        {
+          name: "Record Officer",
+          href: "/record_officer",
+          access: ["record_officer"],
+          icon: Users,
         },
         {
           name: "Billing",

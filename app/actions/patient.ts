@@ -31,6 +31,10 @@ function normalizePatientPayload(input: any) {
       : relationRaw
       ? "other"
       : relationRaw;
+  const hospital_number =
+    typeof input?.hospital_number === "string"
+      ? input.hospital_number.trim()
+      : input?.hospital_number;
 
   return {
     ...input,
@@ -39,6 +43,7 @@ function normalizePatientPayload(input: any) {
     relation,
     phone: digitsOnly(input?.phone),
     emergency_contact_number: digitsOnly(input?.emergency_contact_number),
+    hospital_number,
   };
 }
 
@@ -126,10 +131,24 @@ export async function createNewPatient(data: any, pid: string) {
       }
     }
 
-    await db.patient.create({
+    const created = await db.patient.create({
       data: {
         ...patientData,
         id: patient_id,
+        hospital_number:
+          patientData.hospital_number && patientData.hospital_number.trim().length > 0
+            ? patientData.hospital_number.trim()
+            : `HN-${Math.random().toString(36).slice(2, 9).toUpperCase()}`,
+      },
+    });
+
+    await db.auditLog.create({
+      data: {
+        user_id: patient_id,
+        record_id: created.id,
+        action: "CREATE",
+        model: "Patient",
+        details: `hospital_number=${created.hospital_number ?? ""}`,
       },
     });
 
@@ -165,7 +184,7 @@ export async function adminUpdatePatient(data: any, pid: string) {
       return { success: false, error: true, msg: error.message };
     }
 
-    await db.patient.update({
+    const updated = await db.patient.update({
       data: { ...patientData },
       where: { id: pid },
     });
@@ -176,7 +195,7 @@ export async function adminUpdatePatient(data: any, pid: string) {
         record_id: pid,
         action: "UPDATE",
         model: "Patient",
-        details: "Updated patient profile",
+        details: `Updated patient profile hospital_number=${updated.hospital_number ?? ""}`,
       },
     });
 

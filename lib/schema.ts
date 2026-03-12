@@ -43,6 +43,7 @@ export const PatientFormSchema = z.object({
   medical_history: z.string().optional(),
   insurance_provider: z.string().optional(),
   insurance_number: z.string().optional(),
+  hospital_number: z.string().optional(),
   privacy_consent: z
     .boolean()
     .default(false)
@@ -124,7 +125,7 @@ export const StaffSchema = z.object({
     .min(2, "Name must be at least 2 characters")
     .max(50, "Name must be at most 50 characters"),
   role: z.enum(
-    ["NURSE", "LAB_SCIENTIST", "LAB_TECHNICIAN", "CASHIER", "PHARMACIST"],
+    ["NURSE", "LAB_SCIENTIST", "LAB_TECHNICIAN", "CASHIER", "PHARMACIST", "RECORD_OFFICER"],
     { message: "Role is required." }
   ),
   phone: phoneSchema,
@@ -192,12 +193,17 @@ export const PatientBillSchema = z.object({
   quantity: z.string({ message: "Quantity is required" }),
   unit_cost: z.string({ message: "Unit cost is required" }),
   total_cost: z.string({ message: "Total cost is required" }),
+  notes: z.string().optional(),
 });
 
 export const BillPaymentSchema = z.object({
   patient_bill_id: z.string(),
   amount_paid: z.string(),
   payment_method: z.enum(["CASH", "CARD"]).optional(),
+  coverage_type: z.enum(["NONE", "INSURANCE", "NHIA", "WAIVER", "OTHER"]).optional(),
+  coverage_notes: z.string().optional(),
+  coverage_reference: z.string().optional(),
+  payment_reason: z.string().optional(),
 });
 
 export const ServicesSchema = z.object({

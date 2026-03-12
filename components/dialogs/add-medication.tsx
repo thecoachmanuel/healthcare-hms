@@ -41,8 +41,8 @@ export const AddMedication = () => {
       } else {
         toast.error(resp.msg);
       }
-    } catch (error) {
-      toast.error("Something went wrong. Please try again.");
+    } catch (error: any) {
+      toast.error(error?.message ?? "Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -55,7 +55,7 @@ export const AddMedication = () => {
           <Plus size={22} className="text-gray-500" /> Add Medication
         </Button>
       </DialogTrigger>
-      <DialogContent>
+      <DialogContent className="max-h-[90vh] overflow-y-auto">
         <CardHeader className="px-0">
           <DialogTitle>Add Medication</DialogTitle>
           <CardDescription>Create a global medication with a price.</CardDescription>
@@ -96,4 +96,3 @@ export const AddMedication = () => {
     </Dialog>
   );
 };
-

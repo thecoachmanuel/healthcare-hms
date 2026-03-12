@@ -72,7 +72,7 @@ export const GenerateFinalBills = ({ id, total_bill }: DataProps) => {
             Generate Final Bill
           </Button>
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <CardHeader className="px-0">
             <DialogTitle>Patient Medical Bill</DialogTitle>
           </CardHeader>

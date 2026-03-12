@@ -34,6 +34,10 @@ export const MarkBillPaid = ({
       patient_bill_id: String(patientBillId),
       amount_paid: defaultAmount.toFixed(2),
       payment_method: "CASH",
+      coverage_type: "NONE",
+      coverage_notes: "",
+      coverage_reference: "",
+      payment_reason: "",
     },
   });
 
@@ -61,7 +65,7 @@ export const MarkBillPaid = ({
           Mark Paid
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[60%] 2xl:max-w-[40%]">
+      <DialogContent className="sm:max-w-[60%] 2xl:max-w-[40%] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Record Payment</DialogTitle>
         </DialogHeader>
@@ -85,6 +89,45 @@ export const MarkBillPaid = ({
               selectList={PAYMENT_METHODS}
             />
 
+            <CustomInput
+              type="select"
+              control={form.control}
+              name="coverage_type"
+              label="Coverage"
+              placeholder="Select coverage"
+              selectList={[
+                { label: "None", value: "NONE" },
+                { label: "Insurance", value: "INSURANCE" },
+                { label: "NHIA", value: "NHIA" },
+                { label: "Waiver", value: "WAIVER" },
+                { label: "Other", value: "OTHER" },
+              ]}
+            />
+
+            <CustomInput
+              type="input"
+              control={form.control}
+              name="coverage_reference"
+              label="Coverage reference (Insurance/NHIA number)"
+              placeholder=""
+            />
+
+            <CustomInput
+              type="textarea"
+              control={form.control}
+              name="coverage_notes"
+              label="Coverage notes"
+              placeholder="Additional notes for cashier"
+            />
+
+            <CustomInput
+              type="textarea"
+              control={form.control}
+              name="payment_reason"
+              label="Payment reason (if unpaid/partial)"
+              placeholder="Reason for unpaid/partial payment"
+            />
+
             <Button type="submit" disabled={loading} className="w-full bg-blue-600">
               {loading ? "Saving..." : "Save"}
             </Button>
@@ -94,4 +137,3 @@ export const MarkBillPaid = ({
     </Dialog>
   );
 };
-

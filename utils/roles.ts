@@ -3,15 +3,18 @@ import db from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 
 function mapRoleToRoute(role: Roles) {
-  if (role === "LAB_SCIENTIST") return "lab_scientist";
-  if (role === "LAB_TECHNICIAN") return "lab_technician";
-  return role.toLowerCase();
+  const r = String(role);
+  if (r === "LAB_SCIENTIST") return "lab_scientist";
+  if (r === "LAB_TECHNICIAN") return "lab_technician";
+  if (r === "RECORD_OFFICER") return "record_officer";
+  return r.toLowerCase();
 }
 
 function normalizeRouteRole(role: string) {
   const r = role.trim().toLowerCase();
   if (r === "lab_scientist" || r === "lab scientist") return "lab_scientist";
   if (r === "lab_technician" || r === "lab technician") return "lab_technician";
+  if (r === "record_officer" || r === "record officer") return "record_officer";
   return r;
 }
 

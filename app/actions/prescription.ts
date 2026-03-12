@@ -56,6 +56,67 @@ export async function createPrescription(data: any) {
       select: { id: true },
     });
 
+    const payment =
+      (await db.payment.findFirst({
+        where: { appointment_id: appointmentId },
+        select: { id: true },
+      })) ??
+      (await db.payment.create({
+        data: {
+          appointment_id: appointmentId,
+          patient_id: appointment.patient_id,
+          bill_date: new Date(),
+          payment_date: new Date(),
+          discount: 0.0,
+          amount_paid: 0.0,
+          total_amount: 0.0,
+        },
+        select: { id: true },
+      }));
+
+    const meds = await db.services.findMany({
+      where: { id: { in: medicationIds } },
+      select: { id: true, price: true },
+    });
+    const priceById = new Map(meds.map((m) => [m.id, m.price]));
+    for (const item of validated.data.items) {
+      const mid = Number(item.medication_id);
+      const qty = Number(item.quantity);
+      const unit = priceById.get(mid) ?? 0;
+      await db.patientBills.create({
+        data: {
+          bill_id: payment.id,
+          service_id: mid,
+          service_date: new Date(),
+          quantity: qty,
+          unit_cost: unit,
+          total_cost: unit * qty,
+          notes: `Prescription item`,
+        },
+      });
+    }
+    await db.auditLog.create({
+      data: {
+        user_id: userId,
+        record_id: String(prescription.id),
+        action: "CREATE",
+        model: "PatientBills",
+        details: "Added prescription items to bill",
+      },
+    });
+    // recompute totals
+    await db.payment.update({
+      where: { id: payment.id },
+      data: {
+        total_amount: (
+          await db.patientBills.aggregate({
+            where: { bill_id: payment.id },
+            _sum: { total_cost: true },
+          })
+        )._sum.total_cost ?? 0,
+      },
+    });
+
     await db.auditLog.create({
       data: {
         user_id: userId,
@@ -64,6 +125,16 @@ export async function createPrescription(data: any) {
         model: "Prescription",
         details: `appointment_id=${appointmentId}`,
       },
+    });
+
+    await db.notification.createMany({
+      data: [
+        {
+          user_id: appointment.patient_id,
+          title: "New Prescription",
+          body: "A new prescription has been issued for your appointment.",
+        },
+      ],
     });
 
     return { success: true, msg: "Prescription created", id: prescription.id };
