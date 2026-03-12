@@ -13,7 +13,7 @@ import { requireAuthUserId } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 function mapRoleToRoute(role: string) {
-  if (role === "LAB_TECHNICIAN") return "lab_scientist";
+  if (role === "LAB_SCIENTIST") return "lab_scientist";
   return role.toLowerCase();
 }
 

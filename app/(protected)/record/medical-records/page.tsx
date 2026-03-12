@@ -7,7 +7,7 @@ import { SearchParamsProps } from "@/types";
 import { checkRole } from "@/utils/roles";
 import { DATA_LIMIT } from "@/utils/seetings";
 import { getMedicalRecords } from "@/utils/services/medical-record";
-import { Diagnosis, LabTest, MedicalRecords, Patient } from "@prisma/client";
+import { Diagnosis, Doctor, LabTest, MedicalRecords, Patient } from "@prisma/client";
 import { format } from "date-fns";
 import { BriefcaseBusiness } from "lucide-react";
 
@@ -49,8 +49,11 @@ const columns = [
 
 interface ExtendedProps extends MedicalRecords {
   patient: Patient;
-  diagnosis: Diagnosis[];
+  diagnosis: (Diagnosis & {
+    doctor?: Pick<Doctor, "id" | "name" | "specialization" | "img" | "colorCode">;
+  })[];
   lab_test: LabTest[];
+  physician?: Pick<Doctor, "id" | "name" | "specialization" | "img" | "colorCode"> | null;
 }
 
 const MedicalRecordsPage = async (props: SearchParamsProps) => {
@@ -70,6 +73,7 @@ const MedicalRecordsPage = async (props: SearchParamsProps) => {
   const renderRow = (item: ExtendedProps) => {
     const name = item?.patient?.first_name + " " + item?.patient?.last_name;
     const patient = item?.patient;
+    const physician = item?.physician ?? item?.diagnosis?.[0]?.doctor;
 
     return (
       <tr
@@ -91,7 +95,16 @@ const MedicalRecordsPage = async (props: SearchParamsProps) => {
         <td className="hidden md:table-cell">
           {format(item?.created_at, "yyyy-MM-dd HH:mm:ss")}
         </td>
-        <td className="hidden 2xl:table-cell">{item?.doctor_id}</td>
+        <td className="hidden 2xl:table-cell">
+          {physician ? (
+            <span className="capitalize">
+              {physician.name}
+              {physician.specialization ? ` — ${physician.specialization}` : ""}
+            </span>
+          ) : (
+            <span className="text-gray-400 italic">No doctor found</span>
+          )}
+        </td>
         <td className="hidden lg:table-cell">
           {item?.diagnosis?.length === 0 ? (
             <span className="text-gray-400 italic">No diagnosis found</span>

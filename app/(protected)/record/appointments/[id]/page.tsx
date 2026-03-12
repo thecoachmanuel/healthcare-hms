@@ -6,9 +6,9 @@ import { DiagnosisContainer } from "@/components/appointment/diagnosis-container
 import { PatientDetailsCard } from "@/components/appointment/patient-details-card";
 import { PaymentsContainer } from "@/components/appointment/payment-container";
 import { VitalSigns } from "@/components/appointment/vital-signs";
+import { LabTestContainer } from "@/components/appointment/lab-test-container";
 import { MedicalHistoryContainer } from "@/components/medical-history-container";
 import { getAppointmentWithMedicalRecordsById } from "@/utils/services/appointment";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 const AppointmentDetailsPage = async ({
   params,
@@ -45,15 +45,7 @@ const AppointmentDetailsPage = async ({
             />
           </>
         )}
-        {cat === "lab-test" && (
-          <Card className="shadow-none">
-            <CardHeader>
-              <CardTitle>Lab Test</CardTitle>
-              <CardDescription>Manage lab requests and results for this appointment.</CardDescription>
-            </CardHeader>
-            <CardContent className="text-sm text-gray-500">Coming soon.</CardContent>
-          </Card>
-        )}
+        {cat === "lab-test" && <LabTestContainer appointmentId={id} />}
         {cat === "diagnosis" && (
           <DiagnosisContainer
             id={id}

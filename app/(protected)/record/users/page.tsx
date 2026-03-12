@@ -44,7 +44,12 @@ interface UserProps {
 }
 
 function formatRoleLabel(role: string) {
-  if (role === "LAB_TECHNICIAN" || role === "lab_technician" || role === "lab_scientist") {
+  if (
+    role === "LAB_SCIENTIST" ||
+    role === "LAB_TECHNICIAN" ||
+    role === "lab_technician" ||
+    role === "lab_scientist"
+  ) {
     return "lab scientist";
   }
   return role.toLowerCase().replaceAll("_", " ");

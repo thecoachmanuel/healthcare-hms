@@ -16,7 +16,7 @@ enum Role {
   ADMIN
   NURSE
   DOCTOR
-  LAB_TECHNICIAN
+  LAB_SCIENTIST
   PATIENT
   CASHIER
 }
@@ -212,13 +212,15 @@ model LabTest {
   result        String
   status        String
   notes         String?
-  service_id    Int @unique
+  service_id    Int
   services      Services @relation(fields: [service_id], references: [id])
 
   medical_record MedicalRecords  @relation(fields: [record_id], references: [id], onDelete: Cascade)
 
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
+
+  @@unique([record_id, service_id])
 }
 
 model MedicalRecords {
@@ -309,7 +311,7 @@ model Services {
   service_name    String
   description     String
   price           Float
-  labtest         LabTest?
+  labtests        LabTest[]
   bills           PatientBills[]
 
   created_at      DateTime @default(now())

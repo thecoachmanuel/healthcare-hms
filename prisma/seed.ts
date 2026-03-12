@@ -9,7 +9,7 @@ async function seed() {
   console.log("Seeding data...");
 
   // Create 3 staff
-  const staffRoles = ["NURSE", "CASHIER", "LAB_TECHNICIAN"];
+  const staffRoles = ["NURSE", "CASHIER", "LAB_SCIENTIST"];
   for (const role of staffRoles) {
     const mobile = faker.phone.number();
 

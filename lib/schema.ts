@@ -123,7 +123,7 @@ export const StaffSchema = z.object({
     .trim()
     .min(2, "Name must be at least 2 characters")
     .max(50, "Name must be at most 50 characters"),
-  role: z.enum(["NURSE", "LAB_TECHNICIAN"], { message: "Role is required." }),
+  role: z.enum(["NURSE", "LAB_SCIENTIST"], { message: "Role is required." }),
   phone: phoneSchema,
   email: z.string().email("Invalid email address."),
   address: z
@@ -195,4 +195,17 @@ export const ServicesSchema = z.object({
   service_name: z.string({ message: "Service name is required" }),
   price: z.string({ message: "Service price is required" }),
   description: z.string({ message: "Service description is required" }),
+});
+
+export const LabTestRequestSchema = z.object({
+  appointment_id: z.string(),
+  service_id: z.string(),
+  notes: z.string().optional(),
+});
+
+export const LabTestUpdateSchema = z.object({
+  id: z.string(),
+  status: z.string(),
+  result: z.string(),
+  notes: z.string().optional(),
 });

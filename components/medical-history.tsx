@@ -1,4 +1,4 @@
-import { Diagnosis, LabTest, MedicalRecords, Patient } from "@prisma/client";
+import { Diagnosis, Doctor, LabTest, MedicalRecords, Patient } from "@prisma/client";
 import { BriefcaseBusiness } from "lucide-react";
 import React from "react";
 import { Table } from "./tables/table";
@@ -9,8 +9,11 @@ import { MedicalHistoryDialog } from "./medical-history-dialog";
 
 export interface ExtendedMedicalHistory extends MedicalRecords {
   patient?: Patient;
-  diagnosis: Diagnosis[];
+  diagnosis: (Diagnosis & {
+    doctor?: Pick<Doctor, "id" | "name" | "specialization" | "img" | "colorCode">;
+  })[];
   lab_test: LabTest[];
+  physician?: Pick<Doctor, "id" | "name" | "specialization" | "img" | "colorCode"> | null;
   index?: number;
 }
 
@@ -53,6 +56,7 @@ export const MedicalHistory = ({ data, isShowProfile }: DataProps) => {
   ];
 
   const renderRow = (item: ExtendedMedicalHistory) => {
+    const physician = item?.physician ?? item?.diagnosis?.[0]?.doctor;
     return (
       <tr
         key={item.id}
@@ -80,7 +84,14 @@ export const MedicalHistory = ({ data, isShowProfile }: DataProps) => {
         <td className="">{formatDateTime(item?.created_at.toString())}</td>
 
         <td className="hidden  items-center py-2  xl:table-cell">
-          {item?.doctor_id}
+          {physician ? (
+            <span className="capitalize">
+              {physician.name}
+              {physician.specialization ? ` — ${physician.specialization}` : ""}
+            </span>
+          ) : (
+            <span className="text-gray-400 italic">No doctor found</span>
+          )}
         </td>
         <td className="hidden lg:table-cell">
           {item?.diagnosis?.length === 0 ? (

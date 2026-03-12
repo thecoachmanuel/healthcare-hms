@@ -4,16 +4,28 @@ import { DiagnosisFormData } from "@/components/dialogs/add-diagnosis";
 import db from "@/lib/db";
 import {
   DiagnosisSchema,
+  LabTestRequestSchema,
+  LabTestUpdateSchema,
   PatientBillSchema,
   PaymentSchema,
 } from "@/lib/schema";
 import { checkRole } from "@/utils/roles";
+import { requireAuthUserId } from "@/lib/auth";
 
 export const addDiagnosis = async (
   data: DiagnosisFormData,
   appointmentId: string
 ) => {
   try {
+    await requireAuthUserId();
+    const isAllowed =
+      (await checkRole("ADMIN")) ||
+      (await checkRole("DOCTOR")) ||
+      (await checkRole("NURSE"));
+    if (!isAllowed) {
+      return { success: false, error: "Unauthorized", status: 403 };
+    }
+
     const validatedData = DiagnosisSchema.parse(data);
 
     let medicalRecord = null;
@@ -44,10 +56,99 @@ export const addDiagnosis = async (
   } catch (error) {
     console.log(error);
     return {
+      success: false,
       error: "Failed to add diagnosis",
     };
   }
 };
+
+export async function requestLabTest(data: any) {
+  try {
+    await requireAuthUserId();
+    const isAllowed =
+      (await checkRole("ADMIN")) ||
+      (await checkRole("DOCTOR")) ||
+      (await checkRole("NURSE"));
+    if (!isAllowed) {
+      return { success: false, message: "Unauthorized", status: 403 };
+    }
+
+    const validated = LabTestRequestSchema.parse(data);
+    const appointmentId = Number(validated.appointment_id);
+
+    const appointment = await db.appointment.findUnique({
+      where: { id: appointmentId },
+      select: { id: true, patient_id: true, doctor_id: true },
+    });
+    if (!appointment) {
+      return { success: false, message: "Appointment not found", status: 404 };
+    }
+
+    const medical =
+      (await db.medicalRecords.findFirst({
+        where: { appointment_id: appointmentId },
+        select: { id: true },
+        orderBy: { created_at: "desc" },
+      })) ??
+      (await db.medicalRecords.create({
+        data: {
+          appointment_id: appointmentId,
+          patient_id: appointment.patient_id,
+          doctor_id: appointment.doctor_id,
+        },
+        select: { id: true },
+      }));
+
+    await db.labTest.create({
+      data: {
+        record_id: medical.id,
+        service_id: Number(validated.service_id),
+        test_date: new Date(),
+        status: "REQUESTED",
+        result: "PENDING",
+        notes: validated.notes ?? "",
+      },
+    });
+
+    return { success: true, message: "Lab test requested", status: 201 };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error?.message ?? "Failed to request lab test",
+      status: 500,
+    };
+  }
+}
+
+export async function updateLabTestResult(data: any) {
+  try {
+    await requireAuthUserId();
+    const isAllowed = await checkRole("LAB_SCIENTIST");
+    if (!isAllowed) {
+      return { success: false, message: "Unauthorized", status: 403 };
+    }
+
+    const validated = LabTestUpdateSchema.parse(data);
+
+    await db.labTest.update({
+      where: { id: Number(validated.id) },
+      data: {
+        status: validated.status,
+        result: validated.result,
+        notes: validated.notes ?? "",
+        updated_at: new Date(),
+      },
+    });
+
+    return { success: true, message: "Lab test updated", status: 200 };
+  } catch (error: any) {
+    return {
+      success: false,
+      message: error?.message ?? "Failed to update lab test",
+      status: 500,
+    };
+  }
+}
 
 export async function addNewBill(data: any) {
   try {

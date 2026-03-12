@@ -1,6 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import db from "@/lib/db";
+import { MedicalHistoryCard } from "./appointment/medical-history-card";
 import React from "react";
+import { Diagnosis, Doctor } from "@prisma/client";
 
 interface DataProps {
   id: string | number;
@@ -12,9 +15,19 @@ interface DataProps {
 export const MedicalHistoryDialog = async ({
   id,
   patientId,
-  doctor_id,
   label,
 }: DataProps) => {
+  const record = await db.medicalRecords.findFirst({
+    where: { appointment_id: Number(id), patient_id: patientId },
+    include: {
+      diagnosis: { include: { doctor: true }, orderBy: { created_at: "desc" } },
+    },
+    orderBy: { created_at: "desc" },
+  });
+
+  const diagnosis =
+    (record?.diagnosis as Array<Diagnosis & { doctor: Doctor }> | undefined) ?? [];
+
   return (
     <Dialog>
       <DialogTrigger asChild>
@@ -26,13 +39,15 @@ export const MedicalHistoryDialog = async ({
         </Button>
       </DialogTrigger>
       <DialogContent className="max-h-[90%] max-w-[425px] md:max-w-2xl 2xl:max-w-4xl p-8 overflow-y-auto">
-        {/* <DiagnosisContainer
-          id={id}
-          patientId={patientId!}
-          doctor_id={doctor_id!}
-        /> */}
-
-        <p>Diagnosis container form</p>
+        <div className="space-y-6">
+          {diagnosis.length === 0 ? (
+            <p className="text-sm text-gray-500">No diagnosis found.</p>
+          ) : (
+            diagnosis.map((d, index) => (
+              <MedicalHistoryCard key={d.id} record={d} index={index} />
+            ))
+          )}
+        </div>
       </DialogContent>
     </Dialog>
   );

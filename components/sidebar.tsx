@@ -93,6 +93,12 @@ export const Sidebar = async () => {
           icon: SquareActivity,
         },
         {
+          name: "Lab Tests",
+          href: "/lab_scientist/lab-tests",
+          access: ["lab_scientist"],
+          icon: SquareActivity,
+        },
+        {
           name: "Billing Overview",
           href: "/record/billing",
           access: ["admin", "doctor"],

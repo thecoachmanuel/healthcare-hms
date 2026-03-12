@@ -3,7 +3,9 @@ import { PatientRatingContainer } from "@/components/patient-rating-container";
 import { ProfileImage } from "@/components/profile-image";
 import { RatingContainer } from "@/components/rating-container";
 import { RecentAppointments } from "@/components/tables/recent-appointment";
+import { ReviewForm } from "@/components/dialogs/review-form";
 import { getDoctorById } from "@/utils/services/doctor";
+import { checkRole } from "@/utils/roles";
 import { format } from "date-fns";
 import Link from "next/link";
 import React from "react";
@@ -16,6 +18,7 @@ import { MdEmail, MdLocalPhone } from "react-icons/md";
 const DoctorProfile = async (props: { params: Promise<{ id: string }> }) => {
   const params = await props.params;
   const { data, totalAppointment } = await getDoctorById(params?.id);
+  const isPatient = await checkRole("PATIENT");
 
   if (!data) return null;
 
@@ -137,6 +140,7 @@ const DoctorProfile = async (props: { params: Promise<{ id: string }> }) => {
           </div>
         </div>
 
+        {isPatient && <ReviewForm staffId={params?.id} />}
         <RatingContainer id={params?.id} />
       </div>
     </div>

@@ -6,6 +6,8 @@ import {
 } from "@/components/dialogs/review-form";
 import db from "@/lib/db";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { requireAuthUserId } from "@/lib/auth";
+import { checkRole } from "@/utils/roles";
 
 export async function deleteDataById(
   id: string,
@@ -57,7 +59,20 @@ export async function deleteDataById(
 
 export async function createReview(values: ReviewFormValues) {
   try {
-    const validatedFields = reviewSchema.parse(values);
+    const userId = await requireAuthUserId();
+    const isPatient = await checkRole("PATIENT");
+    if (!isPatient) {
+      return {
+        success: false,
+        message: "Only patients can submit reviews",
+        status: 403,
+      };
+    }
+
+    const validatedFields = reviewSchema.parse({
+      ...values,
+      patient_id: userId,
+    });
 
     await db.rating.create({
       data: {
