@@ -28,7 +28,11 @@ const SpecSchema = z.object({
   active: z.boolean().optional(),
 });
 
-export function AddSpecialization() {
+export function AddSpecialization({
+  departments,
+}: {
+  departments: { label: string; value: string }[];
+}) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const form = useForm<z.infer<typeof SpecSchema>>({
@@ -69,7 +73,14 @@ export function AddSpecialization() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CustomInput type="input" control={form.control} name="name" label="Name" placeholder="" />
-            <CustomInput type="input" control={form.control} name="department" label="Department" placeholder="" />
+            <CustomInput
+              type="select"
+              control={form.control}
+              name="department"
+              label="Department"
+              placeholder="Select department"
+              selectList={[{ label: "Select department", value: "" }, ...departments]}
+            />
             <Button type="submit" disabled={loading} className="bg-blue-600 w-full">
               {loading ? "Saving..." : "Save"}
             </Button>
@@ -85,11 +96,13 @@ export function EditSpecialization({
   name,
   department,
   active,
+  departments,
 }: {
   id: number;
   name: string;
   department: string | null;
   active: boolean;
+  departments: { label: string; value: string }[];
 }) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -133,7 +146,14 @@ export function EditSpecialization({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CustomInput type="input" control={form.control} name="name" label="Name" placeholder="" />
-            <CustomInput type="input" control={form.control} name="department" label="Department" placeholder="" />
+            <CustomInput
+              type="select"
+              control={form.control}
+              name="department"
+              label="Department"
+              placeholder="Select department"
+              selectList={[{ label: "Select department", value: "" }, ...departments]}
+            />
             <CustomInput type="checkbox" control={form.control} name="active" label="Active" placeholder="Active" />
             <Button type="submit" disabled={loading} className="bg-blue-600 w-full">
               {loading ? "Saving..." : "Save"}
@@ -144,4 +164,3 @@ export function EditSpecialization({
     </Dialog>
   );
 }
-

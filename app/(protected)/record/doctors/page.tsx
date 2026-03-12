@@ -16,7 +16,7 @@ import { format } from "date-fns";
 import { Users, User, UserCheck, UserX } from "lucide-react";
 import React from "react";
 import db from "@/lib/db";
-import { ensureDefaultDoctorSpecializations } from "@/utils/services/catalog-seed";
+import { ensureDefaultDepartments, ensureDefaultDoctorSpecializations } from "@/utils/services/catalog-seed";
 import { StatCard } from "@/components/stat-card";
 import { DoctorSpecializationChart } from "@/components/charts/doctor-specialization-chart";
 
@@ -70,10 +70,16 @@ const DoctorsList = async (props: SearchParamsProps) => {
   if (!data) return null;
   const isAdmin = await checkRole("ADMIN");
   await ensureDefaultDoctorSpecializations();
+  await ensureDefaultDepartments();
   const specializationsDb = await db.doctorSpecialization.findMany({
     where: { active: true },
     orderBy: { name: "asc" },
     select: { name: true, department: true },
+  });
+  const departmentsDb = await db.department.findMany({
+    where: { active: true },
+    orderBy: { name: "asc" },
+    select: { name: true },
   });
   const specializations =
     specializationsDb.length > 0
@@ -82,6 +88,10 @@ const DoctorsList = async (props: SearchParamsProps) => {
           value: s.name,
           department: s.department ?? "General",
         }))
+      : [];
+  const departments =
+    departmentsDb.length > 0
+      ? departmentsDb.map((d: { name: string }) => ({ label: d.name, value: d.name }))
       : [];
 
   const fullCount = stats?.typeCounts?.find((t: any) => t.type === "FULL")?.count ?? 0;
@@ -174,7 +184,10 @@ const DoctorsList = async (props: SearchParamsProps) => {
         </div>
         <div className="w-full lg:w-fit flex items-center justify-between lg:justify-start gap-2">
           <SearchInput />
-          <DepartmentFilter />
+          <DepartmentFilter
+            options={[{ label: "All", value: "" }, ...departments]}
+            placeholder="Select department"
+          />
           <SelectFilter
             param="specialization"
             label="Specialization"
@@ -192,7 +205,9 @@ const DoctorsList = async (props: SearchParamsProps) => {
               { label: "Part", value: "PART" },
             ]}
           />
-          {isAdmin && <DoctorForm specializations={specializations as any} />}
+          {isAdmin && (
+            <DoctorForm specializations={specializations as any} departments={departments} />
+          )}
         </div>
       </div>
 

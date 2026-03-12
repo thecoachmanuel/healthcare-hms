@@ -208,7 +208,10 @@ const StaffList = async (props: SearchParamsProps) => {
         </div>
         <div className="w-full lg:w-fit flex items-center justify-between lg:justify-start gap-2">
           <SearchInput />
-          <DepartmentFilter />
+          <DepartmentFilter
+            options={[{ label: "All", value: "" }, ...departments.map((d: { id: number; name: string }) => ({ label: d.name, value: d.name }))]}
+            placeholder="Select department"
+          />
           <SelectFilter
             param="role"
             label="Role"

@@ -5,7 +5,7 @@ import { Table } from "../tables/table";
 import { AddSpecialization, EditSpecialization } from "../dialogs/specialization-dialog";
 import { ConfirmDelete } from "../dialogs/confirm-delete";
 import { deleteDoctorSpecialization } from "@/app/actions/catalog";
-import { ensureDefaultDoctorSpecializations } from "@/utils/services/catalog-seed";
+import { ensureDefaultDepartments, ensureDefaultDoctorSpecializations } from "@/utils/services/catalog-seed";
 
 const columns = [
   { header: "ID", key: "id", className: "hidden md:table-cell" },
@@ -19,6 +19,21 @@ export const SpecializationsSettings = async ({ q }: { q?: string }) => {
   try {
     await ensureDefaultDoctorSpecializations();
   } catch {}
+  try {
+    await ensureDefaultDepartments();
+  } catch {}
+
+  let departments: { label: string; value: string }[] = [];
+  try {
+    const departmentsDb = await db.department.findMany({
+      where: { active: true },
+      orderBy: { name: "asc" },
+      select: { name: true },
+    });
+    departments = departmentsDb.map((d: { name: string }) => ({ label: d.name, value: d.name }));
+  } catch {
+    departments = [];
+  }
   let specs: any[] = [];
   try {
     specs = await db.doctorSpecialization.findMany({
@@ -40,12 +55,7 @@ export const SpecializationsSettings = async ({ q }: { q?: string }) => {
       <td className="hidden md:table-cell">{s.active ? "Yes" : "No"}</td>
       <td>
         <div className="flex items-center gap-2">
-          <EditSpecialization
-            id={s.id}
-            name={s.name}
-            department={s.department}
-            active={s.active}
-          />
+          <EditSpecialization id={s.id} name={s.name} department={s.department} active={s.active} departments={departments} />
           <ConfirmDelete
             onConfirm={async () => {
               const res = await deleteDoctorSpecialization(s.id);
@@ -66,7 +76,7 @@ export const SpecializationsSettings = async ({ q }: { q?: string }) => {
         </div>
         <div className="flex items-center gap-2">
           <SearchInput />
-          <AddSpecialization />
+          <AddSpecialization departments={departments} />
         </div>
       </div>
       <Table columns={columns} data={specs as any[]} renderRow={renderRow} />

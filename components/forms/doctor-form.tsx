@@ -46,8 +46,10 @@ type Day = {
 
 export const DoctorForm = ({
   specializations,
+  departments,
 }: {
   specializations: { label: string; value: string; department: string }[];
+  departments: { label: string; value: string }[];
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -168,11 +170,12 @@ export const DoctorForm = ({
                   selectList={specializations}
                 />
                 <CustomInput
-                  type="input"
+                  type="select"
                   control={form.control}
                   name="department"
-                  placeholder="OPD"
+                  placeholder="Select department"
                   label="Department"
+                  selectList={[{ label: "Select department", value: "" }, ...departments]}
                 />
               </div>
 

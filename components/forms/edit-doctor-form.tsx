@@ -24,9 +24,11 @@ const TYPES = [
 export const EditDoctorForm = ({
   doctor,
   specializations,
+  departments,
 }: {
   doctor: Doctor;
   specializations: { label: string; value: string; department: string }[];
+  departments: { label: string; value: string }[];
 }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -104,7 +106,14 @@ export const EditDoctorForm = ({
             label="Specialization"
             selectList={specializations}
           />
-          <CustomInput type="input" control={form.control} name="department" placeholder="" label="Department" />
+          <CustomInput
+            type="select"
+            control={form.control}
+            name="department"
+            placeholder="Select department"
+            label="Department"
+            selectList={[{ label: "Select department", value: "" }, ...departments]}
+          />
         </div>
 
         <CustomInput type="input" control={form.control} name="license_number" placeholder="" label="License Number" />

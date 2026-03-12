@@ -7,7 +7,7 @@ import { Form } from "@/components/ui/form";
 import { StaffSchema } from "@/lib/schema";
 import { uploadToCloudinary } from "@/lib/cloudinary/upload";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Staff } from "@prisma/client";
+import type { Staff } from "@prisma/client";
 import { useRouter } from "next/navigation";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
