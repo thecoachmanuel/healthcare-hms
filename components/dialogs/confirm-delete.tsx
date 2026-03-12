@@ -5,22 +5,51 @@ import { Dialog, DialogClose, DialogContent, DialogTitle, DialogTrigger } from "
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import {
+  deleteDepartment,
+  deleteDoctorSpecialization,
+  deleteLabUnit,
+  deleteServiceCatalogItem,
+} from "@/app/actions/catalog";
+
+type DeleteAction =
+  | { type: "department"; id: number }
+  | { type: "labUnit"; id: number }
+  | { type: "doctorSpecialization"; id: number }
+  | { type: "serviceCatalogItem"; id: number };
 
 export function ConfirmDelete({
   title = "Delete Confirmation",
   description = "Are you sure you want to delete this item?",
   onConfirm,
+  deleteAction,
 }: {
   title?: string;
   description?: string;
-  onConfirm: () => Promise<{ success: boolean; msg: string }>;
+  onConfirm?: () => Promise<{ success: boolean; msg: string }>;
+  deleteAction?: DeleteAction;
 }) {
   const [loading, setLoading] = useState(false);
 
   const handleDelete = async () => {
     try {
       setLoading(true);
-      const res = await onConfirm();
+      let res: { success: boolean; msg: string };
+      if (onConfirm) {
+        res = await onConfirm();
+      } else if (deleteAction) {
+        if (deleteAction.type === "department") {
+          res = await deleteDepartment(deleteAction.id);
+        } else if (deleteAction.type === "labUnit") {
+          res = await deleteLabUnit(deleteAction.id);
+        } else if (deleteAction.type === "doctorSpecialization") {
+          res = await deleteDoctorSpecialization(deleteAction.id);
+        } else {
+          res = await deleteServiceCatalogItem(deleteAction.id);
+        }
+      } else {
+        res = { success: false, msg: "Missing delete action" };
+      }
       if (res.success) toast.success(res.msg);
       else toast.error(res.msg);
     } catch (e: any) {
@@ -65,4 +94,3 @@ export function ConfirmDelete({
     </Dialog>
   );
 }
-

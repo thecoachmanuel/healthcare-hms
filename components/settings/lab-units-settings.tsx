@@ -4,7 +4,6 @@ import SearchInput from "../search-input";
 import { Table } from "../tables/table";
 import { AddLabUnit, EditLabUnit } from "../dialogs/lab-unit-dialog";
 import { ConfirmDelete } from "../dialogs/confirm-delete";
-import { deleteLabUnit } from "@/app/actions/catalog";
 import { ensureDefaultLabUnits } from "@/utils/services/catalog-seed";
 
 const columns = [
@@ -41,10 +40,7 @@ export const LabUnitsSettings = async ({ q }: { q?: string }) => {
         <div className="flex items-center gap-2">
           <EditLabUnit id={u.id} name={u.name} active={u.active} />
           <ConfirmDelete
-            onConfirm={async () => {
-              const res = await deleteLabUnit(u.id);
-              return { success: res.success, msg: res.msg };
-            }}
+            deleteAction={{ type: "labUnit", id: u.id }}
           />
         </div>
       </td>

@@ -4,7 +4,6 @@ import SearchInput from "../search-input";
 import { Table } from "../tables/table";
 import { AddSpecialization, EditSpecialization } from "../dialogs/specialization-dialog";
 import { ConfirmDelete } from "../dialogs/confirm-delete";
-import { deleteDoctorSpecialization } from "@/app/actions/catalog";
 import { ensureDefaultDepartments, ensureDefaultDoctorSpecializations } from "@/utils/services/catalog-seed";
 
 const columns = [
@@ -57,10 +56,7 @@ export const SpecializationsSettings = async ({ q }: { q?: string }) => {
         <div className="flex items-center gap-2">
           <EditSpecialization id={s.id} name={s.name} department={s.department} active={s.active} departments={departments} />
           <ConfirmDelete
-            onConfirm={async () => {
-              const res = await deleteDoctorSpecialization(s.id);
-              return { success: res.success, msg: res.msg };
-            }}
+            deleteAction={{ type: "doctorSpecialization", id: s.id }}
           />
         </div>
       </td>
