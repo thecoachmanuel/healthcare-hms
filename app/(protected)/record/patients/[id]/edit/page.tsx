@@ -8,7 +8,8 @@ import React from "react";
 const EditPatientPage = async (props: { params: Promise<{ id: string }> }) => {
   await requireAuthUserId();
   const isAdmin = await checkRole("ADMIN");
-  if (!isAdmin) return null;
+  const isRecordOfficer = await checkRole("RECORD_OFFICER");
+  if (!isAdmin && !isRecordOfficer) return null;
 
   const params = await props.params;
   const patient = await db.patient.findUnique({ where: { id: params.id } });
@@ -25,4 +26,3 @@ const EditPatientPage = async (props: { params: Promise<{ id: string }> }) => {
 };
 
 export default EditPatientPage;
-

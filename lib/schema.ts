@@ -235,6 +235,13 @@ export const PrescriptionItemSchema = z.object({
   instructions: z.string().optional(),
 });
 
+export const MedicationAdministrationSchema = z.object({
+  prescription_item_id: z.string(),
+  patient_id: z.string(),
+  quantity: z.string(),
+  notes: z.string().optional(),
+});
+
 export const CreatePrescriptionSchema = z.object({
   appointment_id: z.string(),
   patient_id: z.string(),

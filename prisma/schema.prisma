@@ -96,6 +96,7 @@ model Patient {
   payments                 Payment[]
   ratings                  Rating[]
   prescriptions            Prescription[]
+  medication_administrations MedicationAdministration[]
 
   created_at               DateTime @default(now())
   updated_at               DateTime @updatedAt
@@ -156,9 +157,18 @@ model Staff {
   status        Status @default(ACTIVE)
 
   lab_unit      LabUnit? @relation(fields: [lab_unit_id], references: [id])
+  medication_administrations MedicationAdministration[]
 
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
+}
+
+model Department {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  active     Boolean  @default(true)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 
@@ -430,10 +440,32 @@ model PrescriptionItem {
 
   prescription     Prescription @relation(fields: [prescription_id], references: [id], onDelete: Cascade)
   medication       Services @relation(fields: [medication_id], references: [id], onDelete: Cascade)
+  administrations  MedicationAdministration[]
 
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
 
   @@index([prescription_id])
   @@index([medication_id])
+}
+
+model MedicationAdministration {
+  id                    Int      @id @default(autoincrement())
+  prescription_item_id  Int
+  patient_id            String
+  nurse_id              String
+  quantity              Int
+  notes                 String?
+  administered_at       DateTime @default(now())
+
+  prescription_item     PrescriptionItem @relation(fields: [prescription_item_id], references: [id], onDelete: Cascade)
+  patient               Patient          @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  nurse                 Staff            @relation(fields: [nurse_id], references: [id], onDelete: Cascade)
+
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  @@index([patient_id])
+  @@index([nurse_id])
+  @@index([prescription_item_id])
 }

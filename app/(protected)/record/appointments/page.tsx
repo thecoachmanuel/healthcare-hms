@@ -2,12 +2,14 @@ import { AppointmentActionOptions } from "@/components/appointment-actions";
 import { AppointmentStatusIndicator } from "@/components/appointment-status-indicator";
 import { ProfileImage } from "@/components/profile-image";
 import SearchInput from "@/components/search-input";
+import { DepartmentFilter } from "@/components/filters/department-filter";
 import { Table } from "@/components/tables/table";
 import { ViewAppointment } from "@/components/view-appointment";
 import { checkRole, getRole } from "@/utils/roles";
 import { DATA_LIMIT } from "@/utils/seetings";
 import { getPatientAppointments } from "@/utils/services/appointment";
 import { requireAuthUserId } from "@/lib/auth";
+import db from "@/lib/db";
 import { Appointment, Doctor, Patient } from "@prisma/client";
 import { format } from "date-fns";
 import { BriefcaseBusiness } from "lucide-react";
@@ -60,6 +62,7 @@ const Appointments = async (props: {
   const page = (searchParams?.p || "1") as string;
   const searchQuery = searchParams?.q || "";
   const id = searchParams?.id || undefined;
+  const department = (searchParams?.department || "") as string;
 
   let queryId = undefined;
 
@@ -75,11 +78,19 @@ const Appointments = async (props: {
     queryId = undefined;
   }
 
+  let deptFilter: string | undefined = undefined;
+  if (userRole === "nurse" && !queryId) {
+    const staff = await db.staff.findUnique({ where: { id: userId }, select: { department: true } });
+    const staffDept = staff?.department?.trim() ?? "";
+    deptFilter = department.trim().length > 0 ? department : staffDept.length > 0 ? staffDept : undefined;
+  }
+
   const { data, totalPages, totalRecord, currentPage } =
     await getPatientAppointments({
       page,
       search: searchQuery,
       id: queryId!,
+      department: deptFilter,
     });
 
   if (!data) return null;
@@ -161,6 +172,10 @@ const Appointments = async (props: {
 
         <div className="w-full lg:w-fit flex items-center justify-between lg:justify-start gap-2">
           <SearchInput />
+
+          {userRole === "nurse" && (
+            <DepartmentFilter placeholder="e.g. OPD" />
+          )}
 
           {isPatient && <AppointmentContainer id={userId!} />}
         </div>

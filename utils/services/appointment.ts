@@ -53,9 +53,10 @@ interface AllAppointmentsProps {
   limit?: number | string;
   search?: string;
   id?: string;
+  department?: string;
 }
 
-const buildQuery = (id?: string, search?: string) => {
+const buildQuery = (id?: string, search?: string, department?: string) => {
   // Base conditions for search if it exists
   const searchConditions: Prisma.AppointmentWhereInput = search
     ? {
@@ -86,15 +87,27 @@ const buildQuery = (id?: string, search?: string) => {
       }
     : {};
 
+  const dept = (department ?? "").trim();
+  const departmentConditions: Prisma.AppointmentWhereInput = dept
+    ? {
+        doctor: {
+          department: { contains: dept, mode: "insensitive" },
+        },
+      }
+    : {};
+
   // Combine both conditions with AND if both exist
   const combinedQuery: Prisma.AppointmentWhereInput =
-    id || search
+    id || search || dept
       ? {
           AND: [
             ...(Object.keys(searchConditions).length > 0
               ? [searchConditions]
               : []),
             ...(Object.keys(idConditions).length > 0 ? [idConditions] : []),
+            ...(Object.keys(departmentConditions).length > 0
+              ? [departmentConditions]
+              : []),
           ],
         }
       : {};
@@ -107,6 +120,7 @@ export async function getPatientAppointments({
   limit,
   search,
   id,
+  department,
 }: AllAppointmentsProps) {
   try {
     const PAGE_NUMBER = Number(page) <= 0 ? 1 : Number(page);
@@ -116,7 +130,7 @@ export async function getPatientAppointments({
 
     const [data, totalRecord] = await Promise.all([
       db.appointment.findMany({
-        where: buildQuery(id, search),
+        where: buildQuery(id, search, department),
         skip: SKIP,
         take: LIMIT,
         select: {
@@ -152,7 +166,7 @@ export async function getPatientAppointments({
         orderBy: { appointment_date: "desc" },
       }),
       db.appointment.count({
-        where: buildQuery(id, search),
+        where: buildQuery(id, search, department),
       }),
     ]);
 

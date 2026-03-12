@@ -1,7 +1,7 @@
 "use server";
 
 import db from "@/lib/db";
-import { CreatePrescriptionSchema } from "@/lib/schema";
+import { CreatePrescriptionSchema, MedicationAdministrationSchema } from "@/lib/schema";
 import { requireAuthUserId } from "@/lib/auth";
 import { checkRole } from "@/utils/roles";
 
@@ -168,6 +168,85 @@ export async function markPrescriptionDispensed(id: string) {
     });
 
     return { success: true, msg: "Prescription marked as dispensed" };
+  } catch (error) {
+    console.log(error);
+    return { success: false, msg: "Internal Server Error" };
+  }
+}
+
+export async function recordMedicationAdministration(data: any) {
+  try {
+    const userId = await requireAuthUserId();
+    const isAdmin = await checkRole("ADMIN");
+    const isNurse = await checkRole("NURSE");
+    if (!isAdmin && !isNurse) {
+      return { success: false, msg: "Unauthorized" };
+    }
+
+    const validated = MedicationAdministrationSchema.safeParse(data);
+    if (!validated.success) {
+      return { success: false, msg: "Invalid administration data" };
+    }
+
+    const prescriptionItemId = Number(validated.data.prescription_item_id);
+    const quantity = Number(validated.data.quantity);
+    if (!Number.isFinite(quantity) || quantity <= 0) {
+      return { success: false, msg: "Quantity must be greater than 0" };
+    }
+
+    const item = await db.prescriptionItem.findUnique({
+      where: { id: prescriptionItemId },
+      include: { prescription: { select: { id: true, patient_id: true, status: true } } },
+    });
+    if (!item) return { success: false, msg: "Prescription item not found" };
+
+    if (!isAdmin && item.prescription.status !== "DISPENSED") {
+      return { success: false, msg: "Prescription must be dispensed before administration" };
+    }
+
+    if (item.prescription.patient_id !== validated.data.patient_id) {
+      return { success: false, msg: "Unauthorized" };
+    }
+
+    const already = await db.medicationAdministration.aggregate({
+      where: {
+        prescription_item_id: item.id,
+        patient_id: item.prescription.patient_id,
+      },
+      _sum: { quantity: true },
+    });
+    const administeredQty = already._sum.quantity ?? 0;
+    const remaining = item.quantity - administeredQty;
+    if (remaining <= 0) {
+      return { success: false, msg: "No remaining quantity to administer" };
+    }
+    if (quantity > remaining) {
+      return { success: false, msg: `Quantity exceeds remaining (${remaining})` };
+    }
+
+    const created = await db.medicationAdministration.create({
+      data: {
+        prescription_item_id: item.id,
+        patient_id: item.prescription.patient_id,
+        nurse_id: userId,
+        quantity,
+        notes: validated.data.notes?.trim() || null,
+        administered_at: new Date(),
+      },
+      select: { id: true },
+    });
+
+    await db.auditLog.create({
+      data: {
+        user_id: userId,
+        record_id: String(created.id),
+        action: "CREATE",
+        model: "MedicationAdministration",
+        details: `prescription_item_id=${item.id} quantity=${quantity}`,
+      },
+    });
+
+    return { success: true, msg: "Medication administration recorded" };
   } catch (error) {
     console.log(error);
     return { success: false, msg: "Internal Server Error" };

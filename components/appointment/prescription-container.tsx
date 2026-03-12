@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { CreatePrescription } from "../dialogs/create-prescription";
 import { MarkPrescriptionDispensed } from "../dialogs/mark-prescription-dispensed";
 import Link from "next/link";
+import { RecordMedicationAdministration } from "../dialogs/record-medication-administration";
 
 export const PrescriptionContainer = async ({
   appointmentId,
@@ -15,13 +16,25 @@ export const PrescriptionContainer = async ({
 }) => {
   const isDoctor = await checkRole("DOCTOR");
   const canDispense = (await checkRole("ADMIN")) || (await checkRole("PHARMACIST"));
+  const canAdminister = (await checkRole("ADMIN")) || (await checkRole("NURSE"));
 
   const [prescriptions, medications] = await Promise.all([
     db.prescription.findMany({
       where: { appointment_id: Number(appointmentId) },
       include: {
         items: {
-          include: { medication: { select: { id: true, service_name: true } } },
+          include: {
+            medication: { select: { id: true, service_name: true } },
+            administrations: {
+              select: {
+                id: true,
+                quantity: true,
+                administered_at: true,
+                nurse: { select: { name: true } },
+              },
+              orderBy: { administered_at: "desc" },
+            },
+          },
         },
         doctor: { select: { name: true } },
       },
@@ -81,6 +94,39 @@ export const PrescriptionContainer = async ({
                     — qty {i.quantity}
                     {i.dosage ? `, ${i.dosage}` : ""}
                     {i.instructions ? `, ${i.instructions}` : ""}
+
+                    {canAdminister ? (
+                      (() => {
+                        const administered = (i.administrations ?? []).reduce((sum: number, a: any) => sum + (a.quantity ?? 0), 0);
+                        const remaining = Math.max(0, i.quantity - administered);
+                        return (
+                          <div className="mt-2 flex flex-col gap-2">
+                            <div className="text-xs text-gray-500">
+                              Administered {administered}/{i.quantity}
+                            </div>
+                            {remaining > 0 ? (
+                              <RecordMedicationAdministration
+                                prescriptionItemId={i.id}
+                                patientId={patientId}
+                                medicationName={i.medication?.service_name ?? "Medication"}
+                                remaining={remaining}
+                              />
+                            ) : (
+                              <div className="text-xs text-gray-500">Fully administered</div>
+                            )}
+                            {(i.administrations ?? []).length > 0 ? (
+                              <div className="space-y-1">
+                                {i.administrations.slice(0, 3).map((a: any) => (
+                                  <div key={a.id} className="text-xs text-gray-600">
+                                    {a.nurse?.name ?? "Nurse"} — qty {a.quantity}
+                                  </div>
+                                ))}
+                              </div>
+                            ) : null}
+                          </div>
+                        );
+                      })()
+                    ) : null}
                   </li>
                 ))}
               </ul>

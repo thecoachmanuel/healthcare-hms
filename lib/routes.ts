@@ -21,13 +21,13 @@ export const routeAccess: RouteAccessProps = {
   "/record/staffs(.*)": ["admin"],
   "/record/patients": ["admin", "doctor", "nurse", "record_officer"],
   "/record/patients(.*)": ["admin", "record_officer"],
-  "/record/appointments": ["admin", "doctor", "nurse", "patient", "lab_scientist", "lab_technician", "cashier", "pharmacist"],
-  "/record/appointments(.*)": ["admin", "doctor", "nurse", "patient", "lab_scientist", "lab_technician", "cashier", "pharmacist"],
-  "/record/medical-records": ["admin", "doctor", "nurse"],
+  "/record/appointments": ["admin", "doctor", "nurse", "patient", "lab_scientist", "lab_technician", "cashier", "pharmacist", "record_officer"],
+  "/record/appointments(.*)": ["admin", "doctor", "nurse", "patient", "lab_scientist", "lab_technician", "cashier", "pharmacist", "record_officer"],
+  "/record/medical-records": ["admin", "doctor", "nurse", "record_officer"],
   "/record/billing": ["admin", "cashier", "doctor", "nurse", "lab_scientist", "lab_technician", "pharmacist"],
   "/record/payments": ["admin", "cashier"],
   "/patient/registration": ["patient"],
-  "/notifications": ["admin", "doctor", "nurse", "lab_scientist", "lab_technician", "cashier", "patient"],
+  "/notifications": ["admin", "doctor", "nurse", "lab_scientist", "lab_technician", "cashier", "patient", "record_officer"],
 };
 
 // import { createRouteMatcher } from "@clerk/nextjs/server";

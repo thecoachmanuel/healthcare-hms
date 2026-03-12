@@ -3,6 +3,7 @@ import { SiteSettingsSection } from "@/components/settings/site-settings";
 import { ServiceCatalogSettings } from "@/components/settings/service-catalog-settings";
 import { LabUnitsSettings } from "@/components/settings/lab-units-settings";
 import { SpecializationsSettings } from "@/components/settings/specializations-settings";
+import { DepartmentsSettings } from "@/components/settings/departments-settings";
 import { Card } from "@/components/ui/card";
 import { SearchParamsProps } from "@/types";
 
@@ -27,6 +28,7 @@ const SystemSettingPage = async (props: SearchParamsProps) => {
           )}
           {cat === "lab-units" && <LabUnitsSettings q={q} />}
           {cat === "specializations" && <SpecializationsSettings q={q} />}
+          {cat === "departments" && <DepartmentsSettings q={q} />}
           {cat === "site" && <SiteSettingsSection />}
         </Card>
       </div>

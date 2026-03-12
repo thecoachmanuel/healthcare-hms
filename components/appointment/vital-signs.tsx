@@ -1,7 +1,6 @@
 import db from "@/lib/db";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { calculateBMI } from "@/utils";
-import { stat } from "fs";
 import { format } from "date-fns";
 import { Separator } from "../ui/separator";
 import { checkRole } from "@/utils/roles";
@@ -41,6 +40,10 @@ export const VitalSigns = async ({
   const vitals = data?.vital_signs || null;
 
   const isPatient = await checkRole("PATIENT");
+  const canAdd =
+    (await checkRole("ADMIN")) ||
+    (await checkRole("DOCTOR")) ||
+    (await checkRole("NURSE"));
 
   return (
     <section id="vital-signs">
@@ -48,7 +51,7 @@ export const VitalSigns = async ({
         <CardHeader className="flex flex-row justify-between items-center">
           <CardTitle>Vital Signs</CardTitle>
 
-          {!isPatient && (
+          {!isPatient && canAdd && (
             <AddVitalSigns
               key={new Date().getTime()}
               patientId={patientId}

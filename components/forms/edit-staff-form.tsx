@@ -29,9 +29,11 @@ const TYPES = [
 export const EditStaffForm = ({
   staff,
   labUnits,
+  departments,
 }: {
   staff: Staff;
   labUnits: { label: string; value: string }[];
+  departments: { label: string; value: string }[];
 }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -98,7 +100,14 @@ export const EditStaffForm = ({
         </div>
         <CustomInput type="input" control={form.control} name="address" label="Address" placeholder="" />
         <div className="flex items-center gap-2">
-          <CustomInput type="input" control={form.control} name="department" label="Department" placeholder="" />
+          <CustomInput
+            type="select"
+            control={form.control}
+            name="department"
+            label="Department"
+            placeholder="Select department"
+            selectList={[{ label: "Select department", value: "" }, ...departments]}
+          />
           <CustomInput type="input" control={form.control} name="license_number" label="License Number" placeholder="" />
         </div>
         <div className="space-y-2">

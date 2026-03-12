@@ -30,13 +30,17 @@ export const DiagnosisContainer = async ({
 
   const diagnosis = data?.diagnosis || null;
   const isPatient = await checkRole("PATIENT");
+  const canAdd =
+    (await checkRole("ADMIN")) ||
+    (await checkRole("DOCTOR")) ||
+    (await checkRole("NURSE"));
 
   return (
     <div>
       {diagnosis?.length === 0 || !diagnosis ? (
         <div className="flex flex-col items-center justify-center mt-20">
           <NoDataFound note="No diagnosis found" />
-          {!isPatient && (
+          {!isPatient && canAdd && (
             <AddDiagnosis
               key={new Date().getTime()}
               patientId={patientId}
@@ -52,7 +56,7 @@ export const DiagnosisContainer = async ({
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Medical Records</CardTitle>
 
-              {!isPatient && (
+              {!isPatient && canAdd && (
                 <AddDiagnosis
                   key={new Date().getTime()}
                   patientId={patientId}

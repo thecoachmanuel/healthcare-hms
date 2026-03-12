@@ -102,8 +102,16 @@ export async function createNewPatient(data: any, pid: string) {
 
     const patientData = validateData.data;
     let patient_id = pid;
+    let createdById: string | null = null;
 
     if (pid === "new-patient") {
+      createdById = await requireAuthUserId();
+      const isAllowed =
+        (await checkRole("ADMIN")) || (await checkRole("RECORD_OFFICER"));
+      if (!isAllowed) {
+        return { success: false, error: true, msg: "Unauthorized" };
+      }
+
       const supabaseAdmin = createSupabaseAdminClient();
       const password =
         patientData.phone.length >= 8 ? patientData.phone : patientData.phone.padEnd(8, "0");
@@ -144,7 +152,7 @@ export async function createNewPatient(data: any, pid: string) {
 
     await db.auditLog.create({
       data: {
-        user_id: patient_id,
+        user_id: createdById ?? patient_id,
         record_id: created.id,
         action: "CREATE",
         model: "Patient",
@@ -162,8 +170,9 @@ export async function createNewPatient(data: any, pid: string) {
 export async function adminUpdatePatient(data: any, pid: string) {
   try {
     const userId = await requireAuthUserId();
-    const isAdmin = await checkRole("ADMIN");
-    if (!isAdmin) {
+    const isAllowed =
+      (await checkRole("ADMIN")) || (await checkRole("RECORD_OFFICER"));
+    if (!isAllowed) {
       return { success: false, error: true, msg: "Unauthorized" };
     }
 

@@ -14,6 +14,7 @@ import { getAllPatients } from "@/utils/services/patient";
 import { Patient } from "@prisma/client";
 import { format } from "date-fns";
 import { Users } from "lucide-react";
+import { AddPatientDialog } from "@/components/dialogs/add-patient-dialog";
 
 const columns = [
   {
@@ -78,6 +79,7 @@ const PatientList = async (props: SearchParamsProps) => {
     hospitalNumber: hn || undefined,
   });
   const isAdmin = await checkRole("ADMIN");
+  const isRecordOfficer = await checkRole("RECORD_OFFICER");
 
   if (!data) return null;
 
@@ -131,6 +133,10 @@ const PatientList = async (props: SearchParamsProps) => {
               <div className="space-y-3">
                 {isAdmin && <EditAction href={`/record/patients/${item?.id}/edit`} />}
 
+                {!isAdmin && isRecordOfficer && (
+                  <EditAction href={`/record/patients/${item?.id}/edit`} />
+                )}
+
                 {isAdmin && (
                   <ActionDialog
                     type="delete"
@@ -159,6 +165,7 @@ const PatientList = async (props: SearchParamsProps) => {
         </div>
         <div className="w-full lg:w-fit flex items-center justify-between lg:justify-start gap-2">
           <SearchInput />
+          {(isAdmin || isRecordOfficer) && <AddPatientDialog />}
           <SelectFilter
             param="gender"
             label="Gender"

@@ -20,6 +20,8 @@ import { ensureDefaultLabUnits } from "@/utils/services/catalog-seed";
 import { StatCard } from "@/components/stat-card";
 import { StaffRoleChart } from "@/components/charts/staff-role-chart";
 import { UserRound, UserX, UserCheck } from "lucide-react";
+import { requireAuthUserId } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 const columns = [
   {
@@ -60,6 +62,29 @@ const StaffList = async (props: SearchParamsProps) => {
   const department = (searchParams?.department || "") as string;
   const unit = (searchParams?.unit || "") as string;
 
+  const userId = await requireAuthUserId();
+  const isAdmin = await checkRole("ADMIN");
+  const viewerDept = !isAdmin
+    ? (
+        (
+          await db.staff.findUnique({ where: { id: userId }, select: { department: true } })
+        )?.department?.trim() ??
+        (
+          await db.doctor.findUnique({ where: { id: userId }, select: { department: true } })
+        )?.department?.trim() ??
+        ""
+      )
+    : "";
+  if (!isAdmin && department.trim().length === 0 && viewerDept.length > 0) {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(searchParams ?? {})) {
+      if (typeof v === "string" && v.length > 0) params.set(k, v);
+    }
+    params.set("department", viewerDept);
+    params.delete("p");
+    redirect(`/record/staffs?${params.toString()}`);
+  }
+
   const { data, totalPages, totalRecords, currentPage, stats } = await getAllStaff({
     page,
     search: searchQuery,
@@ -73,9 +98,13 @@ const StaffList = async (props: SearchParamsProps) => {
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
+  const departments = await db.department.findMany({
+    where: { active: true },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
 
   if (!data) return null;
-  const isAdmin = await checkRole("ADMIN");
   const activeCount = stats?.statusCounts?.find((s: any) => s.status === "ACTIVE")?.count ?? 0;
   const inactiveCount = stats?.statusCounts?.find((s: any) => s.status === "INACTIVE")?.count ?? 0;
   const roleChartData = (stats?.roleCounts ?? []).map((r: any) => ({
@@ -83,7 +112,12 @@ const StaffList = async (props: SearchParamsProps) => {
     count: Number(r.count),
   }));
 
-  const renderRow = (item: Staff) => (
+  const renderRow = (item: Staff) => {
+    const isMine =
+      viewerDept.length > 0 &&
+      (item.department ?? "").trim().toLowerCase() === viewerDept.toLowerCase();
+
+    return (
     <tr
       key={item?.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-slate-50"
@@ -96,7 +130,14 @@ const StaffList = async (props: SearchParamsProps) => {
           textClassName="text-black"
         />
         <div>
-          <h3 className="uppercase">{item?.name}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="uppercase">{item?.name}</h3>
+            {isMine ? (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700">
+                Your department
+              </span>
+            ) : null}
+          </div>
           <span className="text-sm capitalize">{item?.phone}</span>
         </div>
       </td>
@@ -117,7 +158,8 @@ const StaffList = async (props: SearchParamsProps) => {
         </div>
       </td>
     </tr>
-  );
+    );
+  };
 
   return (
     <div className="bg-white rounded-xl py-6 px-3 2xl:px-6">
@@ -197,6 +239,10 @@ const StaffList = async (props: SearchParamsProps) => {
               labUnits={labUnits.map((u: { id: number; name: string }) => ({
                 label: u.name,
                 value: String(u.id),
+              }))}
+              departments={departments.map((d: { id: number; name: string }) => ({
+                label: d.name,
+                value: d.name,
               }))}
             />
           )}

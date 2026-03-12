@@ -174,6 +174,99 @@ export async function deleteDoctorSpecialization(id: number) {
   }
 }
 
+export async function createDepartment(data: { name: string }) {
+  try {
+    const userId = await requireAuthUserId();
+    const isAdmin = await checkRole("ADMIN");
+    if (!isAdmin) return { success: false, msg: "Unauthorized" };
+
+    const name = data.name.trim();
+    if (!name) return { success: false, msg: "Department name is required" };
+
+    const created = await db.department.create({ data: { name, active: true } });
+
+    await db.auditLog.create({
+      data: {
+        user_id: userId,
+        record_id: String(created.id),
+        action: "CREATE",
+        model: "Department",
+        details: `name=${name}`,
+      },
+    });
+
+    return { success: true, msg: "Department created" };
+  } catch (error: any) {
+    return { success: false, msg: error?.message ?? "Internal Server Error" };
+  }
+}
+
+export async function updateDepartment(data: { id: number; name: string; active: boolean }) {
+  try {
+    const userId = await requireAuthUserId();
+    const isAdmin = await checkRole("ADMIN");
+    if (!isAdmin) return { success: false, msg: "Unauthorized" };
+
+    const name = data.name.trim();
+    if (!name) return { success: false, msg: "Department name is required" };
+
+    const updated = await db.department.update({
+      where: { id: data.id },
+      data: { name, active: data.active },
+    });
+
+    await db.auditLog.create({
+      data: {
+        user_id: userId,
+        record_id: String(updated.id),
+        action: "UPDATE",
+        model: "Department",
+        details: `name=${name} active=${data.active}`,
+      },
+    });
+
+    return { success: true, msg: "Department updated" };
+  } catch (error: any) {
+    return { success: false, msg: error?.message ?? "Internal Server Error" };
+  }
+}
+
+export async function deleteDepartment(id: number) {
+  try {
+    const userId = await requireAuthUserId();
+    const isAdmin = await checkRole("ADMIN");
+    if (!isAdmin) return { success: false, msg: "Unauthorized" };
+
+    const dept = await db.department.findUnique({ where: { id }, select: { id: true, name: true } });
+    if (!dept) return { success: false, msg: "Department not found" };
+
+    const [staffCount, doctorCount] = await Promise.all([
+      db.staff.count({ where: { department: { equals: dept.name, mode: "insensitive" } } }),
+      db.doctor.count({ where: { department: { equals: dept.name, mode: "insensitive" } } }),
+    ]);
+    if (staffCount > 0 || doctorCount > 0) {
+      await db.department.update({ where: { id }, data: { active: false } });
+      return { success: true, msg: "Department deactivated (in use)" };
+    }
+
+    await db.department.delete({ where: { id } });
+
+    await db.auditLog.create({
+      data: {
+        user_id: userId,
+        record_id: String(id),
+        action: "DELETE",
+        model: "Department",
+        details: "Deleted department",
+      },
+    });
+
+    return { success: true, msg: "Department deleted" };
+  } catch (error: any) {
+    return { success: false, msg: error?.message ?? "Internal Server Error" };
+  }
+}
+
 export async function updateMyLabUnit(labUnitId: number) {
   try {
     const userId = await requireAuthUserId();

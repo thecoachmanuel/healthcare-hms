@@ -35,8 +35,10 @@ const TYPES = [
 
 export const StaffForm = ({
   labUnits,
+  departments,
 }: {
   labUnits: { label: string; value: string }[];
+  departments: { label: string; value: string }[];
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -159,11 +161,12 @@ export const StaffForm = ({
                 label="License Number"
               />
               <CustomInput
-                type="input"
+                type="select"
                 control={form.control}
                 name="department"
                 placeholder="Children's ward"
                 label="Department"
+                selectList={[{ label: "Select department", value: "" }, ...departments]}
               />
 
               <CustomInput

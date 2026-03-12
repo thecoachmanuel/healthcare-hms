@@ -7,16 +7,47 @@ import Link from "next/link";
 import React from "react";
 
 const PatientManagementPage = async () => {
-  await requireAuthUserId();
+  const userId = await requireAuthUserId();
 
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
-  const [totalPatients, todaysAppointments, pendingLabTests] = await Promise.all([
-    (db as any).patient.count(),
-    (db as any).appointment.count({ where: { appointment_date: { gte: startOfDay } } }),
-    (db as any).labTest.count({ where: { status: "PENDING" } }),
-  ]);
+  const staff = await db.staff.findUnique({ where: { id: userId }, select: { department: true } });
+  const dept = staff?.department?.trim() ?? "";
+
+  const [totalPatients, todaysAppointments, pendingLabTests] = await Promise.all(
+    dept.length > 0
+      ? [
+          db.appointment
+            .findMany({
+              where: { doctor: { department: { contains: dept, mode: "insensitive" } } },
+              distinct: ["patient_id"],
+              select: { patient_id: true },
+            })
+            .then((rows) => rows.length),
+          db.appointment.count({
+            where: {
+              appointment_date: { gte: startOfDay },
+              doctor: { department: { contains: dept, mode: "insensitive" } },
+            },
+          }),
+          db.labTest.count({
+            where: {
+              status: { not: "COMPLETED" },
+              medical_record: {
+                appointment: {
+                  doctor: { department: { contains: dept, mode: "insensitive" } },
+                },
+              },
+            },
+          }),
+        ]
+      : [
+          (db as any).patient.count(),
+          (db as any).appointment.count({ where: { appointment_date: { gte: startOfDay } } }),
+          (db as any).labTest.count({ where: { status: { not: "COMPLETED" } } }),
+        ]
+  );
 
   return (
     <div className="p-6">
@@ -24,16 +55,16 @@ const PatientManagementPage = async () => {
         <StatCard
           title="Patients"
           icon={Users}
-          note="Total registered patients"
+          note={dept.length > 0 ? `Patients in ${dept}` : "Total registered patients"}
           value={totalPatients}
           link="/record/patients"
         />
         <StatCard
           title="Appointments Today"
           icon={CalendarClock}
-          note="All appointments scheduled today"
+          note={dept.length > 0 ? `Today's appointments in ${dept}` : "All appointments scheduled today"}
           value={todaysAppointments}
-          link="/record/appointments"
+          link={dept.length > 0 ? `/record/appointments?department=${encodeURIComponent(dept)}` : "/record/appointments"}
         />
         <StatCard
           title="Pending Lab Tests"
