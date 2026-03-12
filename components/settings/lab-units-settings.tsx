@@ -15,11 +15,19 @@ const columns = [
 ];
 
 export const LabUnitsSettings = async ({ q }: { q?: string }) => {
-  await ensureDefaultLabUnits();
-  const units = await db.labUnit.findMany({
-    where: q ? { name: { contains: q, mode: "insensitive" } } : {},
-    orderBy: { name: "asc" },
-  });
+  try {
+    await ensureDefaultLabUnits();
+  } catch {}
+
+  let units: any[] = [];
+  try {
+    units = await db.labUnit.findMany({
+      where: q ? { name: { contains: q, mode: "insensitive" } } : {},
+      orderBy: { name: "asc" },
+    });
+  } catch {
+    units = [];
+  }
 
   const renderRow = (u: any) => (
     <tr

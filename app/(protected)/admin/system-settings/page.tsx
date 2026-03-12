@@ -8,7 +8,7 @@ import { SearchParamsProps } from "@/types";
 
 const SystemSettingPage = async (props: SearchParamsProps) => {
   const searchParams = await props.searchParams;
-  const cat = (searchParams?.cat || "services") as String;
+  const cat = (searchParams?.cat || "services") as string;
   const q = (searchParams?.q || "") as string;
   const unit = (searchParams?.unit || "") as string;
 

@@ -3,6 +3,11 @@ import React from "react";
 import { SiteSettingsForm } from "@/components/settings/site-settings-form";
 
 export const SiteSettingsSection = async () => {
-  const existing = await db.siteSettings.findFirst({ orderBy: { id: "asc" } });
+  let existing: any = null;
+  try {
+    existing = await (db as any).siteSettings.findFirst({ orderBy: { id: "asc" } });
+  } catch {
+    existing = null;
+  }
   return <SiteSettingsForm initial={existing ?? null} />;
 };

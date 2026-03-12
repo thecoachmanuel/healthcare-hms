@@ -16,11 +16,18 @@ const columns = [
 ];
 
 export const SpecializationsSettings = async ({ q }: { q?: string }) => {
-  await ensureDefaultDoctorSpecializations();
-  const specs = await db.doctorSpecialization.findMany({
-    where: q ? { name: { contains: q, mode: "insensitive" } } : {},
-    orderBy: { name: "asc" },
-  });
+  try {
+    await ensureDefaultDoctorSpecializations();
+  } catch {}
+  let specs: any[] = [];
+  try {
+    specs = await db.doctorSpecialization.findMany({
+      where: q ? { name: { contains: q, mode: "insensitive" } } : {},
+      orderBy: { name: "asc" },
+    });
+  } catch {
+    specs = [];
+  }
 
   const renderRow = (s: any) => (
     <tr

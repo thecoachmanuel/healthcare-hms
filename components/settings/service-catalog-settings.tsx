@@ -24,29 +24,42 @@ export const ServiceCatalogSettings = async ({
   q?: string;
   unitId?: string;
 }) => {
-  await ensureDefaultLabUnits();
-  const units = await db.labUnit.findMany({
-    where: { active: true },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  });
+  try {
+    await ensureDefaultLabUnits();
+  } catch {}
 
-  const data = await db.services.findMany({
-    where: {
-      category,
-      ...(q
-        ? {
-            OR: [
-              { service_name: { contains: q, mode: "insensitive" } },
-              { description: { contains: q, mode: "insensitive" } },
-            ],
-          }
-        : {}),
-      ...(category === "LAB_TEST" && unitId ? { lab_unit_id: Number(unitId) } : {}),
-    } as any,
-    orderBy: { service_name: "asc" },
-    include: { lab_unit: { select: { name: true, id: true } } },
-  });
+  let units: { id: number; name: string }[] = [];
+  try {
+    units = await db.labUnit.findMany({
+      where: { active: true },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true },
+    });
+  } catch {
+    units = [];
+  }
+
+  let data: any[] = [];
+  try {
+    data = await db.services.findMany({
+      where: {
+        category,
+        ...(q
+          ? {
+              OR: [
+                { service_name: { contains: q, mode: "insensitive" } },
+                { description: { contains: q, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+        ...(category === "LAB_TEST" && unitId ? { lab_unit_id: Number(unitId) } : {}),
+      } as any,
+      orderBy: { service_name: "asc" },
+      include: { lab_unit: { select: { name: true, id: true } } },
+    });
+  } catch {
+    data = [];
+  }
 
   const columns =
     category === "LAB_TEST"
