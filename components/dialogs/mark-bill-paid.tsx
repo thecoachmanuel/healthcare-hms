@@ -26,6 +26,7 @@ export const MarkBillPaid = ({
   defaultAmount: number;
 }) => {
   const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof BillPaymentSchema>>({
@@ -48,6 +49,7 @@ export const MarkBillPaid = ({
       if (res.success) {
         toast.success(res.msg);
         router.refresh();
+        setOpen(false);
       } else {
         toast.error(res.msg);
       }
@@ -59,7 +61,7 @@ export const MarkBillPaid = ({
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
           Mark Paid

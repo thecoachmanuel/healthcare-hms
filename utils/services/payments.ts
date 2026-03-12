@@ -5,10 +5,20 @@ export async function getPaymentRecords({
   page,
   limit,
   search,
+  status,
+  coverage,
+  method,
+  from,
+  to,
 }: {
   page: number | string;
   limit?: number | string;
   search?: string;
+  status?: string;
+  coverage?: string;
+  method?: string;
+  from?: string;
+  to?: string;
 }) {
   try {
     const PAGE_NUMBER = Number(page) <= 0 ? 1 : Number(page);
@@ -16,25 +26,38 @@ export async function getPaymentRecords({
 
     const SKIP = (PAGE_NUMBER - 1) * LIMIT;
 
+    const dateFilter =
+      (from || to)
+        ? {
+            payment_date: {
+              ...(from ? { gte: new Date(from) } : {}),
+              ...(to ? { lte: new Date(to) } : {}),
+            },
+          }
+        : {};
+
     const where: Prisma.PaymentWhereInput = {
-      OR: [
-        {
-          patient: {
-            first_name: { contains: search, mode: "insensitive" },
-          },
-        },
-        {
-          patient: {
-            last_name: { contains: search, mode: "insensitive" },
-          },
-        },
-        { patient_id: { contains: search, mode: "insensitive" } },
+      AND: [
+        dateFilter,
+        status ? { status: status as any } : {},
+        coverage ? { coverage_type: coverage as any } : {},
+        method ? { payment_method: method as any } : {},
+        search
+          ? {
+              OR: [
+                { patient: { first_name: { contains: search, mode: "insensitive" } } },
+                { patient: { last_name: { contains: search, mode: "insensitive" } } },
+                { patient: { hospital_number: { contains: search, mode: "insensitive" } } },
+                { receipt_number: isNaN(Number(search)) ? undefined : Number(search) },
+              ].filter(Boolean) as any,
+            }
+          : {},
       ],
     };
 
     const [data, totalRecords] = await Promise.all([
       db.payment.findMany({
-        where: where,
+        where,
         include: {
           patient: {
             select: {

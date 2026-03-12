@@ -30,6 +30,7 @@ interface DataProps {
 }
 export const AddBills = ({ id, appId, servicesData }: DataProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [open, setOpen] = useState(false);
   const router = useRouter();
   const [data, setData] = useState<any>();
 
@@ -58,6 +59,7 @@ export const AddBills = ({ id, appId, servicesData }: DataProps) => {
         router.refresh();
 
         form.reset();
+        setOpen(false);
       } else if (resp.error) {
         toast.error(resp.msg);
       }
@@ -103,7 +105,7 @@ export const AddBills = ({ id, appId, servicesData }: DataProps) => {
 
   return (
     <>
-      <Dialog>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button size="sm" className="text-sm font-normal">
             <Plus size={22} className="text-gray-400" />

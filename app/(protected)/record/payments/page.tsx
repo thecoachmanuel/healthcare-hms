@@ -20,6 +20,7 @@ const columns = [
   { header: "Discount", key: "discount", className: "hidden xl:table-cell" },
   { header: "Coverage", key: "coverage", className: "hidden xl:table-cell" },
   { header: "Status", key: "status", className: "hidden md:table-cell" },
+  { header: "Actions", key: "actions" },
 ];
 
 const PaymentsPage = async ({
@@ -39,6 +40,7 @@ const PaymentsPage = async ({
   const method = (sp?.method as string) || "";
   const from = (sp?.from as string) || "";
   const to = (sp?.to as string) || "";
+  const covStatus = (sp?.coverage_status as string) || "";
 
   const limit = DATA_LIMIT;
   const skip = (page - 1) * limit;
@@ -59,6 +61,12 @@ const PaymentsPage = async ({
       status ? { status: status as any } : {},
       coverage ? { coverage_type: coverage as any } : {},
       method ? { payment_method: method as any } : {},
+      covStatus === "FULL"
+        ? { coverage_type: { not: "NONE" }, status: "PAID", amount_paid: 0 }
+        : {},
+      covStatus === "PARTIAL"
+        ? { coverage_type: { not: "NONE" }, status: "PART" as any }
+        : {},
       q
         ? {
             OR: [
@@ -153,6 +161,11 @@ const PaymentsPage = async ({
           </div>
         </td>
         <td className="hidden md:table-cell">{p.status}</td>
+        <td>
+          <a className="text-blue-600 hover:underline" href={`/record/appointments/${p.appointment_id}?cat=bills`}>
+            View Bills
+          </a>
+        </td>
       </tr>
     );
   };
@@ -173,7 +186,7 @@ const PaymentsPage = async ({
               options={[
                 { label: "All", value: "" },
                 { label: "Paid", value: "PAID" },
-                { label: "Partial", value: "PARTIAL" },
+                { label: "Partial", value: "PART" },
                 { label: "Unpaid", value: "UNPAID" },
               ]}
             />
@@ -187,6 +200,15 @@ const PaymentsPage = async ({
                 { label: "NHIA", value: "NHIA" },
                 { label: "Waiver", value: "WAIVER" },
                 { label: "Other", value: "OTHER" },
+              ]}
+            />
+            <SelectFilter
+              param="coverage_status"
+              label="Coverage Status"
+              options={[
+                { label: "All", value: "" },
+                { label: "Full", value: "FULL" },
+                { label: "Partial", value: "PARTIAL" },
               ]}
             />
             <SelectFilter
@@ -215,4 +237,3 @@ const PaymentsPage = async ({
 };
 
 export default PaymentsPage;
-

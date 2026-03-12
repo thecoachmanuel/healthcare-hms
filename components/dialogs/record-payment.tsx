@@ -32,6 +32,7 @@ export function RecordPayment({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
 
   const billOptions = useMemo(() => {
     return bills
@@ -75,6 +76,7 @@ export function RecordPayment({
       if (res.success) {
         toast.success(res.msg);
         router.refresh();
+        setOpen(false);
       } else toast.error(res.msg);
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to record payment");
@@ -86,7 +88,7 @@ export function RecordPayment({
   if (billOptions.length === 0) return null;
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" variant="outline">
           <CreditCard size={16} className="text-gray-500" />
@@ -174,4 +176,3 @@ export function RecordPayment({
     </Dialog>
   );
 }
-

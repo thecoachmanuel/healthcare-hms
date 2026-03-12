@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 const TYPES = [
+  { label: "Admin", value: "ADMIN" },
   { label: "Nurse", value: "NURSE" },
   { label: "Lab Scientist", value: "LAB_SCIENTIST" },
   { label: "Lab Technician", value: "LAB_TECHNICIAN" },

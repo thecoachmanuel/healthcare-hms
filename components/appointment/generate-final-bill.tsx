@@ -27,6 +27,7 @@ interface DataProps {
 }
 export const GenerateFinalBills = ({ id, total_bill }: DataProps) => {
   const [isLoading, setIsLoading] = useState(false);
+  const [open, setOpen] = useState(false);
   const router = useRouter();
   let discountInfo = null;
 
@@ -52,6 +53,7 @@ export const GenerateFinalBills = ({ id, total_bill }: DataProps) => {
         router.refresh();
 
         form.reset();
+        setOpen(false);
       } else if (resp.error) {
         toast.error(resp.msg);
       }
@@ -65,7 +67,7 @@ export const GenerateFinalBills = ({ id, total_bill }: DataProps) => {
 
   return (
     <>
-      <Dialog>
+      <Dialog open={open} onOpenChange={setOpen}>
         <DialogTrigger asChild>
           <Button variant="outline" size="sm" className="text-sm font-normal">
             <Plus size={22} className="text-gray-400" />

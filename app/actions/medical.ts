@@ -416,12 +416,17 @@ export async function markPatientBillPaid(data: any) {
     });
     if (!bill) return { success: false, msg: "Bill not found" };
 
-    const status =
-      amountPaid <= 0
-        ? "UNPAID"
-        : amountPaid >= bill.total_cost
-        ? "PAID"
-        : "PART";
+  const covered = validated.data.coverage_type && validated.data.coverage_type !== "NONE";
+  const hasRef = (validated.data.coverage_reference ?? "").trim().length > 0;
+  const fullCovered = covered && hasRef && amountPaid === 0;
+  const status =
+    fullCovered
+      ? "PAID"
+      : amountPaid <= 0
+      ? "UNPAID"
+      : amountPaid >= bill.total_cost
+      ? "PAID"
+      : "PART";
 
     await db.patientBills.update({
       where: { id: billId },

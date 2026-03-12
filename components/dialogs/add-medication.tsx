@@ -18,6 +18,7 @@ import { CustomInput } from "../custom-input";
 
 export const AddMedication = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [open, setOpen] = useState(false);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof ServicesSchema>>({
@@ -38,6 +39,7 @@ export const AddMedication = () => {
         toast.success("Medication added successfully!");
         router.refresh();
         form.reset({ category: "MEDICATION" } as any);
+        setOpen(false);
       } else {
         toast.error(resp.msg);
       }
@@ -49,7 +51,7 @@ export const AddMedication = () => {
   };
 
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button size="sm" className="text-sm font-normal">
           <Plus size={22} className="text-gray-500" /> Add Medication

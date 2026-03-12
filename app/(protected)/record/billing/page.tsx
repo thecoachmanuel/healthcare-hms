@@ -3,6 +3,8 @@ import { ViewAction } from "@/components/action-options";
 import { Pagination } from "@/components/pagination";
 import { ProfileImage } from "@/components/profile-image";
 import SearchInput from "@/components/search-input";
+import { SelectFilter } from "@/components/filters/select-filter";
+import { TextFilter } from "@/components/filters/text-filter";
 import { Table } from "@/components/tables/table";
 import { cn } from "@/lib/utils";
 import { SearchParamsProps } from "@/types";
@@ -77,15 +79,24 @@ const BillingPage = async (props: SearchParamsProps) => {
   const searchParams = await props.searchParams;
   const page = (searchParams?.p || "1") as string;
   const searchQuery = (searchParams?.q || "") as string;
+  const status = (searchParams?.status || "") as string;
+  const coverage = (searchParams?.coverage || "") as string;
+  const method = (searchParams?.method || "") as string;
+  const from = (searchParams?.from || "") as string;
+  const to = (searchParams?.to || "") as string;
 
-  const { data, totalPages, totalRecords, currentPage } =
-    await getPaymentRecords({
-      page,
-      search: searchQuery,
-    });
-  const isAdmin = await checkRole("ADMIN");
+  const { data, totalPages, totalRecords, currentPage } = await getPaymentRecords({
+    page,
+    search: searchQuery,
+    status,
+    coverage,
+    method,
+    from,
+    to,
+  });
+  const isAllowed = (await checkRole("ADMIN" as any)) || (await checkRole("CASHIER" as any));
 
-  if (!data) return null;
+  if (!data || !isAllowed) return null;
 
   const renderRow = (item: ExtendedProps) => {
     const name = item?.patient?.first_name + " " + item?.patient?.last_name;
@@ -170,6 +181,39 @@ const BillingPage = async (props: SearchParamsProps) => {
         </div>
         <div className="w-full lg:w-fit flex items-center justify-between lg:justify-start gap-2">
           <SearchInput />
+          <SelectFilter
+            param="status"
+            label="Status"
+            options={[
+              { label: "All", value: "" },
+              { label: "Paid", value: "PAID" },
+              { label: "Partial", value: "PART" },
+              { label: "Unpaid", value: "UNPAID" },
+            ]}
+          />
+          <SelectFilter
+            param="coverage"
+            label="Coverage"
+            options={[
+              { label: "All", value: "" },
+              { label: "None", value: "NONE" },
+              { label: "Insurance", value: "INSURANCE" },
+              { label: "NHIA", value: "NHIA" },
+              { label: "Waiver", value: "WAIVER" },
+              { label: "Other", value: "OTHER" },
+            ]}
+          />
+          <SelectFilter
+            param="method"
+            label="Method"
+            options={[
+              { label: "All", value: "" },
+              { label: "Cash", value: "CASH" },
+              { label: "Card", value: "CARD" },
+            ]}
+          />
+          <TextFilter param="from" label="From" placeholder="YYYY-MM-DD" />
+          <TextFilter param="to" label="To" placeholder="YYYY-MM-DD" />
         </div>
       </div>
 
