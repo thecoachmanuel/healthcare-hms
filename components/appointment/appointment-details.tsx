@@ -11,11 +11,12 @@ interface AppointmentDetailsProps {
 }
 export const AppointmentDetails = ({
   id,
-  patient_id,
+  patient_id: _patientId,
   appointment_date,
   time,
   notes,
 }: AppointmentDetailsProps) => {
+  void _patientId;
   return (
     <Card className="shadow-none">
       <CardHeader>

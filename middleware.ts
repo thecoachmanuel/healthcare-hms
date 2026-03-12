@@ -12,7 +12,7 @@ function matchesRoute(pathname: string, route: string) {
 
 function normalizeRole(rawRole: string) {
   const role = rawRole.trim().toLowerCase();
-  if (role === "lab technician" || role === "lab_technician") return "lab_scientist";
+  if (role === "lab technician" || role === "lab_technician") return "lab_technician";
   if (role === "lab scientist" || role === "lab_scientist") return "lab_scientist";
   return role;
 }

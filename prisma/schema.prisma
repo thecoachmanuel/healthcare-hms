@@ -352,7 +352,10 @@ model Notification {
 model SiteSettings {
   id          Int    @id @default(autoincrement())
   site_name   String
+  site_title  String?
   logo_url    String?
+  homepage_title String?
+  homepage_subtitle String?
   homepage_text  String?
   updated_by_id String?
   created_at  DateTime @default(now())

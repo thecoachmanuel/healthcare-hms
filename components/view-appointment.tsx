@@ -1,6 +1,5 @@
 import { getAppointmentById } from "@/utils/services/appointment";
 import React from "react";
-import { NumberDomain } from "recharts/types/util/types";
 import {
   Dialog,
   DialogContent,

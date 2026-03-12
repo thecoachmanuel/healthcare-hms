@@ -125,7 +125,15 @@ export const StaffSchema = z.object({
     .min(2, "Name must be at least 2 characters")
     .max(50, "Name must be at most 50 characters"),
   role: z.enum(
-    ["NURSE", "LAB_SCIENTIST", "LAB_TECHNICIAN", "CASHIER", "PHARMACIST", "RECORD_OFFICER"],
+    [
+      "ADMIN",
+      "NURSE",
+      "LAB_SCIENTIST",
+      "LAB_TECHNICIAN",
+      "CASHIER",
+      "PHARMACIST",
+      "RECORD_OFFICER",
+    ],
     { message: "Role is required." }
   ),
   lab_unit_id: z.string().optional(),
@@ -136,7 +144,7 @@ export const StaffSchema = z.object({
     .min(5, "Address must be at least 5 characters")
     .max(500, "Address must be at most 500 characters"),
   license_number: z.string().optional(),
-  department: z.string().optional(),
+  department: z.string().trim().min(2, "Department is required."),
   img: z.string().optional(),
   password: z
     .string()

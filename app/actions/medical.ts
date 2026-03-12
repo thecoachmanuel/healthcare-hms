@@ -136,6 +136,27 @@ export async function requestLabTest(data: any) {
         select: { id: true },
       }));
 
+    const existing = await db.labTest.findUnique({
+      where: {
+        record_id_service_id: {
+          record_id: medical.id,
+          service_id: Number(validated.service_id),
+        },
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      return { success: false, message: "Lab test already requested", status: 409 };
+    }
+
+    const service = await db.services.findUnique({
+      where: { id: Number(validated.service_id) },
+      select: { id: true, price: true, category: true },
+    });
+    if (!service || service.category !== "LAB_TEST") {
+      return { success: false, message: "Invalid lab test selection", status: 400 };
+    }
+
     await db.labTest.create({
       data: {
         record_id: medical.id,
@@ -147,11 +168,7 @@ export async function requestLabTest(data: any) {
       },
     });
 
-    const service = await db.services.findUnique({
-      where: { id: Number(validated.service_id) },
-      select: { id: true, price: true, category: true },
-    });
-    if (service?.category === "LAB_TEST") {
+    if (service.category === "LAB_TEST") {
       const existingPayment = await db.payment.findFirst({
         where: { appointment_id: appointmentId },
         select: { id: true },

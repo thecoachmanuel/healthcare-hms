@@ -1,9 +1,8 @@
 "use client";
 
 import { Patient } from "@prisma/client";
-import { Phone } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   Card,
@@ -57,12 +56,15 @@ export const NewPatient = ({ data, type }: DataProps) => {
     });
   }, []);
 
-  const userData = {
-    first_name: authUser?.first_name || "",
-    last_name: authUser?.last_name || "",
-    email: authUser?.email || "",
-    phone: "",
-  };
+  const userData = useMemo(
+    () => ({
+      first_name: authUser?.first_name || "",
+      last_name: authUser?.last_name || "",
+      email: authUser?.email || "",
+      phone: "",
+    }),
+    [authUser?.first_name, authUser?.last_name, authUser?.email]
+  );
 
   const userId = authUser?.id;
   const form = useForm<z.infer<typeof PatientFormSchema>>({
@@ -159,7 +161,7 @@ export const NewPatient = ({ data, type }: DataProps) => {
           service_consent: data.service_consent,
         });
     }
-  }, [type, data, authUser?.id]);
+  }, [type, data, authUser?.id, form, userData]);
 
   return (
     <Card className="max-w-6xl w-full p-4 ">

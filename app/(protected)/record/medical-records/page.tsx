@@ -4,7 +4,6 @@ import { ProfileImage } from "@/components/profile-image";
 import SearchInput from "@/components/search-input";
 import { Table } from "@/components/tables/table";
 import { SearchParamsProps } from "@/types";
-import { checkRole } from "@/utils/roles";
 import { DATA_LIMIT } from "@/utils/seetings";
 import { getMedicalRecords } from "@/utils/services/medical-record";
 import { Diagnosis, Doctor, LabTest, MedicalRecords, Patient } from "@prisma/client";
@@ -66,7 +65,6 @@ const MedicalRecordsPage = async (props: SearchParamsProps) => {
       page,
       search: searchQuery,
     });
-  const isAdmin = await checkRole("ADMIN");
 
   if (!data) return null;
 

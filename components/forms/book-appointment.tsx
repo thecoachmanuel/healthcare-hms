@@ -53,10 +53,10 @@ export const BookAppointment = ({
   data: Patient;
   doctors: Doctor[];
 }) => {
-  const [loading, setLoading] = useState(false);
+  const loading = false;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
-  const [physicians, setPhysicians] = useState<Doctor[] | undefined>(doctors);
+  const physicians = doctors;
 
   const appointmentTimes = generateTimes(8, 17, 30);
 

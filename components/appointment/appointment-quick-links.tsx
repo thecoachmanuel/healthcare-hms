@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 
 const AppointmentQuickLinks = async ({ staffId: _staffId }: { staffId: string }) => {
+  void _staffId;
   return (
     <Card className="w-full rounded-xl bg-white shadow-none">
       <CardHeader>

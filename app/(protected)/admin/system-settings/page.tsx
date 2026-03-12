@@ -5,9 +5,16 @@ import { LabUnitsSettings } from "@/components/settings/lab-units-settings";
 import { SpecializationsSettings } from "@/components/settings/specializations-settings";
 import { DepartmentsSettings } from "@/components/settings/departments-settings";
 import { Card } from "@/components/ui/card";
+import { requireAuthUserId } from "@/lib/auth";
 import { SearchParamsProps } from "@/types";
+import { checkRole } from "@/utils/roles";
+import { redirect } from "next/navigation";
 
 const SystemSettingPage = async (props: SearchParamsProps) => {
+  await requireAuthUserId();
+  const isAdmin = await checkRole("ADMIN");
+  if (!isAdmin) redirect("/");
+
   const searchParams = await props.searchParams;
   const cat = (searchParams?.cat || "services") as string;
   const q = (searchParams?.q || "") as string;

@@ -29,7 +29,6 @@ export const GenerateFinalBills = ({ id, total_bill }: DataProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const router = useRouter();
-  let discountInfo = null;
 
   const form = useForm<z.infer<typeof PaymentSchema>>({
     resolver: zodResolver(PaymentSchema),

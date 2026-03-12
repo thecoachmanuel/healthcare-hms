@@ -21,6 +21,7 @@ export const AppointmentActionOptions = async ({
   status,
   appointmentId,
 }: ActionsProps) => {
+  void userId;
   const currentUserId = await requireAuthUserId();
   const isAdmin = await checkRole("ADMIN");
 

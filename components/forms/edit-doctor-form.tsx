@@ -56,7 +56,7 @@ export const EditDoctorForm = ({
         form.setValue("department", dept.department);
       }
     }
-  }, [selectedSpecialization, specializations]);
+  }, [selectedSpecialization, specializations, form]);
 
   const handleSubmit = async (values: z.infer<typeof DoctorSchema>) => {
     try {

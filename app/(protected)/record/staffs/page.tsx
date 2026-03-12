@@ -11,12 +11,11 @@ import { SearchParamsProps } from "@/types";
 import { checkRole } from "@/utils/roles";
 import { DATA_LIMIT } from "@/utils/seetings";
 import { getAllStaff } from "@/utils/services/staff";
-import { Staff } from "@prisma/client";
+import type { Staff } from "@prisma/client";
 import { format } from "date-fns";
 import { Users } from "lucide-react";
-import React from "react";
 import db from "@/lib/db";
-import { ensureDefaultLabUnits } from "@/utils/services/catalog-seed";
+import { ensureDefaultDepartments, ensureDefaultLabUnits } from "@/utils/services/catalog-seed";
 import { StatCard } from "@/components/stat-card";
 import { StaffRoleChart } from "@/components/charts/staff-role-chart";
 import { UserRound, UserX, UserCheck } from "lucide-react";
@@ -93,6 +92,7 @@ const StaffList = async (props: SearchParamsProps) => {
     unitId: unit || undefined,
   });
   await ensureDefaultLabUnits();
+  await ensureDefaultDepartments();
   const labUnits = await db.labUnit.findMany({
     where: { active: true },
     select: { id: true, name: true },

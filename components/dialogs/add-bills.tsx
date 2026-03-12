@@ -101,7 +101,7 @@ export const AddBills = ({ id, appId, servicesData }: DataProps) => {
         );
       }
     }
-  }, [selectedService, quantity]);
+  }, [selectedService, quantity, form, servicesData]);
 
   return (
     <>

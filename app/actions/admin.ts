@@ -41,6 +41,10 @@ export async function createNewStaff(data: any) {
     }
 
     const validatedValues = values.data;
+    const password = validatedValues.password?.trim() ?? "";
+    if (password.length < 8) {
+      return { success: false, msg: "Password must be at least 8 characters", error: true };
+    }
     if (
       (validatedValues.role === "LAB_SCIENTIST" ||
         validatedValues.role === "LAB_TECHNICIAN") &&
@@ -55,7 +59,7 @@ export async function createNewStaff(data: any) {
     const supabaseAdmin = createSupabaseAdminClient();
     const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
       email: validatedValues.email,
-      password: validatedValues.password,
+      password,
       email_confirm: true,
       user_metadata: {
         first_name: firstName,
@@ -242,22 +246,42 @@ export async function addNewService(data: any) {
   }
 }
 
-export async function setSiteSettings(data: { site_name: string; logo_url?: string; homepage_text?: string }) {
+export async function setSiteSettings(data: {
+  site_name: string;
+  site_title?: string;
+  logo_url?: string;
+  homepage_title?: string;
+  homepage_subtitle?: string;
+  homepage_text?: string;
+}) {
   try {
     const userId = await requireAuthUserId();
     const isAdmin = await checkRole("ADMIN");
     if (!isAdmin) return { success: false, msg: "Unauthorized" };
+
+    const payload = {
+      site_name: data.site_name.trim(),
+      site_title: data.site_title?.trim() || null,
+      logo_url: data.logo_url?.trim() || null,
+      homepage_title: data.homepage_title?.trim() || null,
+      homepage_subtitle: data.homepage_subtitle?.trim() || null,
+      homepage_text: data.homepage_text?.trim() || null,
+    };
+
+    if (payload.site_name.length === 0) {
+      return { success: false, msg: "Site name is required" };
+    }
 
     const existing = await db.siteSettings.findFirst({ orderBy: { id: "asc" } });
     let saved: any;
     if (existing) {
       saved = await db.siteSettings.update({
         where: { id: existing.id },
-        data: { ...data, updated_by_id: userId },
+        data: { ...payload, updated_by_id: userId },
       });
     } else {
       saved = await db.siteSettings.create({
-        data: { ...data, updated_by_id: userId },
+        data: { ...payload, updated_by_id: userId },
       });
     }
 
@@ -267,7 +291,7 @@ export async function setSiteSettings(data: { site_name: string; logo_url?: stri
         record_id: String(saved.id),
         action: "UPDATE",
         model: "SiteSettings",
-        details: `site_name=${data.site_name}`,
+        details: `site_name=${payload.site_name}`,
       },
     });
 

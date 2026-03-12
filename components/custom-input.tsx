@@ -1,4 +1,4 @@
-import React, { Fragment } from "react";
+import React from "react";
 import { Control } from "react-hook-form";
 import {
   FormControl,
@@ -195,7 +195,7 @@ export const SwitchInput = ({ data, setWorkSchedule }: SwitchProps) => {
           <Switch
             id={el.value}
             className="data-[state=checked]:bg-blue-600 peer"
-            onCheckedChange={(e) => handleChange(el.value, true, "09:00")}
+            onCheckedChange={() => handleChange(el.value, true, "09:00")}
           />
           <Label htmlFor={el.value} className="w-20 capitalize">
             {el.value}

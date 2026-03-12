@@ -12,8 +12,23 @@ const DEFAULT_LAB_UNITS = [
   "Donor Clinic",
 ];
 
+const DEFAULT_DEPARTMENTS = [
+  "Accident & Emergency",
+  "Outpatient",
+  "Inpatient Ward",
+  "Pediatrics",
+  "Maternity",
+  "Surgery",
+  "ICU",
+  "Pharmacy",
+  "Laboratory",
+  "Radiology",
+  "Medical Records",
+];
+
 let labUnitsEnsured = false;
 let doctorSpecializationsEnsured = false;
+let departmentsEnsured = false;
 
 export async function ensureDefaultLabUnits() {
   if (labUnitsEnsured) return;
@@ -40,4 +55,16 @@ export async function ensureDefaultDoctorSpecializations() {
     skipDuplicates: true,
   });
   doctorSpecializationsEnsured = true;
+}
+
+export async function ensureDefaultDepartments() {
+  if (departmentsEnsured) return;
+  const count = await db.department.count();
+  if (count > 0) return;
+
+  await db.department.createMany({
+    data: DEFAULT_DEPARTMENTS.map((name) => ({ name, active: true })),
+    skipDuplicates: true,
+  });
+  departmentsEnsured = true;
 }

@@ -4,7 +4,7 @@ import { checkRole } from "@/utils/roles";
 import { ReceiptText } from "lucide-react";
 import { Table } from "../tables/table";
 import { PatientBills } from "@prisma/client";
-import { format, formatDate } from "date-fns";
+import { format } from "date-fns";
 import { ActionDialog } from "../action-dialog";
 import { Separator } from "../ui/separator";
 import { AddBills } from "../dialogs/add-bills";

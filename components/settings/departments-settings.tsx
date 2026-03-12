@@ -5,6 +5,7 @@ import { Table } from "../tables/table";
 import { AddDepartment, EditDepartment } from "../dialogs/department-dialog";
 import { ConfirmDelete } from "../dialogs/confirm-delete";
 import { deleteDepartment } from "@/app/actions/catalog";
+import { ensureDefaultDepartments } from "@/utils/services/catalog-seed";
 
 const columns = [
   { header: "ID", key: "id", className: "hidden md:table-cell" },
@@ -14,6 +15,9 @@ const columns = [
 ];
 
 export const DepartmentsSettings = async ({ q }: { q?: string }) => {
+  try {
+    await ensureDefaultDepartments();
+  } catch {}
   let departments: any[] = [];
   try {
     departments = await db.department.findMany({
@@ -59,4 +63,3 @@ export const DepartmentsSettings = async ({ q }: { q?: string }) => {
     </div>
   );
 };
-
