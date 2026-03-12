@@ -10,6 +10,7 @@ import { Separator } from "../ui/separator";
 import { AddBills } from "../dialogs/add-bills";
 import { GenerateFinalBills } from "./generate-final-bill";
 import { MarkBillPaid } from "../dialogs/mark-bill-paid";
+import { RecordPayment } from "../dialogs/record-payment";
 
 const columns = [
   {
@@ -190,6 +191,12 @@ export const BillsContainer = async ({ id }: { id: string }) => {
           </div>
         )}
       </div>
+
+      {canMarkPaid && billData.length > 0 && (
+        <div className="flex justify-end">
+          <RecordPayment bills={billData as any[]} />
+        </div>
+      )}
 
       <Table columns={columns} renderRow={renderRow} data={billData!} />
 
