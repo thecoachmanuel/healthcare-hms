@@ -10,41 +10,41 @@ export const SettingsQuickLinks = () => {
 
       <CardContent className="text-sm font-normal flex flex-wrap gap-4">
         <Link
-          href="/admin/system-settings?cat=services"
+          href={{ pathname: "/admin/system-settings", query: { cat: "services" } }}
           className="px-4 py-2 rounded-lg bg-gray-100 text-gray-600"
         >
           Services
         </Link>
         <Link
-          href="/admin/system-settings?cat=lab-tests"
+          href={{ pathname: "/admin/system-settings", query: { cat: "lab-tests" } }}
           className="px-4 py-2 rounded-lg bg-violet-100 text-violet-600"
         >
           Lab Tests
         </Link>
 
         <Link
-          href="/admin/system-settings?cat=medications"
+          href={{ pathname: "/admin/system-settings", query: { cat: "medications" } }}
           className="px-4 py-2 rounded-lg bg-rose-100 text-rose-600"
         >
           Medications
         </Link>
 
         <Link
-          href="/admin/system-settings?cat=lab-units"
+          href={{ pathname: "/admin/system-settings", query: { cat: "lab-units" } }}
           className="px-4 py-2 rounded-lg bg-emerald-100 text-emerald-600"
         >
           Lab Units
         </Link>
 
         <Link
-          href="/admin/system-settings?cat=specializations"
+          href={{ pathname: "/admin/system-settings", query: { cat: "specializations" } }}
           className="px-4 py-2 rounded-lg bg-orange-100 text-orange-600"
         >
           Doctor Specializations
         </Link>
 
         <Link
-          href="/admin/system-settings?cat=site"
+          href={{ pathname: "/admin/system-settings", query: { cat: "site" } }}
           className="px-4 py-2 rounded-lg bg-blue-100 text-blue-600"
         >
           Site

@@ -4,6 +4,8 @@ import { DoctorForm } from "@/components/forms/doctor-form";
 import { Pagination } from "@/components/pagination";
 import { ProfileImage } from "@/components/profile-image";
 import SearchInput from "@/components/search-input";
+import { SelectFilter } from "@/components/filters/select-filter";
+import { DepartmentFilter } from "@/components/filters/department-filter";
 import { Table } from "@/components/tables/table";
 import { SearchParamsProps } from "@/types";
 import { checkRole } from "@/utils/roles";
@@ -11,10 +13,12 @@ import { DATA_LIMIT } from "@/utils/seetings";
 import { getAllDoctors } from "@/utils/services/doctor";
 import { Doctor } from "@prisma/client";
 import { format } from "date-fns";
-import { Users } from "lucide-react";
+import { Users, User, UserCheck, UserX } from "lucide-react";
 import React from "react";
 import db from "@/lib/db";
 import { ensureDefaultDoctorSpecializations } from "@/utils/services/catalog-seed";
+import { StatCard } from "@/components/stat-card";
+import { DoctorSpecializationChart } from "@/components/charts/doctor-specialization-chart";
 
 const columns = [
   {
@@ -51,10 +55,16 @@ const DoctorsList = async (props: SearchParamsProps) => {
   const searchParams = await props.searchParams;
   const page = (searchParams?.p || "1") as string;
   const searchQuery = (searchParams?.q || "") as string;
+  const specialization = (searchParams?.specialization || "") as string;
+  const department = (searchParams?.department || "") as string;
+  const type = (searchParams?.type || "") as string;
 
-  const { data, totalPages, totalRecords, currentPage } = await getAllDoctors({
+  const { data, totalPages, totalRecords, currentPage, stats } = await getAllDoctors({
     page,
     search: searchQuery,
+    specialization: specialization || undefined,
+    department: department || undefined,
+    type: type || undefined,
   });
 
   if (!data) return null;
@@ -73,6 +83,16 @@ const DoctorsList = async (props: SearchParamsProps) => {
           department: s.department ?? "General",
         }))
       : [];
+
+  const fullCount = stats?.typeCounts?.find((t: any) => t.type === "FULL")?.count ?? 0;
+  const partCount = stats?.typeCounts?.find((t: any) => t.type === "PART")?.count ?? 0;
+  const specializationChartData = (stats?.specializationCounts ?? [])
+    .map((r: any) => ({
+      specialization: String(r.specialization),
+      count: Number(r.count),
+    }))
+    .sort((a: any, b: any) => b.count - a.count)
+    .slice(0, 12);
 
   const renderRow = (item: Doctor) => (
     <tr
@@ -111,6 +131,38 @@ const DoctorsList = async (props: SearchParamsProps) => {
 
   return (
     <div className="bg-white rounded-xl py-6 px-3 2xl:px-6">
+      <div className="flex flex-wrap gap-3 mb-6">
+        <StatCard
+          title="Total Doctors"
+          icon={User}
+          note="All doctors matching current filters"
+          value={totalRecords}
+          link="/record/doctors"
+        />
+        <StatCard
+          title="Full Time"
+          icon={UserCheck}
+          note="Doctors on full-time schedule"
+          value={fullCount}
+          link="/record/doctors?type=FULL"
+          iconClassName="text-emerald-600"
+        />
+        <StatCard
+          title="Part Time"
+          icon={UserX}
+          note="Doctors on part-time schedule"
+          value={partCount}
+          link="/record/doctors?type=PART"
+          iconClassName="text-rose-600"
+        />
+      </div>
+
+      {specializationChartData.length > 0 && (
+        <div className="mb-6">
+          <DoctorSpecializationChart data={specializationChartData} />
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="hidden lg:flex items-center gap-1">
           <Users size={20} className="text-gray-500" />
@@ -122,6 +174,24 @@ const DoctorsList = async (props: SearchParamsProps) => {
         </div>
         <div className="w-full lg:w-fit flex items-center justify-between lg:justify-start gap-2">
           <SearchInput />
+          <DepartmentFilter />
+          <SelectFilter
+            param="specialization"
+            label="Specialization"
+            options={[
+              { label: "All", value: "" },
+              ...specializations.map((s: any) => ({ label: s.label, value: s.value })),
+            ]}
+          />
+          <SelectFilter
+            param="type"
+            label="Type"
+            options={[
+              { label: "All", value: "" },
+              { label: "Full", value: "FULL" },
+              { label: "Part", value: "PART" },
+            ]}
+          />
           {isAdmin && <DoctorForm specializations={specializations as any} />}
         </div>
       </div>

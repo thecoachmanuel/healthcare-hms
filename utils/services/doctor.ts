@@ -165,10 +165,16 @@ export async function getAllDoctors({
   page,
   limit,
   search,
+  specialization,
+  department,
+  type,
 }: {
   page: number | string;
   limit?: number | string;
   search?: string;
+  specialization?: string;
+  department?: string;
+  type?: string;
 }) {
   try {
     const PAGE_NUMBER = Number(page) <= 0 ? 1 : Number(page);
@@ -176,20 +182,47 @@ export async function getAllDoctors({
 
     const SKIP = (PAGE_NUMBER - 1) * LIMIT;
 
-    const [doctors, totalRecords] = await Promise.all([
+    const q = (search ?? "").trim();
+    const spec = (specialization ?? "").trim();
+    const dept = (department ?? "").trim();
+    const jobType = (type ?? "").trim();
+
+    const where: any = {
+      AND: [
+        q
+          ? {
+              OR: [
+                { name: { contains: q, mode: "insensitive" } },
+                { specialization: { contains: q, mode: "insensitive" } },
+                { email: { contains: q, mode: "insensitive" } },
+                { license_number: { contains: q, mode: "insensitive" } },
+              ],
+            }
+          : {},
+        spec ? { specialization: { equals: spec, mode: "insensitive" } } : {},
+        dept ? { department: { contains: dept, mode: "insensitive" } } : {},
+        jobType ? { type: jobType as any } : {},
+      ],
+    };
+
+    const [doctors, totalRecords, typeCounts, specializationCounts] = await Promise.all([
       db.doctor.findMany({
-        where: {
-          OR: [
-            { name: { contains: search, mode: "insensitive" } },
-            { specialization: { contains: search, mode: "insensitive" } },
-            { email: { contains: search, mode: "insensitive" } },
-          ],
-        },
+        where,
         include: { working_days: true },
         skip: SKIP,
         take: LIMIT,
       }),
-      db.doctor.count(),
+      db.doctor.count({ where }),
+      (db as any).doctor.groupBy({
+        by: ["type"],
+        _count: { _all: true },
+        where,
+      }),
+      (db as any).doctor.groupBy({
+        by: ["specialization"],
+        _count: { _all: true },
+        where,
+      }),
     ]);
 
     const totalPages = Math.ceil(totalRecords / LIMIT);
@@ -200,6 +233,16 @@ export async function getAllDoctors({
       totalRecords,
       totalPages,
       currentPage: PAGE_NUMBER,
+      stats: {
+        typeCounts: (typeCounts ?? []).map((r: any) => ({
+          type: String(r.type),
+          count: Number(r._count?._all ?? 0),
+        })),
+        specializationCounts: (specializationCounts ?? []).map((r: any) => ({
+          specialization: String(r.specialization),
+          count: Number(r._count?._all ?? 0),
+        })),
+      },
       status: 200,
     };
   } catch (error) {
