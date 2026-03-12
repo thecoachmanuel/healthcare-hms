@@ -4,6 +4,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { CreatePrescription } from "../dialogs/create-prescription";
 import { MarkPrescriptionDispensed } from "../dialogs/mark-prescription-dispensed";
+import Link from "next/link";
 
 export const PrescriptionContainer = async ({
   appointmentId,
@@ -20,7 +21,7 @@ export const PrescriptionContainer = async ({
       where: { appointment_id: Number(appointmentId) },
       include: {
         items: {
-          include: { medication: { select: { service_name: true } } },
+          include: { medication: { select: { id: true, service_name: true } } },
         },
         doctor: { select: { name: true } },
       },
@@ -70,7 +71,14 @@ export const PrescriptionContainer = async ({
               <ul className="list-disc pl-5 text-sm">
                 {p.items.map((i) => (
                   <li key={i.id}>
-                    {i.medication?.service_name} — qty {i.quantity}
+                    {i.medication?.id ? (
+                      <Link className="text-blue-600 hover:underline" href={`/medications/${i.medication.id}`}>
+                        {i.medication?.service_name}
+                      </Link>
+                    ) : (
+                      i.medication?.service_name
+                    )}{" "}
+                    — qty {i.quantity}
                     {i.dosage ? `, ${i.dosage}` : ""}
                     {i.instructions ? `, ${i.instructions}` : ""}
                   </li>
@@ -84,4 +92,3 @@ export const PrescriptionContainer = async ({
     </Card>
   );
 };
-

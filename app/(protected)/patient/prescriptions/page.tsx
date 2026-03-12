@@ -2,6 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { requireAuthUserId } from "@/lib/auth";
 import db from "@/lib/db";
 import { format } from "date-fns";
+import Link from "next/link";
 import React from "react";
 
 const PrescriptionsPage = async () => {
@@ -11,7 +12,7 @@ const PrescriptionsPage = async () => {
     where: { patient_id: userId },
     include: {
       doctor: { select: { name: true } },
-      items: { include: { medication: { select: { service_name: true } } } },
+      items: { include: { medication: { select: { id: true, service_name: true } } } },
     },
     orderBy: { created_at: "desc" },
   });
@@ -38,7 +39,10 @@ const PrescriptionsPage = async () => {
                 <ul className="list-disc pl-5 text-sm">
                   {p.items.map((i: any) => (
                     <li key={i.id}>
-                      {i.medication.service_name} — qty {i.quantity}
+                      <Link className="text-blue-600 hover:underline" href={`/medications/${i.medication.id}`}>
+                        {i.medication.service_name}
+                      </Link>{" "}
+                      — qty {i.quantity}
                       {i.dosage ? `, ${i.dosage}` : ""}
                       {i.instructions ? `, ${i.instructions}` : ""}
                     </li>

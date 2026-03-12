@@ -1,6 +1,7 @@
 import { Roles } from "@/types/globals";
 import db from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
+import { cache } from "react";
 
 function mapRoleToRoute(role: Roles) {
   const r = String(role);
@@ -18,12 +19,7 @@ function normalizeRouteRole(role: string) {
   return r;
 }
 
-export const checkRole = async (role: Roles) => {
-  const currentRole = await getRole();
-  return currentRole === mapRoleToRoute(role);
-};
-
-export const getRole = async () => {
+export const getRole = cache(async () => {
   const user = await getAuthUser();
   if (!user) return "sign-in";
 
@@ -44,4 +40,9 @@ export const getRole = async () => {
   } catch {
     return "patient";
   }
-};
+});
+
+export const checkRole = cache(async (role: Roles) => {
+  const currentRole = await getRole();
+  return currentRole === mapRoleToRoute(role);
+});

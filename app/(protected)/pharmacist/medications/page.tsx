@@ -5,6 +5,7 @@ import { requireAuthUserId } from "@/lib/auth";
 import db from "@/lib/db";
 import { checkRole } from "@/utils/roles";
 import { Services } from "@prisma/client";
+import Link from "next/link";
 import React from "react";
 
 const columns = [
@@ -16,11 +17,11 @@ const columns = [
 
 const MedicationsPage = async () => {
   await requireAuthUserId();
-  const isAllowed = (await checkRole("ADMIN")) || (await checkRole("PHARMACIST"));
+  const isAllowed = (await checkRole("ADMIN" as any)) || (await checkRole("PHARMACIST" as any));
   if (!isAllowed) return null;
 
   const data = await db.services.findMany({
-    where: { category: "MEDICATION" },
+    where: { category: "MEDICATION" } as any,
     orderBy: { service_name: "asc" },
   });
 
@@ -30,7 +31,11 @@ const MedicationsPage = async () => {
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-slate-50"
     >
       <td className="hidden md:table-cell py-4">{item.id}</td>
-      <td className="py-4">{item.service_name}</td>
+      <td className="py-4">
+        <Link className="text-blue-600 hover:underline" href={`/medications/${item.id}`}>
+          {item.service_name}
+        </Link>
+      </td>
       <td className="hidden md:table-cell">{item.price.toFixed(2)}</td>
       <td className="hidden xl:table-cell w-[50%]">
         <p className="line-clamp-1">{item.description}</p>
@@ -55,4 +60,3 @@ const MedicationsPage = async () => {
 };
 
 export default MedicationsPage;
-

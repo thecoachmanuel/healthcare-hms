@@ -12,16 +12,22 @@ const DEFAULT_LAB_UNITS = [
   "Donor Clinic",
 ];
 
+let labUnitsEnsured = false;
+let doctorSpecializationsEnsured = false;
+
 export async function ensureDefaultLabUnits() {
+  if (labUnitsEnsured) return;
   const count = await db.labUnit.count();
   if (count > 0) return;
   await db.labUnit.createMany({
     data: DEFAULT_LAB_UNITS.map((name) => ({ name, active: true })),
     skipDuplicates: true,
   });
+  labUnitsEnsured = true;
 }
 
 export async function ensureDefaultDoctorSpecializations() {
+  if (doctorSpecializationsEnsured) return;
   const count = await db.doctorSpecialization.count();
   if (count > 0) return;
 
@@ -33,5 +39,5 @@ export async function ensureDefaultDoctorSpecializations() {
     })),
     skipDuplicates: true,
   });
+  doctorSpecializationsEnsured = true;
 }
-
