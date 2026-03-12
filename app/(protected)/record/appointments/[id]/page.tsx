@@ -8,6 +8,7 @@ import { PaymentsContainer } from "@/components/appointment/payment-container";
 import { VitalSigns } from "@/components/appointment/vital-signs";
 import { LabTestContainer } from "@/components/appointment/lab-test-container";
 import { MedicalHistoryContainer } from "@/components/medical-history-container";
+import { PrescriptionContainer } from "@/components/appointment/prescription-container";
 import { getAppointmentWithMedicalRecordsById } from "@/utils/services/appointment";
 
 const AppointmentDetailsPage = async ({
@@ -56,9 +57,12 @@ const AppointmentDetailsPage = async ({
         {cat === "medical-history" && (
           <MedicalHistoryContainer id={id!} patientId={data?.patient_id!} />
         )}
-        {cat === "billing" && <BillsContainer id={id} />}
+        {cat === "bills" && <BillsContainer id={id} />}
         {cat === "payments" && (
           <PaymentsContainer patientId={data?.patient_id!} />
+        )}
+        {cat === "prescriptions" && (
+          <PrescriptionContainer appointmentId={id} patientId={data?.patient_id!} />
         )}
       </div>
       {/* RIGHT */}

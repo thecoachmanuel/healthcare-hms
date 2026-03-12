@@ -1,10 +1,7 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
-import { checkRole } from "@/utils/roles";
 
-const AppointmentQuickLinks = async ({ staffId }: { staffId: string }) => {
-  const isPatient = await checkRole("PATIENT");
-
+const AppointmentQuickLinks = async ({ staffId: _staffId }: { staffId: string }) => {
   return (
     <Card className="w-full rounded-xl bg-white shadow-none">
       <CardHeader>
@@ -32,7 +29,7 @@ const AppointmentQuickLinks = async ({ staffId }: { staffId: string }) => {
         </Link>
 
         <Link
-          href="?cat=billing"
+          href="?cat=bills"
           className="px-4 py-2 rounded-lg bg-green-100 text-green-600"
         >
           Bills
@@ -57,6 +54,13 @@ const AppointmentQuickLinks = async ({ staffId }: { staffId: string }) => {
           className="px-4 py-2 rounded-lg bg-purple-100 text-purple-600"
         >
           Lab Test
+        </Link>
+
+        <Link
+          href="?cat=prescriptions"
+          className="px-4 py-2 rounded-lg bg-yellow-100 text-yellow-600"
+        >
+          Prescriptions
         </Link>
 
         <Link

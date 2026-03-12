@@ -24,7 +24,9 @@ const ACCESS_LEVELS_ALL = [
   "doctor",
   "nurse",
   "lab_scientist",
+  "lab_technician",
   "cashier",
+  "pharmacist",
   "patient",
 ];
 
@@ -83,7 +85,7 @@ export const Sidebar = async () => {
         {
           name: "Appointments",
           href: "/record/appointments",
-          access: ["admin", "doctor", "nurse"],
+          access: ["admin", "doctor", "nurse", "lab_scientist", "lab_technician", "cashier", "pharmacist"],
           icon: ListOrdered,
         },
         {
@@ -95,14 +97,26 @@ export const Sidebar = async () => {
         {
           name: "Lab Tests",
           href: "/lab_scientist/lab-tests",
-          access: ["lab_scientist"],
+          access: ["lab_scientist", "lab_technician"],
           icon: SquareActivity,
         },
         {
           name: "Billing Overview",
           href: "/record/billing",
-          access: ["admin", "doctor"],
+          access: ["admin", "doctor", "cashier", "nurse", "lab_scientist", "lab_technician", "pharmacist"],
           icon: Receipt,
+        },
+        {
+          name: "Prescriptions",
+          href: "/pharmacist/prescriptions",
+          access: ["pharmacist"],
+          icon: Pill,
+        },
+        {
+          name: "Medications",
+          href: "/pharmacist/medications",
+          access: ["pharmacist"],
+          icon: Pill,
         },
         {
           name: "Patient Management",

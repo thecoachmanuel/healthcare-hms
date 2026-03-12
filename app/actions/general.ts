@@ -9,6 +9,35 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { requireAuthUserId } from "@/lib/auth";
 import { checkRole } from "@/utils/roles";
 
+async function recomputePayment(paymentId: number) {
+  const payment = await db.payment.findUnique({
+    where: { id: paymentId },
+    select: { id: true, discount: true },
+  });
+  if (!payment) return;
+
+  const bills = await db.patientBills.findMany({
+    where: { bill_id: paymentId },
+    select: { total_cost: true, amount_paid: true },
+  });
+
+  const totalAmount = bills.reduce((sum, b) => sum + b.total_cost, 0);
+  const amountPaid = bills.reduce((sum, b) => sum + (b.amount_paid ?? 0), 0);
+  const payable = Math.max(0, totalAmount - (payment.discount ?? 0));
+
+  const status =
+    amountPaid <= 0
+      ? "UNPAID"
+      : amountPaid >= payable
+      ? "PAID"
+      : "PART";
+
+  await db.payment.update({
+    where: { id: paymentId },
+    data: { total_amount: totalAmount, amount_paid: amountPaid, status },
+  });
+}
+
 export async function deleteDataById(
   id: string,
 
@@ -28,6 +57,17 @@ export async function deleteDataById(
       case "payment":
         await db.payment.delete({ where: { id: Number(id) } });
         break;
+      case "bill": {
+        const bill = await db.patientBills.findUnique({
+          where: { id: Number(id) },
+          select: { bill_id: true },
+        });
+        if (bill) {
+          await db.patientBills.delete({ where: { id: Number(id) } });
+          await recomputePayment(bill.bill_id);
+        }
+        break;
+      }
       default:
         break;
     }

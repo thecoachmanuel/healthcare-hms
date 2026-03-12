@@ -27,6 +27,9 @@ import { uploadToCloudinary } from "@/lib/cloudinary/upload";
 const TYPES = [
   { label: "Nurse", value: "NURSE" },
   { label: "Lab Scientist", value: "LAB_SCIENTIST" },
+  { label: "Lab Technician", value: "LAB_TECHNICIAN" },
+  { label: "Cashier", value: "CASHIER" },
+  { label: "Pharmacist", value: "PHARMACIST" },
 ];
 
 export const StaffForm = () => {

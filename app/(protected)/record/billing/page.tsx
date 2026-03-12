@@ -54,6 +54,11 @@ const columns = [
     className: "hidden xl:table-cell",
   },
   {
+    header: "Unpaid",
+    key: "unpaid",
+    className: "hidden 2xl:table-cell",
+  },
+  {
     header: "Status",
     key: "status",
     className: "hidden xl:table-cell",
@@ -117,6 +122,9 @@ const BillingPage = async (props: SearchParamsProps) => {
         </td>
         <td className="hidden xl:table-cell">
           {(item?.amount_paid).toFixed(2)}
+        </td>
+        <td className="hidden 2xl:table-cell">
+          {Math.max(0, item.total_amount - item.discount - item.amount_paid).toFixed(2)}
         </td>
         <td className="hidden xl:table-cell">
           <span

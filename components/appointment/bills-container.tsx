@@ -9,6 +9,7 @@ import { ActionDialog } from "../action-dialog";
 import { Separator } from "../ui/separator";
 import { AddBills } from "../dialogs/add-bills";
 import { GenerateFinalBills } from "./generate-final-bill";
+import { MarkBillPaid } from "../dialogs/mark-bill-paid";
 
 const columns = [
   {
@@ -41,6 +42,16 @@ const columns = [
     className: "",
   },
   {
+    header: "Paid",
+    key: "paid",
+    className: "hidden xl:table-cell",
+  },
+  {
+    header: "Status",
+    key: "status",
+    className: "hidden xl:table-cell",
+  },
+  {
     header: "Action",
     key: "action",
     className: "hidden xl:table-cell",
@@ -54,6 +65,26 @@ interface ExtendedBillProps extends PatientBills {
   };
 }
 export const BillsContainer = async ({ id }: { id: string }) => {
+  const isAdmin = await checkRole("ADMIN");
+  const isDoctor = await checkRole("DOCTOR");
+  const isNurse = await checkRole("NURSE");
+  const isLabScientist = await checkRole("LAB_SCIENTIST");
+  const isLabTechnician = await checkRole("LAB_TECHNICIAN");
+  const isPharmacist = await checkRole("PHARMACIST");
+  const isCashier = await checkRole("CASHIER");
+
+  const canAddGeneral = isAdmin || isDoctor || isNurse;
+  const canAddLab = isAdmin || isLabScientist || isLabTechnician;
+  const canAddMeds = isAdmin || isPharmacist;
+  const canFinalize = isAdmin || isCashier;
+  const canMarkPaid = isAdmin || isCashier;
+
+  const allowedCategories = [
+    ...(canAddGeneral ? ["GENERAL"] : []),
+    ...(canAddLab ? ["LAB_TEST"] : []),
+    ...(canAddMeds ? ["MEDICATION"] : []),
+  ];
+
   const [data, servicesData] = await Promise.all([
     db.payment.findFirst({
       where: { appointment_id: Number(id) },
@@ -67,22 +98,28 @@ export const BillsContainer = async ({ id }: { id: string }) => {
         },
       },
     }),
-    db.services.findMany(),
+    allowedCategories.length
+      ? db.services.findMany({
+          where: { category: { in: allowedCategories as any } },
+          orderBy: { service_name: "asc" },
+        })
+      : Promise.resolve([]),
   ]);
 
   let totalBills = 0;
 
   const billData = data?.bills || [];
-  const discount = data
-    ? calculateDiscount({
-        amount: data?.total_amount,
-        discount: data?.discount,
-      })
-    : null;
 
   if (billData) {
     totalBills = billData.reduce((sum, acc) => sum + acc.total_cost, 0);
   }
+
+  const discount = data
+    ? calculateDiscount({
+        amount: totalBills,
+        discount: data?.discount ?? 0,
+      })
+    : null;
 
   const renderRow = (item: ExtendedBillProps) => {
     return (
@@ -101,13 +138,25 @@ export const BillsContainer = async ({ id }: { id: string }) => {
         </td>
         <td className="hidden lg:table-cell">{item?.unit_cost.toFixed(2)}</td>
         <td>{item?.total_cost.toFixed(2)}</td>
+        <td className="hidden xl:table-cell">{(item as any)?.amount_paid?.toFixed?.(2) ?? "0.00"}</td>
+        <td className="hidden xl:table-cell">{(item as any)?.payment_status ?? "UNPAID"}</td>
 
         <td className="hidden xl:table-cell">
-          <ActionDialog
-            type="delete"
-            id={item?.id.toString()}
-            deleteType="bill"
-          />
+          <div className="flex items-center gap-2">
+            {canMarkPaid && (
+              <MarkBillPaid
+                patientBillId={item.id}
+                defaultAmount={item.total_cost}
+              />
+            )}
+            {isAdmin && (
+              <ActionDialog
+                type="delete"
+                id={item?.id.toString()}
+                deleteType="bill"
+              />
+            )}
+          </div>
         </td>
       </tr>
     );
@@ -127,11 +176,13 @@ export const BillsContainer = async ({ id }: { id: string }) => {
           </div>
         </div>
 
-        {((await checkRole("ADMIN")) || (await checkRole("DOCTOR"))) && (
+        {(canAddGeneral || canAddLab || canAddMeds) && (
           <div className="flex items-center mt-5 justify-end">
             <AddBills id={data?.id} appId={id} servicesData={servicesData} />
 
-            <GenerateFinalBills id={data?.id} total_bill={totalBills} />
+            {canFinalize && (
+              <GenerateFinalBills id={data?.id} total_bill={totalBills} />
+            )}
           </div>
         )}
       </div>
@@ -172,7 +223,10 @@ export const BillsContainer = async ({ id }: { id: string }) => {
         <div className="w-[120px]">
           <span className="text-gray-500">Unpaid Amount</span>
           <p className="text-xl font-semibold text-red-600">
-            {(discount?.finalAmount! - data?.amount_paid! || 0.0).toFixed(2)}
+            {Math.max(
+              0,
+              (discount?.finalAmount ?? 0) - (data?.amount_paid ?? 0)
+            ).toFixed(2)}
           </p>
         </div>
       </div>

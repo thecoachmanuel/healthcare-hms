@@ -17,8 +17,16 @@ enum Role {
   NURSE
   DOCTOR
   LAB_SCIENTIST
+  LAB_TECHNICIAN
+  PHARMACIST
   PATIENT
   CASHIER
+}
+
+enum ServiceCategory {
+  GENERAL
+  LAB_TEST
+  MEDICATION
 }
 
 enum Status {
@@ -85,6 +93,7 @@ model Patient {
   medical                  MedicalRecords[]
   payments                 Payment[]
   ratings                  Rating[]
+  prescriptions            Prescription[]
 
   created_at               DateTime @default(now())
   updated_at               DateTime @updatedAt
@@ -108,6 +117,7 @@ model Doctor {
   appointments          Appointment[]
   ratings               Rating[]
   diagnosis             Diagnosis[] 
+  prescriptions         Prescription[]
 
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
@@ -198,6 +208,11 @@ model PatientBills {
   quantity        Int
   unit_cost       Float
   total_cost      Float
+  payment_status  PaymentStatus @default(UNPAID)
+  amount_paid     Float @default(0)
+  paid_at         DateTime?
+  issued_by_id    String?
+  issued_by_role  Role?
   service         Services @relation(fields: [service_id], references: [id])
   payment         Payment @relation(fields: [bill_id], references: [id], onDelete: Cascade)
 
@@ -311,9 +326,52 @@ model Services {
   service_name    String
   description     String
   price           Float
+  category        ServiceCategory @default(GENERAL)
+  created_by_id   String?
+  created_by_role Role?
   labtests        LabTest[]
   bills           PatientBills[]
+  prescription_items PrescriptionItem[]
 
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+}
+
+enum PrescriptionStatus {
+  ISSUED
+  DISPENSED
+  CANCELLED
+}
+
+model Prescription {
+  id             Int   @id @default(autoincrement())
+  patient_id     String
+  doctor_id      String
+  appointment_id Int?
+  notes          String?
+  status         PrescriptionStatus @default(ISSUED)
+  patient        Patient @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  doctor         Doctor  @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+  items          PrescriptionItem[]
+
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+}
+
+model PrescriptionItem {
+  id               Int @id @default(autoincrement())
+  prescription_id  Int
+  medication_id    Int
+  quantity         Int
+  dosage           String?
+  instructions     String?
+
+  prescription     Prescription @relation(fields: [prescription_id], references: [id], onDelete: Cascade)
+  medication       Services @relation(fields: [medication_id], references: [id], onDelete: Cascade)
+
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+
+  @@index([prescription_id])
+  @@index([medication_id])
 }

@@ -123,7 +123,10 @@ export const StaffSchema = z.object({
     .trim()
     .min(2, "Name must be at least 2 characters")
     .max(50, "Name must be at most 50 characters"),
-  role: z.enum(["NURSE", "LAB_SCIENTIST"], { message: "Role is required." }),
+  role: z.enum(
+    ["NURSE", "LAB_SCIENTIST", "LAB_TECHNICIAN", "CASHIER", "PHARMACIST"],
+    { message: "Role is required." }
+  ),
   phone: phoneSchema,
   email: z.string().email("Invalid email address."),
   address: z
@@ -191,10 +194,17 @@ export const PatientBillSchema = z.object({
   total_cost: z.string({ message: "Total cost is required" }),
 });
 
+export const BillPaymentSchema = z.object({
+  patient_bill_id: z.string(),
+  amount_paid: z.string(),
+  payment_method: z.enum(["CASH", "CARD"]).optional(),
+});
+
 export const ServicesSchema = z.object({
   service_name: z.string({ message: "Service name is required" }),
   price: z.string({ message: "Service price is required" }),
   description: z.string({ message: "Service description is required" }),
+  category: z.enum(["GENERAL", "LAB_TEST", "MEDICATION"]).optional(),
 });
 
 export const LabTestRequestSchema = z.object({
@@ -208,4 +218,18 @@ export const LabTestUpdateSchema = z.object({
   status: z.string(),
   result: z.string(),
   notes: z.string().optional(),
+});
+
+export const PrescriptionItemSchema = z.object({
+  medication_id: z.string(),
+  quantity: z.string(),
+  dosage: z.string().optional(),
+  instructions: z.string().optional(),
+});
+
+export const CreatePrescriptionSchema = z.object({
+  appointment_id: z.string(),
+  patient_id: z.string(),
+  notes: z.string().optional(),
+  items: z.array(PrescriptionItemSchema).min(1),
 });

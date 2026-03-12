@@ -14,6 +14,9 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 function mapRoleToRoute(role: string) {
   if (role === "LAB_SCIENTIST") return "lab_scientist";
+  if (role === "LAB_TECHNICIAN") return "lab_technician";
+  if (role === "PHARMACIST") return "pharmacist";
+  if (role === "CASHIER") return "cashier";
   return role.toLowerCase();
 }
 
@@ -66,7 +69,7 @@ export async function createNewStaff(data: any) {
         phone: validatedValues.phone,
         email: validatedValues.email,
         address: validatedValues.address,
-        role: validatedValues.role,
+        role: validatedValues.role as any,
         license_number: validatedValues.license_number,
         department: validatedValues.department,
         colorCode: generateRandomColor(),
@@ -157,12 +160,56 @@ export async function createNewDoctor(data: any) {
 
 export async function addNewService(data: any) {
   try {
+    const userId = await requireAuthUserId();
+    const isAdmin = await checkRole("ADMIN");
+    const isLabScientist = await checkRole("LAB_SCIENTIST");
+    const isPharmacist = await checkRole("PHARMACIST");
+
+    if (!isAdmin && !isLabScientist && !isPharmacist) {
+      return { success: false, msg: "Unauthorized" };
+    }
+
     const isValidData = ServicesSchema.safeParse(data);
 
     const validatedData = isValidData.data;
 
-    await db.services.create({
-      data: { ...validatedData!, price: Number(data.price!) },
+    const requestedCategory = validatedData?.category ?? "GENERAL";
+    const category = isAdmin
+      ? requestedCategory
+      : isLabScientist
+      ? "LAB_TEST"
+      : "MEDICATION";
+
+    if (
+      (category === "LAB_TEST" && !(isAdmin || isLabScientist)) ||
+      (category === "MEDICATION" && !(isAdmin || isPharmacist)) ||
+      (category === "GENERAL" && !isAdmin)
+    ) {
+      return { success: false, msg: "Unauthorized" };
+    }
+
+    const createdService = await db.services.create({
+      data: {
+        ...validatedData!,
+        category,
+        price: Number(data.price!),
+        created_by_id: userId,
+        created_by_role: isAdmin
+          ? "ADMIN"
+          : isLabScientist
+          ? "LAB_SCIENTIST"
+          : "PHARMACIST",
+      },
+    });
+
+    await db.auditLog.create({
+      data: {
+        user_id: userId,
+        record_id: String(createdService.id),
+        action: "CREATE",
+        model: "Services",
+        details: `category=${category} service_name=${validatedData?.service_name}`,
+      },
     });
 
     return {
