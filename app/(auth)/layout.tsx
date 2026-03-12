@@ -3,11 +3,11 @@ import React from "react";
 
 const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="w-full min-h-screen flex">
-      <div className="w-full md:w-1/2 min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-10 py-10">
+    <div className="w-full min-h-screen md:h-screen flex overflow-hidden">
+      <div className="w-full md:w-1/2 min-h-screen md:h-screen flex items-center justify-center px-4 sm:px-6 lg:px-10 py-10 md:py-0 overflow-y-auto">
         {children}
       </div>
-      <div className="hidden md:flex w-1/2 h-full relative">
+      <div className="hidden md:flex w-1/2 h-screen relative overflow-hidden">
         <Image
           src="https://images.pexels.com/photos/6129437/pexels-photo-6129437.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
           width={1000}
