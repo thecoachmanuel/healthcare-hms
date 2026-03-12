@@ -128,6 +128,7 @@ export const StaffSchema = z.object({
     ["NURSE", "LAB_SCIENTIST", "LAB_TECHNICIAN", "CASHIER", "PHARMACIST", "RECORD_OFFICER"],
     { message: "Role is required." }
   ),
+  lab_unit_id: z.string().optional(),
   phone: phoneSchema,
   email: z.string().email("Invalid email address."),
   address: z
@@ -211,6 +212,7 @@ export const ServicesSchema = z.object({
   price: z.string({ message: "Service price is required" }),
   description: z.string({ message: "Service description is required" }),
   category: z.enum(["GENERAL", "LAB_TEST", "MEDICATION"]).optional(),
+  lab_unit_id: z.string().optional(),
 });
 
 export const LabTestRequestSchema = z.object({

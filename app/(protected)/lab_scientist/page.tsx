@@ -1,5 +1,6 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAuthUserId } from "@/lib/auth";
+import Link from "next/link";
 import React from "react";
 
 const LabScientistDashboardPage = async () => {
@@ -12,7 +13,16 @@ const LabScientistDashboardPage = async () => {
           <CardTitle>Lab Scientist Dashboard</CardTitle>
           <CardDescription>Manage lab tests and results.</CardDescription>
         </CardHeader>
-        <CardContent className="text-sm text-gray-500">Coming soon.</CardContent>
+        <CardContent className="text-sm">
+          <div className="flex flex-wrap gap-4">
+            <Link href="/lab_scientist/lab-tests" className="text-blue-600 hover:underline">
+              View Lab Requests
+            </Link>
+            <Link href="/lab_scientist/unit" className="text-blue-600 hover:underline">
+              Set My Unit
+            </Link>
+          </div>
+        </CardContent>
       </Card>
     </div>
   );

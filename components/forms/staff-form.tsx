@@ -1,9 +1,9 @@
 "use client";
 
-import { DoctorSchema, StaffSchema } from "@/lib/schema";
+import { StaffSchema } from "@/lib/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
-import React, { useActionState, useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import {
@@ -16,11 +16,10 @@ import {
 import { Button } from "../ui/button";
 import { Plus } from "lucide-react";
 import { Form } from "../ui/form";
-import { CustomInput, SwitchInput } from "../custom-input";
-import { SPECIALIZATION } from "@/utils/seetings";
+import { CustomInput } from "../custom-input";
 import { Label } from "../ui/label";
 import { toast } from "sonner";
-import { createNewDoctor, createNewStaff } from "@/app/actions/admin";
+import { createNewStaff } from "@/app/actions/admin";
 import { Input } from "../ui/input";
 import { uploadToCloudinary } from "@/lib/cloudinary/upload";
 
@@ -30,9 +29,14 @@ const TYPES = [
   { label: "Lab Technician", value: "LAB_TECHNICIAN" },
   { label: "Cashier", value: "CASHIER" },
   { label: "Pharmacist", value: "PHARMACIST" },
+  { label: "Record Officer", value: "RECORD_OFFICER" },
 ];
 
-export const StaffForm = () => {
+export const StaffForm = ({
+  labUnits,
+}: {
+  labUnits: { label: string; value: string }[];
+}) => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const [profileFile, setProfileFile] = useState<File | null>(null);
@@ -44,6 +48,7 @@ export const StaffForm = () => {
       email: "",
       phone: "",
       role: "NURSE",
+      lab_unit_id: "",
       address: "",
       department: "",
       img: "",
@@ -51,6 +56,7 @@ export const StaffForm = () => {
       license_number: "",
     },
   });
+  const role = form.watch("role");
 
   const handleSubmit = async (values: z.infer<typeof StaffSchema>) => {
     try {
@@ -99,14 +105,24 @@ export const StaffForm = () => {
               className="space-y-8 mt-5 2xl:mt-10"
             >
               <CustomInput
-                type="radio"
+                type="select"
                 selectList={TYPES}
                 control={form.control}
                 name="role"
                 label="Type"
-                placeholder=""
-                defaultValue="NURSE"
+                placeholder="Select role"
               />
+
+              {(role === "LAB_SCIENTIST" || role === "LAB_TECHNICIAN") && (
+                <CustomInput
+                  type="select"
+                  selectList={labUnits}
+                  control={form.control}
+                  name="lab_unit_id"
+                  label="Lab Unit"
+                  placeholder="Select unit"
+                />
+              )}
 
               <CustomInput
                 type="input"

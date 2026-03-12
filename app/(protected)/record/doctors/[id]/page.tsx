@@ -1,5 +1,4 @@
 import { availableDays } from "@/components/available-doctor";
-import { PatientRatingContainer } from "@/components/patient-rating-container";
 import { ProfileImage } from "@/components/profile-image";
 import { RatingContainer } from "@/components/rating-container";
 import { RecentAppointments } from "@/components/tables/recent-appointment";

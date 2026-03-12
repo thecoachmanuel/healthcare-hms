@@ -15,14 +15,19 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SPECIALIZATION } from "@/utils/seetings";
 
 const TYPES = [
   { label: "Full-Time", value: "FULL" },
   { label: "Part-Time", value: "PART" },
 ];
 
-export const EditDoctorForm = ({ doctor }: { doctor: Doctor }) => {
+export const EditDoctorForm = ({
+  doctor,
+  specializations,
+}: {
+  doctor: Doctor;
+  specializations: { label: string; value: string; department: string }[];
+}) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [profileFile, setProfileFile] = useState<File | null>(null);
@@ -46,12 +51,12 @@ export const EditDoctorForm = ({ doctor }: { doctor: Doctor }) => {
   const selectedSpecialization = form.watch("specialization");
   useEffect(() => {
     if (selectedSpecialization) {
-      const dept = SPECIALIZATION.find((el) => el.value === selectedSpecialization);
+      const dept = specializations.find((el) => el.value === selectedSpecialization);
       if (dept) {
         form.setValue("department", dept.department);
       }
     }
-  }, [selectedSpecialization]);
+  }, [selectedSpecialization, specializations]);
 
   const handleSubmit = async (values: z.infer<typeof DoctorSchema>) => {
     try {
@@ -97,7 +102,7 @@ export const EditDoctorForm = ({ doctor }: { doctor: Doctor }) => {
             name="specialization"
             placeholder="Select specialization"
             label="Specialization"
-            selectList={SPECIALIZATION}
+            selectList={specializations}
           />
           <CustomInput type="input" control={form.control} name="department" placeholder="" label="Department" />
         </div>
@@ -123,4 +128,3 @@ export const EditDoctorForm = ({ doctor }: { doctor: Doctor }) => {
     </Form>
   );
 };
-

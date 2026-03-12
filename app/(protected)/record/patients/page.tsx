@@ -3,8 +3,9 @@ import { ActionOptions, EditAction, ViewAction } from "@/components/action-optio
 import { Pagination } from "@/components/pagination";
 import { ProfileImage } from "@/components/profile-image";
 import SearchInput from "@/components/search-input";
+import { SelectFilter } from "@/components/filters/select-filter";
+import { TextFilter } from "@/components/filters/text-filter";
 import { Table } from "@/components/tables/table";
-import { Button } from "@/components/ui/button";
 import { SearchParamsProps } from "@/types";
 import { calculateAge } from "@/utils";
 import { checkRole } from "@/utils/roles";
@@ -12,7 +13,7 @@ import { DATA_LIMIT } from "@/utils/seetings";
 import { getAllPatients } from "@/utils/services/patient";
 import { Patient } from "@prisma/client";
 import { format } from "date-fns";
-import { UserPen, Users } from "lucide-react";
+import { Users } from "lucide-react";
 
 const columns = [
   {
@@ -67,10 +68,14 @@ const PatientList = async (props: SearchParamsProps) => {
   const searchParams = await props.searchParams;
   const page = (searchParams?.p || "1") as string;
   const searchQuery = (searchParams?.q || "") as string;
+  const gender = (searchParams?.gender || "") as string;
+  const hn = (searchParams?.hn || "") as string;
 
   const { data, totalPages, totalRecords, currentPage } = await getAllPatients({
     page,
     search: searchQuery,
+    gender: gender || undefined,
+    hospitalNumber: hn || undefined,
   });
   const isAdmin = await checkRole("ADMIN");
 
@@ -154,6 +159,16 @@ const PatientList = async (props: SearchParamsProps) => {
         </div>
         <div className="w-full lg:w-fit flex items-center justify-between lg:justify-start gap-2">
           <SearchInput />
+          <SelectFilter
+            param="gender"
+            label="Gender"
+            options={[
+              { label: "All", value: "" },
+              { label: "Male", value: "MALE" },
+              { label: "Female", value: "FEMALE" },
+            ]}
+          />
+          <TextFilter param="hn" label="HN" placeholder="Hospital #" />
         </div>
       </div>
 

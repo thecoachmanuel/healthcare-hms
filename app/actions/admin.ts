@@ -41,6 +41,13 @@ export async function createNewStaff(data: any) {
     }
 
     const validatedValues = values.data;
+    if (
+      (validatedValues.role === "LAB_SCIENTIST" ||
+        validatedValues.role === "LAB_TECHNICIAN") &&
+      (!validatedValues.lab_unit_id || validatedValues.lab_unit_id.trim().length === 0)
+    ) {
+      return { success: false, msg: "Please select a lab unit", error: true };
+    }
 
     const [firstName, ...rest] = validatedValues.name.split(" ");
     const lastName = rest.join(" ").trim();
@@ -63,13 +70,16 @@ export async function createNewStaff(data: any) {
 
     delete validatedValues["password"];
 
-    const doctor = await db.staff.create({
+    await db.staff.create({
       data: {
         name: validatedValues.name,
         phone: validatedValues.phone,
         email: validatedValues.email,
         address: validatedValues.address,
         role: validatedValues.role as any,
+        lab_unit_id: validatedValues.lab_unit_id
+          ? Number(validatedValues.lab_unit_id)
+          : null,
         license_number: validatedValues.license_number,
         department: validatedValues.department,
         colorCode: generateRandomColor(),
@@ -187,12 +197,21 @@ export async function addNewService(data: any) {
     ) {
       return { success: false, msg: "Unauthorized" };
     }
+    if (
+      category === "LAB_TEST" &&
+      (!validatedData?.lab_unit_id || validatedData.lab_unit_id.trim().length === 0)
+    ) {
+      return { success: false, msg: "Please select a lab unit" };
+    }
 
     const createdService = await db.services.create({
       data: {
         ...validatedData!,
         category,
         price: Number(data.price!),
+        lab_unit_id: validatedData?.lab_unit_id
+          ? Number(validatedData.lab_unit_id)
+          : null,
         created_by_id: userId,
         created_by_role: isAdmin
           ? "ADMIN"
@@ -270,6 +289,13 @@ export async function updateStaff(data: any, staffId: string) {
     }
 
     const validatedValues = values.data;
+    if (
+      (validatedValues.role === "LAB_SCIENTIST" ||
+        validatedValues.role === "LAB_TECHNICIAN") &&
+      (!validatedValues.lab_unit_id || validatedValues.lab_unit_id.trim().length === 0)
+    ) {
+      return { success: false, msg: "Please select a lab unit" };
+    }
     const [firstName, ...rest] = validatedValues.name.split(" ");
     const lastName = rest.join(" ").trim();
 
@@ -292,6 +318,9 @@ export async function updateStaff(data: any, staffId: string) {
         email: validatedValues.email,
         address: validatedValues.address,
         role: validatedValues.role as any,
+        lab_unit_id: validatedValues.lab_unit_id
+          ? Number(validatedValues.lab_unit_id)
+          : null,
         license_number: validatedValues.license_number,
         department: validatedValues.department,
         img: validatedValues.img,

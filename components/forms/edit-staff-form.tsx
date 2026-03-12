@@ -22,9 +22,16 @@ const TYPES = [
   { label: "Lab Technician", value: "LAB_TECHNICIAN" },
   { label: "Cashier", value: "CASHIER" },
   { label: "Pharmacist", value: "PHARMACIST" },
+  { label: "Record Officer", value: "RECORD_OFFICER" },
 ];
 
-export const EditStaffForm = ({ staff }: { staff: Staff }) => {
+export const EditStaffForm = ({
+  staff,
+  labUnits,
+}: {
+  staff: Staff;
+  labUnits: { label: string; value: string }[];
+}) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [profileFile, setProfileFile] = useState<File | null>(null);
@@ -36,6 +43,7 @@ export const EditStaffForm = ({ staff }: { staff: Staff }) => {
       email: staff.email ?? "",
       phone: staff.phone ?? "",
       role: staff.role as any,
+      lab_unit_id: (staff as any)?.lab_unit_id ? String((staff as any).lab_unit_id) : "",
       address: staff.address ?? "",
       department: staff.department ?? "",
       img: staff.img ?? "",
@@ -43,6 +51,7 @@ export const EditStaffForm = ({ staff }: { staff: Staff }) => {
       license_number: staff.license_number ?? "",
     },
   });
+  const role = form.watch("role");
 
   const handleSubmit = async (values: z.infer<typeof StaffSchema>) => {
     try {
@@ -72,6 +81,16 @@ export const EditStaffForm = ({ staff }: { staff: Staff }) => {
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8 mt-6">
         <CustomInput type="input" control={form.control} name="name" label="Full Name" placeholder="" />
         <CustomInput type="select" control={form.control} name="role" label="Role" placeholder="Select role" selectList={TYPES} />
+        {(role === "LAB_SCIENTIST" || role === "LAB_TECHNICIAN") && (
+          <CustomInput
+            type="select"
+            control={form.control}
+            name="lab_unit_id"
+            label="Lab Unit"
+            placeholder="Select unit"
+            selectList={[{ label: "Select unit", value: "" }, ...labUnits]}
+          />
+        )}
         <div className="flex items-center gap-2">
           <CustomInput type="input" control={form.control} name="email" label="Email" placeholder="" />
           <CustomInput type="input" control={form.control} name="phone" label="Phone" placeholder="" />
@@ -92,4 +111,3 @@ export const EditStaffForm = ({ staff }: { staff: Staff }) => {
     </Form>
   );
 };
-

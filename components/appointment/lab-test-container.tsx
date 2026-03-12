@@ -7,6 +7,7 @@ import { Table } from "../tables/table";
 import { format } from "date-fns";
 import { RequestLabTest } from "../dialogs/request-lab-test";
 import { UpdateLabTest } from "../dialogs/update-lab-test";
+import { ensureDefaultLabUnits } from "@/utils/services/catalog-seed";
 
 const columns = [
   { header: "Test", key: "test" },
@@ -22,6 +23,7 @@ export const LabTestContainer = async ({
   appointmentId: string;
 }) => {
   await requireAuthUserId();
+  await ensureDefaultLabUnits();
   const isPatient = await checkRole("PATIENT");
   const isLabScientist = await checkRole("LAB_SCIENTIST");
   const canRequest = (await checkRole("ADMIN")) || (await checkRole("DOCTOR")) || (await checkRole("NURSE"));
@@ -50,15 +52,25 @@ export const LabTestContainer = async ({
       : Promise.resolve([]),
     canRequest
       ? db.services.findMany({
-          select: { id: true, service_name: true },
+          where: { category: "LAB_TEST" },
+          select: { id: true, service_name: true, lab_unit_id: true },
           orderBy: { service_name: "asc" },
         })
       : Promise.resolve([]),
   ]);
 
-  const serviceOptions = services.map((s) => ({
+  const units = canRequest
+    ? await db.labUnit.findMany({
+        where: { active: true },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      })
+    : [];
+
+  const serviceOptions = services.map((s: any) => ({
     label: s.service_name,
     value: String(s.id),
+    unitId: s.lab_unit_id ? String(s.lab_unit_id) : undefined,
   }));
 
   const renderRow = (item: any) => {
@@ -99,7 +111,13 @@ export const LabTestContainer = async ({
     <Card className="shadow-none bg-white">
       <CardHeader className="flex flex-row items-center justify-between">
         <CardTitle>Lab Requests & Results</CardTitle>
-        {canRequest && <RequestLabTest appointmentId={appointmentId} services={serviceOptions} />}
+        {canRequest && (
+          <RequestLabTest
+            appointmentId={appointmentId}
+            services={serviceOptions}
+            units={units.map((u: any) => ({ label: u.name, value: String(u.id) }))}
+          />
+        )}
       </CardHeader>
       <CardContent>
         <Table columns={columns} data={tests as any[]} renderRow={renderRow} />
@@ -107,4 +125,3 @@ export const LabTestContainer = async ({
     </Card>
   );
 };
-

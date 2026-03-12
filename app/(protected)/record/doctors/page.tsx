@@ -5,7 +5,6 @@ import { Pagination } from "@/components/pagination";
 import { ProfileImage } from "@/components/profile-image";
 import SearchInput from "@/components/search-input";
 import { Table } from "@/components/tables/table";
-import { Button } from "@/components/ui/button";
 import { SearchParamsProps } from "@/types";
 import { checkRole } from "@/utils/roles";
 import { DATA_LIMIT } from "@/utils/seetings";
@@ -14,6 +13,8 @@ import { Doctor } from "@prisma/client";
 import { format } from "date-fns";
 import { Users } from "lucide-react";
 import React from "react";
+import db from "@/lib/db";
+import { ensureDefaultDoctorSpecializations } from "@/utils/services/catalog-seed";
 
 const columns = [
   {
@@ -58,6 +59,20 @@ const DoctorsList = async (props: SearchParamsProps) => {
 
   if (!data) return null;
   const isAdmin = await checkRole("ADMIN");
+  await ensureDefaultDoctorSpecializations();
+  const specializationsDb = await db.doctorSpecialization.findMany({
+    where: { active: true },
+    orderBy: { name: "asc" },
+    select: { name: true, department: true },
+  });
+  const specializations =
+    specializationsDb.length > 0
+      ? specializationsDb.map((s: { name: string; department: string | null }) => ({
+          label: s.name,
+          value: s.name,
+          department: s.department ?? "General",
+        }))
+      : [];
 
   const renderRow = (item: Doctor) => (
     <tr
@@ -107,7 +122,7 @@ const DoctorsList = async (props: SearchParamsProps) => {
         </div>
         <div className="w-full lg:w-fit flex items-center justify-between lg:justify-start gap-2">
           <SearchInput />
-          {isAdmin && <DoctorForm />}
+          {isAdmin && <DoctorForm specializations={specializations as any} />}
         </div>
       </div>
 

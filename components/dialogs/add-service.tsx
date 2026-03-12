@@ -23,7 +23,19 @@ import { Form } from "../ui/form";
 import { ServicesSchema } from "@/lib/schema";
 import { CustomInput } from "../custom-input";
 
-export const AddService = () => {
+export const AddService = ({
+  category = "GENERAL",
+  buttonText = "Add New Service",
+  title,
+  description,
+  labUnits = [],
+}: {
+  category?: "GENERAL" | "LAB_TEST" | "MEDICATION";
+  buttonText?: string;
+  title?: string;
+  description?: string;
+  labUnits?: { label: string; value: string }[];
+}) => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
@@ -33,22 +45,27 @@ export const AddService = () => {
       service_name: undefined,
       price: undefined,
       description: undefined,
+      category,
+      lab_unit_id: "",
     },
   });
 
   const handleOnSubmit = async (values: z.infer<typeof ServicesSchema>) => {
     try {
       setIsLoading(true);
-      const resp = await addNewService(values);
+      const resp = await addNewService({
+        ...values,
+        category,
+      });
 
       if (resp.success) {
-        toast.success("Service added successfully!");
+        toast.success(resp.msg ?? "Saved");
 
         router.refresh();
 
-        form.reset();
-      } else if (resp.error) {
-        toast.error(resp.msg);
+        form.reset({ category, lab_unit_id: "" } as any);
+      } else {
+        toast.error(resp.msg ?? "Failed to save");
       }
     } catch (error) {
       console.log(error);
@@ -63,16 +80,13 @@ export const AddService = () => {
       <Dialog>
         <DialogTrigger asChild>
           <Button size="sm" className="text-sm font-normal">
-            <Plus size={22} className="text-gray-500" /> Add New Service
+            <Plus size={22} className="text-gray-500" /> {buttonText}
           </Button>
         </DialogTrigger>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <CardHeader className="px-0">
-            <DialogTitle>Add New Service</DialogTitle>
-            <CardDescription>
-              Ensure accurate readings are perform as this may affect the
-              diagnosis and other medical processes.
-            </CardDescription>
+            <DialogTitle>{title ?? "Add New Service"}</DialogTitle>
+            <CardDescription>{description ?? "Create a new item in the catalog."}</CardDescription>
           </CardHeader>
 
           <Form {...form}>
@@ -84,16 +98,27 @@ export const AddService = () => {
                 type="input"
                 control={form.control}
                 name="service_name"
-                label="Service Name"
+                label="Name"
                 placeholder=""
               />
+
+              {category === "LAB_TEST" && (
+                <CustomInput
+                  type="select"
+                  control={form.control}
+                  name="lab_unit_id"
+                  label="Lab Unit"
+                  placeholder="Select unit"
+                  selectList={[{ label: "Select unit", value: "" }, ...labUnits]}
+                />
+              )}
 
               <CustomInput
                 type="input"
                 control={form.control}
                 name="price"
                 placeholder=""
-                label="Service Price"
+                label="Price"
               />
               <div className="flex items-center gap-4">
                 <CustomInput
@@ -101,7 +126,7 @@ export const AddService = () => {
                   control={form.control}
                   name="description"
                   placeholder=""
-                  label="Service Description"
+                  label="Description"
                 />
               </div>
 

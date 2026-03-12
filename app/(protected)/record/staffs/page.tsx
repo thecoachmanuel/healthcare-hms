@@ -1,20 +1,21 @@
 import { ActionDialog } from "@/components/action-dialog";
-import { EditAction, ViewAction } from "@/components/action-options";
-import { DoctorForm } from "@/components/forms/doctor-form";
+import { EditAction } from "@/components/action-options";
 import { StaffForm } from "@/components/forms/staff-form";
 import { Pagination } from "@/components/pagination";
 import { ProfileImage } from "@/components/profile-image";
 import SearchInput from "@/components/search-input";
+import { SelectFilter } from "@/components/filters/select-filter";
 import { Table } from "@/components/tables/table";
-import { Button } from "@/components/ui/button";
 import { SearchParamsProps } from "@/types";
 import { checkRole } from "@/utils/roles";
 import { DATA_LIMIT } from "@/utils/seetings";
 import { getAllStaff } from "@/utils/services/staff";
-import { Doctor, Staff } from "@prisma/client";
+import { Staff } from "@prisma/client";
 import { format } from "date-fns";
 import { Users } from "lucide-react";
 import React from "react";
+import db from "@/lib/db";
+import { ensureDefaultLabUnits } from "@/utils/services/catalog-seed";
 
 const columns = [
   {
@@ -51,10 +52,18 @@ const StaffList = async (props: SearchParamsProps) => {
   const searchParams = await props.searchParams;
   const page = (searchParams?.p || "1") as string;
   const searchQuery = (searchParams?.q || "") as string;
+  const role = (searchParams?.role || "") as string;
 
   const { data, totalPages, totalRecords, currentPage } = await getAllStaff({
     page,
     search: searchQuery,
+    role: role || undefined,
+  });
+  await ensureDefaultLabUnits();
+  const labUnits = await db.labUnit.findMany({
+    where: { active: true },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
   });
 
   if (!data) return null;
@@ -109,7 +118,27 @@ const StaffList = async (props: SearchParamsProps) => {
         </div>
         <div className="w-full lg:w-fit flex items-center justify-between lg:justify-start gap-2">
           <SearchInput />
-          {isAdmin && <StaffForm />}
+          <SelectFilter
+            param="role"
+            label="Role"
+            options={[
+              { label: "All", value: "" },
+              { label: "Nurse", value: "NURSE" },
+              { label: "Lab Scientist", value: "LAB_SCIENTIST" },
+              { label: "Lab Technician", value: "LAB_TECHNICIAN" },
+              { label: "Cashier", value: "CASHIER" },
+              { label: "Pharmacist", value: "PHARMACIST" },
+              { label: "Record Officer", value: "RECORD_OFFICER" },
+            ]}
+          />
+          {isAdmin && (
+            <StaffForm
+              labUnits={labUnits.map((u: { id: number; name: string }) => ({
+                label: u.name,
+                value: String(u.id),
+              }))}
+            />
+          )}
         </div>
       </div>
 

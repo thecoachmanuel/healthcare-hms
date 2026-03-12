@@ -251,10 +251,14 @@ export async function getAllPatients({
   page,
   limit,
   search,
+  gender,
+  hospitalNumber,
 }: {
   page: number | string;
   limit?: number | string;
   search?: string;
+  gender?: string;
+  hospitalNumber?: string;
 }) {
   try {
     const PAGE_NUMBER = Number(page) <= 0 ? 1 : Number(page);
@@ -265,11 +269,20 @@ export async function getAllPatients({
     const [patients, totalRecords] = await Promise.all([
       db.patient.findMany({
         where: {
-          OR: [
-            { first_name: { contains: search, mode: "insensitive" } },
-            { last_name: { contains: search, mode: "insensitive" } },
-            { phone: { contains: search, mode: "insensitive" } },
-            { email: { contains: search, mode: "insensitive" } },
+          AND: [
+            {
+              OR: [
+                { first_name: { contains: search, mode: "insensitive" } },
+                { last_name: { contains: search, mode: "insensitive" } },
+                { phone: { contains: search, mode: "insensitive" } },
+                { email: { contains: search, mode: "insensitive" } },
+                { hospital_number: { contains: search, mode: "insensitive" } },
+              ],
+            },
+            gender ? { gender: gender as any } : {},
+            hospitalNumber
+              ? { hospital_number: { contains: hospitalNumber, mode: "insensitive" } }
+              : {},
           ],
         },
         include: {
@@ -289,7 +302,25 @@ export async function getAllPatients({
         take: LIMIT,
         orderBy: { first_name: "asc" },
       }),
-      db.patient.count(),
+      db.patient.count({
+        where: {
+          AND: [
+            {
+              OR: [
+                { first_name: { contains: search, mode: "insensitive" } },
+                { last_name: { contains: search, mode: "insensitive" } },
+                { phone: { contains: search, mode: "insensitive" } },
+                { email: { contains: search, mode: "insensitive" } },
+                { hospital_number: { contains: search, mode: "insensitive" } },
+              ],
+            },
+            gender ? { gender: gender as any } : {},
+            hospitalNumber
+              ? { hospital_number: { contains: hospitalNumber, mode: "insensitive" } }
+              : {},
+          ],
+        },
+      }),
     ]);
 
     const totalPages = Math.ceil(totalRecords / LIMIT);

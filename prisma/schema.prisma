@@ -150,9 +150,12 @@ model Staff {
   img           String?
   license_number String?
   colorCode      String?
+  lab_unit_id   Int?
 
   role          Role
   status        Status @default(ACTIVE)
+
+  lab_unit      LabUnit? @relation(fields: [lab_unit_id], references: [id])
 
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
@@ -243,6 +246,18 @@ model LabTest {
   updated_at    DateTime @updatedAt
 
   @@unique([record_id, service_id])
+}
+
+model LabUnit {
+  id          Int @id @default(autoincrement())
+  name        String @unique
+  active      Boolean @default(true)
+
+  staff       Staff[]
+  services    Services[]
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 }
 
 model MedicalRecords {
@@ -354,14 +369,26 @@ model Services {
   description     String
   price           Float
   category        ServiceCategory @default(GENERAL)
+  lab_unit_id     Int?
   created_by_id   String?
   created_by_role Role?
   labtests        LabTest[]
   bills           PatientBills[]
   prescription_items PrescriptionItem[]
+  lab_unit        LabUnit? @relation(fields: [lab_unit_id], references: [id])
 
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+}
+
+model DoctorSpecialization {
+  id          Int @id @default(autoincrement())
+  name        String @unique
+  department  String?
+  active      Boolean @default(true)
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 }
 
 enum PrescriptionStatus {

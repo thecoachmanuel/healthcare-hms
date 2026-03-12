@@ -16,17 +16,38 @@ export const SettingsQuickLinks = () => {
           Services
         </Link>
         <Link
-          href="?cat=appointment"
+          href="?cat=lab-tests"
           className="px-4 py-2 rounded-lg bg-violet-100 text-violet-600"
         >
-          Payment Methods
+          Lab Tests
         </Link>
 
         <Link
-          href="?cat=medical-history"
+          href="?cat=medications"
           className="px-4 py-2 rounded-lg bg-rose-100 text-rose-600"
         >
-          Medical History
+          Medications
+        </Link>
+
+        <Link
+          href="?cat=lab-units"
+          className="px-4 py-2 rounded-lg bg-emerald-100 text-emerald-600"
+        >
+          Lab Units
+        </Link>
+
+        <Link
+          href="?cat=specializations"
+          className="px-4 py-2 rounded-lg bg-orange-100 text-orange-600"
+        >
+          Doctor Specializations
+        </Link>
+
+        <Link
+          href="?cat=site"
+          className="px-4 py-2 rounded-lg bg-blue-100 text-blue-600"
+        >
+          Site
         </Link>
       </CardContent>
     </Card>

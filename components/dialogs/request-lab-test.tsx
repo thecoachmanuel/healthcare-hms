@@ -17,12 +17,16 @@ import { z } from "zod";
 export const RequestLabTest = ({
   appointmentId,
   services,
+  units,
 }: {
   appointmentId: string;
-  services: { label: string; value: string }[];
+  services: { label: string; value: string; unitId?: string }[];
+  units: { label: string; value: string }[];
 }) => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const [selectedUnit, setSelectedUnit] = useState("");
+  const [search, setSearch] = useState("");
 
   const form = useForm<z.infer<typeof LabTestRequestSchema>>({
     resolver: zodResolver(LabTestRequestSchema),
@@ -66,13 +70,48 @@ export const RequestLabTest = ({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Lab unit</label>
+              <select
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
+                value={selectedUnit}
+                onChange={(e) => setSelectedUnit(e.target.value)}
+              >
+                <option value="">All units</option>
+                {units.map((u) => (
+                  <option key={u.value} value={u.value}>
+                    {u.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Search test</label>
+              <input
+                className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-blue-300 focus:border-blue-300"
+                placeholder="Search by name..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
             <CustomInput
               type="select"
               control={form.control}
               name="service_id"
               label="Lab service"
               placeholder="Select lab service"
-              selectList={services}
+              selectList={services
+                .filter((s) =>
+                  selectedUnit ? s.unitId === selectedUnit : true
+                )
+                .filter((s) =>
+                  search
+                    ? s.label.toLowerCase().includes(search.toLowerCase())
+                    : true
+                )
+                .map((s) => ({ label: s.label, value: s.value }))}
             />
 
             <CustomInput

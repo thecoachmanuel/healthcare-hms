@@ -9,6 +9,7 @@ import { checkRole } from "@/utils/roles";
 import { format } from "date-fns";
 import Link from "next/link";
 import React from "react";
+import { SelectFilter } from "@/components/filters/select-filter";
 
 const columns = [
   { header: "Patient", key: "patient" },
@@ -23,15 +24,30 @@ const LabTestsPage = async ({
 }: {
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) => {
-  await requireAuthUserId();
+  const userId = await requireAuthUserId();
   const isLabScientist = await checkRole("LAB_SCIENTIST");
   const isLabTechnician = await checkRole("LAB_TECHNICIAN");
   if (!isLabScientist && !isLabTechnician) return null;
 
   const sp = await searchParams;
   const page = Number((sp?.p || "1") as string) || 1;
+  const unit = (sp?.unit as string) || "";
   const limit = DATA_LIMIT;
   const skip = (page - 1) * limit;
+
+  const staff = await db.staff.findUnique({
+    where: { id: userId },
+    select: { lab_unit_id: true },
+  });
+
+  const allowedUnitId = staff?.lab_unit_id ? String(staff.lab_unit_id) : "";
+  const unitFilter = isLabScientist ? unit : allowedUnitId;
+
+  const units = await db.labUnit.findMany({
+    where: { active: true },
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
 
   const [tests, totalRecords] = await Promise.all([
     db.labTest.findMany({
@@ -53,10 +69,15 @@ const LabTestsPage = async ({
         },
       },
       orderBy: { created_at: "desc" },
+      where: unitFilter
+        ? { services: { lab_unit_id: Number(unitFilter) } }
+        : undefined,
       skip,
       take: limit,
     }),
-    db.labTest.count(),
+    db.labTest.count({
+      where: unitFilter ? { services: { lab_unit_id: Number(unitFilter) } } : undefined,
+    }),
   ]);
 
   const totalPages = Math.ceil(totalRecords / limit);
@@ -113,6 +134,18 @@ const LabTestsPage = async ({
         <div className="hidden lg:flex items-center gap-1">
           <p className="text-2xl font-semibold">{totalRecords}</p>
           <span className="text-gray-600 text-sm xl:text-base">total tests</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {isLabScientist && (
+            <SelectFilter
+              param="unit"
+              label="Unit"
+              options={[
+                { label: "All", value: "" },
+                ...units.map((u: any) => ({ label: u.name, value: String(u.id) })),
+              ]}
+            />
+          )}
         </div>
       </div>
 

@@ -17,7 +17,6 @@ import { Button } from "../ui/button";
 import { Plus } from "lucide-react";
 import { Form } from "../ui/form";
 import { CustomInput, SwitchInput } from "../custom-input";
-import { SPECIALIZATION } from "@/utils/seetings";
 import { Label } from "../ui/label";
 import { toast } from "sonner";
 import { createNewDoctor } from "@/app/actions/admin";
@@ -45,7 +44,11 @@ type Day = {
   close_time?: string;
 };
 
-export const DoctorForm = () => {
+export const DoctorForm = ({
+  specializations,
+}: {
+  specializations: { label: string; value: string; department: string }[];
+}) => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const [workSchedule, setWorkSchedule] = useState<Day[]>([]);
@@ -107,7 +110,7 @@ export const DoctorForm = () => {
 
   useEffect(() => {
     if (selectedSpecialization) {
-      const department = SPECIALIZATION.find(
+      const department = specializations.find(
         (el) => el.value === selectedSpecialization
       );
 
@@ -115,7 +118,7 @@ export const DoctorForm = () => {
         form.setValue("department", department.department);
       }
     }
-  }, [selectedSpecialization]);
+  }, [selectedSpecialization, specializations]);
 
   return (
     <Sheet>
@@ -162,7 +165,7 @@ export const DoctorForm = () => {
                   name="specialization"
                   placeholder="Select specialization"
                   label="Specialization"
-                  selectList={SPECIALIZATION}
+                  selectList={specializations}
                 />
                 <CustomInput
                   type="input"

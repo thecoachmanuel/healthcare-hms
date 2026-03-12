@@ -1,18 +1,32 @@
 import { SettingsQuickLinks } from "@/components/settings/quick-link-settings";
-import { ServiceSettings } from "@/components/settings/services-settings";
 import { SiteSettingsSection } from "@/components/settings/site-settings";
+import { ServiceCatalogSettings } from "@/components/settings/service-catalog-settings";
+import { LabUnitsSettings } from "@/components/settings/lab-units-settings";
+import { SpecializationsSettings } from "@/components/settings/specializations-settings";
 import { Card } from "@/components/ui/card";
 import { SearchParamsProps } from "@/types";
 
 const SystemSettingPage = async (props: SearchParamsProps) => {
   const searchParams = await props.searchParams;
   const cat = (searchParams?.cat || "services") as String;
+  const q = (searchParams?.q || "") as string;
+  const unit = (searchParams?.unit || "") as string;
 
   return (
     <div className="p-6 flex flex-col lg:flex-row w-full min-h-screen gap-10">
       <div className="w-full lg:w-[70%] flex flex-col gap-4">
         <Card className="shadow-none rounded-xl">
-          {cat === "services" && <ServiceSettings />}
+          {cat === "services" && (
+            <ServiceCatalogSettings category="GENERAL" q={q} />
+          )}
+          {cat === "medications" && (
+            <ServiceCatalogSettings category="MEDICATION" q={q} />
+          )}
+          {cat === "lab-tests" && (
+            <ServiceCatalogSettings category="LAB_TEST" q={q} unitId={unit} />
+          )}
+          {cat === "lab-units" && <LabUnitsSettings q={q} />}
+          {cat === "specializations" && <SpecializationsSettings q={q} />}
           {cat === "site" && <SiteSettingsSection />}
         </Card>
       </div>
