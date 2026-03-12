@@ -76,8 +76,8 @@ export const StaffForm = ({
         form.reset();
         setProfileFile(null);
         router.refresh();
-      } else if (resp.error) {
-        toast.error(resp.message);
+      } else {
+        toast.error(resp.msg ?? "Failed to add staff");
       }
     } catch (error) {
       console.log(error);

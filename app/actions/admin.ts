@@ -22,12 +22,12 @@ function mapRoleToRoute(role: string) {
 
 export async function createNewStaff(data: any) {
   try {
-    await requireAuthUserId();
+    const actorUserId = await requireAuthUserId();
 
     const isAdmin = await checkRole("ADMIN");
 
     if (!isAdmin) {
-      return { success: false, msg: "Unauthorized" };
+      return { success: false, msg: "Unauthorized", error: true };
     }
 
     const values = StaffSchema.safeParse(data);
@@ -35,15 +35,20 @@ export async function createNewStaff(data: any) {
     if (!values.success) {
       return {
         success: false,
+        error: true,
         errors: true,
-        message: "Please provide all required info",
+        msg: "Please provide all required info",
       };
     }
 
     const validatedValues = values.data;
     const password = validatedValues.password?.trim() ?? "";
     if (password.length < 8) {
-      return { success: false, msg: "Password must be at least 8 characters", error: true };
+      return {
+        success: false,
+        msg: "Password must be at least 8 characters",
+        error: true,
+      };
     }
     if (
       (validatedValues.role === "LAB_SCIENTIST" ||
@@ -69,10 +74,12 @@ export async function createNewStaff(data: any) {
     });
 
     if (error || !created.user) {
-      return { success: false, msg: error?.message ?? "Failed to create user" };
+      return {
+        success: false,
+        msg: error?.message ?? "Failed to create user",
+        error: true,
+      };
     }
-
-    delete validatedValues["password"];
 
     await db.staff.create({
       data: {
@@ -81,25 +88,34 @@ export async function createNewStaff(data: any) {
         email: validatedValues.email,
         address: validatedValues.address,
         role: validatedValues.role as any,
-        lab_unit_id: validatedValues.lab_unit_id
-          ? Number(validatedValues.lab_unit_id)
-          : null,
+        lab_unit_id: validatedValues.lab_unit_id ? Number(validatedValues.lab_unit_id) : null,
         license_number: validatedValues.license_number,
         department: validatedValues.department,
+        img: validatedValues.img,
         colorCode: generateRandomColor(),
         id: created.user.id,
         status: "ACTIVE",
       },
     });
 
+    await db.auditLog.create({
+      data: {
+        user_id: actorUserId,
+        record_id: created.user.id,
+        action: "CREATE",
+        model: "Staff",
+        details: `role=${validatedValues.role} email=${validatedValues.email}`,
+      },
+    });
+
     return {
       success: true,
-      message: "Doctor added successfully",
+      msg: "Staff added successfully",
       error: false,
     };
   } catch (error) {
     console.log(error);
-    return { error: true, success: false, message: "Something went wrong" };
+    return { error: true, success: false, msg: "Something went wrong" };
   }
 }
 export async function createNewDoctor(data: any) {
@@ -180,12 +196,21 @@ export async function addNewService(data: any) {
     const isPharmacist = await checkRole("PHARMACIST");
 
     if (!isAdmin && !isLabScientist && !isPharmacist) {
-      return { success: false, msg: "Unauthorized" };
+      return { success: false, msg: "Unauthorized", error: true };
     }
 
     const isValidData = ServicesSchema.safeParse(data);
 
+    if (!isValidData.success) {
+      return { success: false, msg: "Please provide all required info", error: true };
+    }
+
     const validatedData = isValidData.data;
+
+    const priceNumber = Number(validatedData.price);
+    if (!Number.isFinite(priceNumber) || priceNumber < 0) {
+      return { success: false, msg: "Invalid price", error: true };
+    }
 
     const requestedCategory = validatedData?.category ?? "GENERAL";
     const category = isAdmin
@@ -199,7 +224,7 @@ export async function addNewService(data: any) {
       (category === "MEDICATION" && !(isAdmin || isPharmacist)) ||
       (category === "GENERAL" && !isAdmin)
     ) {
-      return { success: false, msg: "Unauthorized" };
+      return { success: false, msg: "Unauthorized", error: true };
     }
     if (
       category === "LAB_TEST" &&
@@ -212,7 +237,7 @@ export async function addNewService(data: any) {
       data: {
         ...validatedData!,
         category,
-        price: Number(data.price!),
+        price: priceNumber,
         lab_unit_id: validatedData?.lab_unit_id
           ? Number(validatedData.lab_unit_id)
           : null,
@@ -242,7 +267,7 @@ export async function addNewService(data: any) {
     };
   } catch (error) {
     console.log(error);
-    return { success: false, msg: "Internal Server Error" };
+    return { success: false, msg: "Internal Server Error", error: true };
   }
 }
 
