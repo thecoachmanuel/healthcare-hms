@@ -15,7 +15,7 @@ import {
 import { Form } from "./ui/form";
 import { SubmitHandler, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { PatientFormSchema } from "@/lib/schema";
+import { PatientFormSchema, PatientUpdateSchema } from "@/lib/schema";
 import { z } from "zod";
 import { CustomInput } from "./custom-input";
 import { GENDER, MARITAL_STATUS, RELATION } from "@/lib";
@@ -85,7 +85,7 @@ export const NewPatient = ({ data, type }: DataProps) => {
     },
   });
 
-  const onSubmit: SubmitHandler<z.infer<typeof PatientFormSchema>> = async (
+  const onSubmit: SubmitHandler<z.infer<typeof PatientUpdateSchema>> = async (
     values
   ) => {
     setLoading(true);

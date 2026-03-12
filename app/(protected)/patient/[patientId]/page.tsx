@@ -1,8 +1,8 @@
 import { MedicalHistoryContainer } from "@/components/medical-history-container";
 import { PatientRatingContainer } from "@/components/patient-rating-container";
 import { ProfileImage } from "@/components/profile-image";
-import { Card } from "@/components/ui/card";
 import { PaymentsContainer } from "@/components/appointment/payment-container";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getPatientFullDataById } from "@/utils/services/patient";
 import { requireAuthUserId } from "@/lib/auth";
 import { format } from "date-fns";
@@ -111,6 +111,15 @@ const PatientProfile = async (props: ParamsProps) => {
           )}
 
           {cat === "payments" && <PaymentsContainer patientId={id} />}
+          {cat === "lab-tests" && (
+            <Card className="border-none shadow-none">
+              <CardHeader>
+                <CardTitle>Lab Tests & Results</CardTitle>
+                <CardDescription>View lab investigations and results.</CardDescription>
+              </CardHeader>
+              <CardContent className="text-sm text-gray-500">Coming soon.</CardContent>
+            </Card>
+          )}
         </div>
       </div>
 
@@ -141,7 +150,7 @@ const PatientProfile = async (props: ParamsProps) => {
               Dashboard
             </Link>
 
-            <Link className="p-3 rounded-md bg-rose-100" href={`#`}>
+            <Link className="p-3 rounded-md bg-rose-100" href={`?cat=lab-tests`}>
               Lab Test & Result
             </Link>
             {patientId === "self" && (

@@ -84,7 +84,7 @@ const DoctorsList = async (props: SearchParamsProps) => {
       </td>
       <td>
         <div className="flex items-center gap-2">
-          <ViewAction href={`doctors/${item?.id}`} />
+          <ViewAction href={`/record/doctors/${item?.id}`} />
           {isAdmin && (
             <ActionDialog type="delete" id={item?.id} deleteType="doctor" />
           )}

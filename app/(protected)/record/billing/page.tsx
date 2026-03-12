@@ -134,7 +134,7 @@ const BillingPage = async (props: SearchParamsProps) => {
 
         <td>
           <ViewAction
-            href={`/appointments/${item?.appointment_id}?cat=bills`}
+            href={`/record/appointments/${item?.appointment_id}?cat=bills`}
           />
 
           {isAdmin && (

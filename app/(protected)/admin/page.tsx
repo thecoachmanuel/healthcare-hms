@@ -27,7 +27,7 @@ const AdminDashboard = async () => {
       className: "bg-blue-600/15",
       iconClassName: "bg-blue-600/25 text-blue-600",
       note: "Total patients",
-      link: "/manage-patients",
+      link: "/record/patients",
     },
     {
       title: "Doctors",
@@ -36,7 +36,7 @@ const AdminDashboard = async () => {
       className: "bg-rose-600/15",
       iconClassName: "bg-rose-600/25 text-rose-600",
       note: "Total doctors",
-      link: "/manage-doctors",
+      link: "/record/doctors",
     },
     {
       title: "Appointments",
@@ -45,7 +45,7 @@ const AdminDashboard = async () => {
       className: "bg-yellow-600/15",
       iconClassName: "bg-yellow-600/25 text-yellow-600",
       note: "Total appointments",
-      link: "/manage-appointments",
+      link: "/record/appointments",
     },
     {
       title: "Consultation",
@@ -54,7 +54,7 @@ const AdminDashboard = async () => {
       className: "bg-emerald-600/15",
       iconClassName: "bg-emerald-600/25 text-emerald-600",
       note: "Total consultation",
-      link: "/manage-appointments",
+      link: "/record/appointments",
     },
   ];
 
