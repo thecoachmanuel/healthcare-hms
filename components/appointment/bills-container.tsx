@@ -122,6 +122,10 @@ export const BillsContainer = async ({ id }: { id: string }) => {
     : null;
 
   const renderRow = (item: ExtendedBillProps) => {
+    const amountPaid = (item as any)?.amount_paid ?? 0;
+    const status = (item as any)?.payment_status ?? "UNPAID";
+    const isPaid = status === "PAID" || Number(amountPaid) >= Number(item.total_cost);
+
     return (
       <tr
         key={item.id}
@@ -138,12 +142,12 @@ export const BillsContainer = async ({ id }: { id: string }) => {
         </td>
         <td className="hidden lg:table-cell">{item?.unit_cost.toFixed(2)}</td>
         <td>{item?.total_cost.toFixed(2)}</td>
-        <td className="hidden xl:table-cell">{(item as any)?.amount_paid?.toFixed?.(2) ?? "0.00"}</td>
-        <td className="hidden xl:table-cell">{(item as any)?.payment_status ?? "UNPAID"}</td>
+        <td className="hidden xl:table-cell">{Number(amountPaid).toFixed(2)}</td>
+        <td className="hidden xl:table-cell">{status}</td>
 
         <td className="hidden xl:table-cell">
           <div className="flex items-center gap-2">
-            {canMarkPaid && (
+            {canMarkPaid && !isPaid && (
               <MarkBillPaid
                 patientBillId={item.id}
                 defaultAmount={item.total_cost}

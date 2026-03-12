@@ -178,7 +178,7 @@ export async function updateMyLabUnit(labUnitId: number) {
   try {
     const userId = await requireAuthUserId();
     const isAllowed =
-      (await checkRole("LAB_SCIENTIST")) || (await checkRole("LAB_TECHNICIAN"));
+      (await checkRole("LAB_SCIENTIST" as any)) || (await checkRole("LAB_TECHNICIAN" as any));
     if (!isAllowed) return { success: false, msg: "Unauthorized" };
 
     await db.staff.update({
@@ -197,6 +197,86 @@ export async function updateMyLabUnit(labUnitId: number) {
     });
 
     return { success: true, msg: "Lab unit updated" };
+  } catch (error: any) {
+    return { success: false, msg: error?.message ?? "Internal Server Error" };
+  }
+}
+
+export async function updateServiceCatalogItem(data: {
+  id: number;
+  service_name: string;
+  price: number;
+  description: string;
+  category: "GENERAL" | "LAB_TEST" | "MEDICATION";
+  lab_unit_id?: number | null;
+}) {
+  try {
+    const userId = await requireAuthUserId();
+    const isAdmin = await checkRole("ADMIN" as any);
+    if (!isAdmin) return { success: false, msg: "Unauthorized" };
+
+    const name = data.service_name.trim();
+    if (!name) return { success: false, msg: "Name is required" };
+
+    if (data.category === "LAB_TEST" && !data.lab_unit_id) {
+      return { success: false, msg: "Lab unit is required for lab tests" };
+    }
+
+    const updated = await db.services.update({
+      where: { id: data.id },
+      data: {
+        service_name: name,
+        price: Number(data.price),
+        description: data.description,
+        category: data.category as any,
+        lab_unit_id: data.category === "LAB_TEST" ? data.lab_unit_id : null,
+      } as any,
+    });
+
+    await db.auditLog.create({
+      data: {
+        user_id: userId,
+        record_id: String(updated.id),
+        action: "UPDATE",
+        model: "Services",
+        details: `service_name=${name} category=${data.category}`,
+      },
+    });
+
+    return { success: true, msg: "Item updated" };
+  } catch (error: any) {
+    return { success: false, msg: error?.message ?? "Internal Server Error" };
+  }
+}
+
+export async function deleteServiceCatalogItem(id: number) {
+  try {
+    const userId = await requireAuthUserId();
+    const isAdmin = await checkRole("ADMIN" as any);
+    if (!isAdmin) return { success: false, msg: "Unauthorized" };
+
+    const [billCount, labCount, rxCount] = await Promise.all([
+      db.patientBills.count({ where: { service_id: id } }),
+      db.labTest.count({ where: { service_id: id } }),
+      db.prescriptionItem.count({ where: { medication_id: id } }),
+    ]);
+    if (billCount > 0 || labCount > 0 || rxCount > 0) {
+      return { success: false, msg: "Cannot delete: item is in use" };
+    }
+
+    await db.services.delete({ where: { id } });
+
+    await db.auditLog.create({
+      data: {
+        user_id: userId,
+        record_id: String(id),
+        action: "DELETE",
+        model: "Services",
+        details: "Deleted item",
+      },
+    });
+
+    return { success: true, msg: "Item deleted" };
   } catch (error: any) {
     return { success: false, msg: error?.message ?? "Internal Server Error" };
   }

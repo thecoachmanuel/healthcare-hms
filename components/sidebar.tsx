@@ -108,6 +108,12 @@ export const Sidebar = async () => {
           icon: Receipt,
         },
         {
+          name: "Payments",
+          href: "/record/payments",
+          access: ["admin", "cashier"],
+          icon: Receipt,
+        },
+        {
           name: "Prescriptions",
           href: "/pharmacist/prescriptions",
           access: ["pharmacist"],
@@ -124,6 +130,12 @@ export const Sidebar = async () => {
           href: "/nurse/patient-management",
           access: ["nurse"],
           icon: Users,
+        },
+        {
+          name: "Lab Tests",
+          href: "/nurse/lab-tests",
+          access: ["nurse"],
+          icon: SquareActivity,
         },
         {
           name: "Administer Medications",

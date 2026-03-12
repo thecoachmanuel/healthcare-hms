@@ -24,6 +24,7 @@ export const routeAccess: RouteAccessProps = {
   "/record/appointments(.*)": ["admin", "doctor", "nurse", "patient", "lab_scientist", "lab_technician", "cashier", "pharmacist"],
   "/record/medical-records": ["admin", "doctor", "nurse"],
   "/record/billing": ["admin", "cashier", "doctor", "nurse", "lab_scientist", "lab_technician", "pharmacist"],
+  "/record/payments": ["admin", "cashier"],
   "/patient/registration": ["patient"],
   "/notifications": ["admin", "doctor", "nurse", "lab_scientist", "lab_technician", "cashier", "patient"],
 };

@@ -5,12 +5,14 @@ import SearchInput from "../search-input";
 import { AddService } from "../dialogs/add-service";
 import { SelectFilter } from "../filters/select-filter";
 import { ensureDefaultLabUnits } from "@/utils/services/catalog-seed";
+import { ServiceItemActions } from "@/components/settings/service-item-actions";
 
 const baseColumns = [
   { header: "ID", key: "id", className: "hidden md:table-cell" },
   { header: "Name", key: "name" },
   { header: "Price", key: "price", className: "hidden md:table-cell" },
   { header: "Description", key: "description", className: "hidden xl:table-cell" },
+  { header: "Actions", key: "actions" },
 ];
 
 export const ServiceCatalogSettings = async ({
@@ -68,6 +70,16 @@ export const ServiceCatalogSettings = async ({
       <td className="hidden md:table-cell">{Number(item.price).toFixed(2)}</td>
       <td className="hidden xl:table-cell w-[50%]">
         <p className="line-clamp-1">{item.description}</p>
+      </td>
+      <td className="py-2">
+        <ServiceItemActions
+          category={category}
+          item={item}
+          labUnits={units.map((u: { id: number; name: string }) => ({
+            label: u.name,
+            value: String(u.id),
+          }))}
+        />
       </td>
     </tr>
   );

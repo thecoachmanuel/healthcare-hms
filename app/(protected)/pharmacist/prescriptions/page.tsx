@@ -1,6 +1,8 @@
 import { Pagination } from "@/components/pagination";
 import { Table } from "@/components/tables/table";
 import { ProfileImage } from "@/components/profile-image";
+import SearchInput from "@/components/search-input";
+import { SelectFilter } from "@/components/filters/select-filter";
 import { requireAuthUserId } from "@/lib/auth";
 import db from "@/lib/db";
 import { DATA_LIMIT } from "@/utils/seetings";
@@ -23,26 +25,90 @@ const PharmacistPrescriptionsPage = async ({
   searchParams?: Promise<{ [key: string]: string | string[] | undefined }>;
 }) => {
   await requireAuthUserId();
-  const isAllowed = (await checkRole("ADMIN")) || (await checkRole("PHARMACIST"));
+  const isAllowed = (await checkRole("ADMIN" as any)) || (await checkRole("PHARMACIST" as any));
   if (!isAllowed) return null;
 
   const sp = await searchParams;
   const page = Number((sp?.p || "1") as string) || 1;
+  const q = (sp?.q as string) || "";
+  const status = (sp?.status as string) || "";
   const limit = DATA_LIMIT;
   const skip = (page - 1) * limit;
 
   const [data, totalRecords] = await Promise.all([
     db.prescription.findMany({
       include: {
-        patient: { select: { first_name: true, last_name: true, img: true, colorCode: true, gender: true } },
+        patient: {
+          select: {
+            first_name: true,
+            last_name: true,
+            hospital_number: true,
+            img: true,
+            colorCode: true,
+            gender: true,
+          },
+        },
         doctor: { select: { name: true } },
         items: { select: { id: true } },
       },
       orderBy: { created_at: "desc" },
+      where: {
+        AND: [
+          status ? { status: status as any } : {},
+          q
+            ? {
+                OR: [
+                  {
+                    patient: {
+                      first_name: { contains: q, mode: "insensitive" },
+                    },
+                  },
+                  {
+                    patient: {
+                      last_name: { contains: q, mode: "insensitive" },
+                    },
+                  },
+                  {
+                    patient: {
+                      hospital_number: { contains: q, mode: "insensitive" },
+                    },
+                  },
+                ],
+              }
+            : {},
+        ],
+      } as any,
       skip,
       take: limit,
     }),
-    db.prescription.count(),
+    db.prescription.count({
+      where: {
+        AND: [
+          status ? { status: status as any } : {},
+          q
+            ? {
+                OR: [
+                  {
+                    patient: {
+                      first_name: { contains: q, mode: "insensitive" },
+                    },
+                  },
+                  {
+                    patient: {
+                      last_name: { contains: q, mode: "insensitive" },
+                    },
+                  },
+                  {
+                    patient: {
+                      hospital_number: { contains: q, mode: "insensitive" },
+                    },
+                  },
+                ],
+              }
+            : {},
+        ],
+      } as any,
+    }),
   ]);
 
   const totalPages = Math.ceil(totalRecords / limit);
@@ -65,7 +131,12 @@ const PharmacistPrescriptionsPage = async ({
           />
           <div>
             <h3 className="uppercase">{patientName}</h3>
-            <span className="text-sm capitalize">{patient.gender}</span>
+            <div className="flex flex-wrap gap-x-2 gap-y-1">
+              <span className="text-sm capitalize">{patient.gender}</span>
+              {patient.hospital_number && (
+                <span className="text-xs text-gray-500">{patient.hospital_number}</span>
+              )}
+            </div>
           </div>
         </td>
         <td className="hidden md:table-cell">{item.doctor?.name}</td>
@@ -90,6 +161,19 @@ const PharmacistPrescriptionsPage = async ({
           <p className="text-2xl font-semibold">{totalRecords}</p>
           <span className="text-gray-600 text-sm xl:text-base">total records</span>
         </div>
+        <div className="flex items-center gap-2">
+          <SearchInput />
+          <SelectFilter
+            param="status"
+            label="Status"
+            options={[
+              { label: "All", value: "" },
+              { label: "Issued", value: "ISSUED" },
+              { label: "Dispensed", value: "DISPENSED" },
+              { label: "Cancelled", value: "CANCELLED" },
+            ]}
+          />
+        </div>
       </div>
 
       <div className="mt-4">
@@ -101,4 +185,3 @@ const PharmacistPrescriptionsPage = async ({
 };
 
 export default PharmacistPrescriptionsPage;
-
