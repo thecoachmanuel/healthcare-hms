@@ -94,7 +94,11 @@ const BillingPage = async (props: SearchParamsProps) => {
     from,
     to,
   });
-  const isAllowed = (await checkRole("ADMIN" as any)) || (await checkRole("CASHIER" as any));
+  const [isAdmin, isCashier] = await Promise.all([
+    checkRole("ADMIN" as any),
+    checkRole("CASHIER" as any),
+  ]);
+  const isAllowed = isAdmin || isCashier;
 
   if (!data || !isAllowed) return null;
 
