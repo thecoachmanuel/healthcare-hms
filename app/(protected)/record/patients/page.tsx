@@ -1,6 +1,5 @@
 import { ActionDialog } from "@/components/action-dialog";
-import { ActionOptions, ViewAction } from "@/components/action-options";
-import { StaffForm } from "@/components/forms/staff-form";
+import { ActionOptions, EditAction, ViewAction } from "@/components/action-options";
 import { Pagination } from "@/components/pagination";
 import { ProfileImage } from "@/components/profile-image";
 import SearchInput from "@/components/search-input";
@@ -125,10 +124,7 @@ const PatientList = async (props: SearchParamsProps) => {
 
             <ActionOptions>
               <div className="space-y-3">
-                <Button variant={"ghost"} className="text-xs font-light">
-                  <UserPen size={16} />
-                  Edit
-                </Button>
+                {isAdmin && <EditAction href={`/record/patients/${item?.id}/edit`} />}
 
                 {isAdmin && (
                   <ActionDialog

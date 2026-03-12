@@ -47,6 +47,22 @@ export const ViewAction = ({
   );
 };
 
+export const EditAction = ({
+  href,
+  disabled = false,
+}: {
+  href: string;
+  disabled?: boolean;
+}) => {
+  return (
+    <Link href={href}>
+      <button disabled={disabled} className={className}>
+        Edit
+      </button>
+    </Link>
+  );
+};
+
 export const ViewActionButton = () => {
   return (
     <button type="button" className={className}>

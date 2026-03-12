@@ -5,6 +5,7 @@ import { PatientFormSchema, PatientUpdateSchema } from "@/lib/schema";
 import { requireAuthUserId } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { checkRole } from "@/utils/roles";
 
 function digitsOnly(value: unknown) {
   if (typeof value !== "string") return value;
@@ -133,6 +134,53 @@ export async function createNewPatient(data: any, pid: string) {
     });
 
     return { success: true, error: false, msg: "Patient created successfully" };
+  } catch (error: any) {
+    console.error(error);
+    return { success: false, error: true, msg: error?.message };
+  }
+}
+
+export async function adminUpdatePatient(data: any, pid: string) {
+  try {
+    const userId = await requireAuthUserId();
+    const isAdmin = await checkRole("ADMIN");
+    if (!isAdmin) {
+      return { success: false, error: true, msg: "Unauthorized" };
+    }
+
+    const validateData = PatientUpdateSchema.safeParse(normalizePatientPayload(data));
+    if (!validateData.success) {
+      return { success: false, error: true, msg: "Provide all required fields" };
+    }
+
+    const patientData = validateData.data;
+
+    const supabaseAdmin = createSupabaseAdminClient();
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(pid, {
+      email: patientData.email,
+      user_metadata: { first_name: patientData.first_name, last_name: patientData.last_name },
+      app_metadata: { role: "patient" },
+    });
+    if (error) {
+      return { success: false, error: true, msg: error.message };
+    }
+
+    await db.patient.update({
+      data: { ...patientData },
+      where: { id: pid },
+    });
+
+    await db.auditLog.create({
+      data: {
+        user_id: userId,
+        record_id: pid,
+        action: "UPDATE",
+        model: "Patient",
+        details: "Updated patient profile",
+      },
+    });
+
+    return { success: true, error: false, msg: "Patient updated successfully" };
   } catch (error: any) {
     console.error(error);
     return { success: false, error: true, msg: error?.message };

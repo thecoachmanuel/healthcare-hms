@@ -222,3 +222,118 @@ export async function addNewService(data: any) {
     return { success: false, msg: "Internal Server Error" };
   }
 }
+
+export async function updateStaff(data: any, staffId: string) {
+  try {
+    const userId = await requireAuthUserId();
+    const isAdmin = await checkRole("ADMIN");
+    if (!isAdmin) return { success: false, msg: "Unauthorized" };
+
+    const values = StaffSchema.safeParse(data);
+    if (!values.success) {
+      return { success: false, msg: "Please provide all required info" };
+    }
+
+    const validatedValues = values.data;
+    const [firstName, ...rest] = validatedValues.name.split(" ");
+    const lastName = rest.join(" ").trim();
+
+    const supabaseAdmin = createSupabaseAdminClient();
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(staffId, {
+      email: validatedValues.email,
+      user_metadata: { first_name: firstName, last_name: lastName },
+      app_metadata: { role: mapRoleToRoute(validatedValues.role) },
+    });
+
+    if (error) {
+      return { success: false, msg: error.message };
+    }
+
+    await db.staff.update({
+      where: { id: staffId },
+      data: {
+        name: validatedValues.name,
+        phone: validatedValues.phone,
+        email: validatedValues.email,
+        address: validatedValues.address,
+        role: validatedValues.role as any,
+        license_number: validatedValues.license_number,
+        department: validatedValues.department,
+        img: validatedValues.img,
+      },
+    });
+
+    await db.auditLog.create({
+      data: {
+        user_id: userId,
+        record_id: staffId,
+        action: "UPDATE",
+        model: "Staff",
+        details: "Updated staff profile",
+      },
+    });
+
+    return { success: true, msg: "Staff updated successfully" };
+  } catch (error) {
+    console.log(error);
+    return { success: false, msg: "Internal Server Error" };
+  }
+}
+
+export async function updateDoctor(data: any, doctorId: string) {
+  try {
+    const userId = await requireAuthUserId();
+    const isAdmin = await checkRole("ADMIN");
+    if (!isAdmin) return { success: false, msg: "Unauthorized" };
+
+    const values = DoctorSchema.safeParse(data);
+    if (!values.success) {
+      return { success: false, msg: "Please provide all required info" };
+    }
+
+    const validatedValues = values.data;
+    const [firstName, ...rest] = validatedValues.name.split(" ");
+    const lastName = rest.join(" ").trim();
+
+    const supabaseAdmin = createSupabaseAdminClient();
+    const { error } = await supabaseAdmin.auth.admin.updateUserById(doctorId, {
+      email: validatedValues.email,
+      user_metadata: { first_name: firstName, last_name: lastName },
+      app_metadata: { role: "doctor" },
+    });
+
+    if (error) {
+      return { success: false, msg: error.message };
+    }
+
+    await db.doctor.update({
+      where: { id: doctorId },
+      data: {
+        name: validatedValues.name,
+        phone: validatedValues.phone,
+        email: validatedValues.email,
+        specialization: validatedValues.specialization,
+        address: validatedValues.address,
+        type: validatedValues.type,
+        department: validatedValues.department,
+        img: validatedValues.img,
+        license_number: validatedValues.license_number,
+      },
+    });
+
+    await db.auditLog.create({
+      data: {
+        user_id: userId,
+        record_id: doctorId,
+        action: "UPDATE",
+        model: "Doctor",
+        details: "Updated doctor profile",
+      },
+    });
+
+    return { success: true, msg: "Doctor updated successfully" };
+  } catch (error) {
+    console.log(error);
+    return { success: false, msg: "Internal Server Error" };
+  }
+}

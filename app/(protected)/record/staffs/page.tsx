@@ -1,5 +1,5 @@
 import { ActionDialog } from "@/components/action-dialog";
-import { ViewAction } from "@/components/action-options";
+import { EditAction, ViewAction } from "@/components/action-options";
 import { DoctorForm } from "@/components/forms/doctor-form";
 import { StaffForm } from "@/components/forms/staff-form";
 import { Pagination } from "@/components/pagination";
@@ -86,6 +86,7 @@ const StaffList = async (props: SearchParamsProps) => {
       <td>
         <div className="flex items-center gap-2">
           <ActionDialog type="staff" id={item?.id} data={item} />
+          {isAdmin && <EditAction href={`/record/staffs/${item?.id}/edit`} />}
 
           {isAdmin && (
             <ActionDialog type="delete" id={item?.id} deleteType="staff" />
