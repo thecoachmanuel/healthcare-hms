@@ -1,5 +1,6 @@
 import { SettingsQuickLinks } from "@/components/settings/quick-link-settings";
 import { ServiceSettings } from "@/components/settings/services-settings";
+import { SiteSettingsSection } from "@/components/settings/site-settings";
 import { Card } from "@/components/ui/card";
 import { SearchParamsProps } from "@/types";
 
@@ -12,6 +13,7 @@ const SystemSettingPage = async (props: SearchParamsProps) => {
       <div className="w-full lg:w-[70%] flex flex-col gap-4">
         <Card className="shadow-none rounded-xl">
           {cat === "services" && <ServiceSettings />}
+          {cat === "site" && <SiteSettingsSection />}
         </Card>
       </div>
       <div className="w-full space-y-6">

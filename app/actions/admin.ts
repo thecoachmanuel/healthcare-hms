@@ -223,6 +223,41 @@ export async function addNewService(data: any) {
   }
 }
 
+export async function setSiteSettings(data: { site_name: string; logo_url?: string; homepage_text?: string }) {
+  try {
+    const userId = await requireAuthUserId();
+    const isAdmin = await checkRole("ADMIN");
+    if (!isAdmin) return { success: false, msg: "Unauthorized" };
+
+    const existing = await db.siteSettings.findFirst({ orderBy: { id: "asc" } });
+    let saved: any;
+    if (existing) {
+      saved = await db.siteSettings.update({
+        where: { id: existing.id },
+        data: { ...data, updated_by_id: userId },
+      });
+    } else {
+      saved = await db.siteSettings.create({
+        data: { ...data, updated_by_id: userId },
+      });
+    }
+
+    await db.auditLog.create({
+      data: {
+        user_id: userId,
+        record_id: String(saved.id),
+        action: "UPDATE",
+        model: "SiteSettings",
+        details: `site_name=${data.site_name}`,
+      },
+    });
+
+    return { success: true, msg: "Settings updated" };
+  } catch (error: any) {
+    return { success: false, msg: error?.message ?? "Internal Server Error" };
+  }
+}
+
 export async function updateStaff(data: any, staffId: string) {
   try {
     const userId = await requireAuthUserId();
