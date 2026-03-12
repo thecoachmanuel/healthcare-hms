@@ -10,41 +10,41 @@ export const SettingsQuickLinks = () => {
 
       <CardContent className="text-sm font-normal flex flex-wrap gap-4">
         <Link
-          href="?cat=services"
+          href="/admin/system-settings?cat=services"
           className="px-4 py-2 rounded-lg bg-gray-100 text-gray-600"
         >
           Services
         </Link>
         <Link
-          href="?cat=lab-tests"
+          href="/admin/system-settings?cat=lab-tests"
           className="px-4 py-2 rounded-lg bg-violet-100 text-violet-600"
         >
           Lab Tests
         </Link>
 
         <Link
-          href="?cat=medications"
+          href="/admin/system-settings?cat=medications"
           className="px-4 py-2 rounded-lg bg-rose-100 text-rose-600"
         >
           Medications
         </Link>
 
         <Link
-          href="?cat=lab-units"
+          href="/admin/system-settings?cat=lab-units"
           className="px-4 py-2 rounded-lg bg-emerald-100 text-emerald-600"
         >
           Lab Units
         </Link>
 
         <Link
-          href="?cat=specializations"
+          href="/admin/system-settings?cat=specializations"
           className="px-4 py-2 rounded-lg bg-orange-100 text-orange-600"
         >
           Doctor Specializations
         </Link>
 
         <Link
-          href="?cat=site"
+          href="/admin/system-settings?cat=site"
           className="px-4 py-2 rounded-lg bg-blue-100 text-blue-600"
         >
           Site

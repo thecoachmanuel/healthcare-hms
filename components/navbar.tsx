@@ -1,12 +1,12 @@
 "use client";
 
-import { Bell } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import React from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import type { Session } from "@supabase/supabase-js";
+import { NotificationBell } from "@/components/notification-bell";
 
 export const Navbar = () => {
   const router = useRouter();
@@ -64,12 +64,7 @@ export const Navbar = () => {
       </h1>
 
       <div className="flex items-center gap-4">
-        <div className="relative">
-          <Bell />
-          <p className="absolute -top-3 right-1 size-4 bg-red-600 text-white rounded-full text-[10px] text-center">
-            2
-          </p>
-        </div>
+        <NotificationBell />
 
         {email && (
           <Popover>

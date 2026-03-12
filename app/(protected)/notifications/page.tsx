@@ -6,7 +6,11 @@ import React from "react";
 
 const NotificationsPage = async () => {
   const userId = await requireAuthUserId();
-  const notifications = await db.notification.findMany({
+  await (db as any).notification.updateMany({
+    where: { user_id: userId, read: false },
+    data: { read: true },
+  });
+  const notifications: any[] = await (db as any).notification.findMany({
     where: { user_id: userId },
     orderBy: { created_at: "desc" },
     take: 50,
@@ -23,7 +27,7 @@ const NotificationsPage = async () => {
           {notifications.length === 0 ? (
             <p className="text-sm text-gray-500">No notifications yet.</p>
           ) : (
-            notifications.map((n) => (
+            notifications.map((n: any) => (
               <div key={n.id} className="border rounded-md p-3">
                 <div className="flex items-center justify-between">
                   <h3 className="font-medium">{n.title}</h3>
