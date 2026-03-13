@@ -4,7 +4,7 @@ import { requireAuthUserId } from "@/lib/auth";
 import db from "@/lib/db";
 import { checkRole } from "@/utils/roles";
 import React from "react";
-import { ensureDefaultDepartments, ensureDefaultLabUnits } from "@/utils/services/catalog-seed";
+import { ensureDefaultDepartments, ensureDefaultLabUnits, ensureDefaultWards } from "@/utils/services/catalog-seed";
 
 const EditStaffPage = async (props: { params: Promise<{ id: string }> }) => {
   await requireAuthUserId();
@@ -16,6 +16,7 @@ const EditStaffPage = async (props: { params: Promise<{ id: string }> }) => {
   if (!staff) return null;
   await ensureDefaultLabUnits();
   await ensureDefaultDepartments();
+  await ensureDefaultWards();
   const labUnits = await db.labUnit.findMany({
     where: { active: true },
     select: { id: true, name: true },
@@ -26,7 +27,13 @@ const EditStaffPage = async (props: { params: Promise<{ id: string }> }) => {
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
-  const wards = await db.ward.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+  const wards = await (async () => {
+    try {
+      return await db.ward.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+    } catch {
+      return [];
+    }
+  })();
 
   return (
     <div className="p-6">

@@ -2,7 +2,7 @@ import { getRole } from "@/utils/roles";
 import {
   Bell,
   CalendarDays,
-  ClipboardUser,
+  ClipboardList,
   CreditCard,
   FileSignature,
   FileText,
@@ -12,19 +12,19 @@ import {
   LayoutDashboard,
   Logs,
   LucideIcon,
+  FolderOpen,
   Pill,
+  ScrollText,
   Settings,
   SquareActivity,
   Stethoscope,
   Syringe,
-  FolderOpen,
-  ScrollText,
-  SquareActivity,
   UserCog,
   User,
   UserRound,
   Users,
   UsersRound,
+} from "lucide-react";
 import Link from "next/link";
 import React from "react";
 import { LogoutButton } from "./logout-button";
@@ -177,7 +177,7 @@ export const Sidebar = async () => {
           name: "Record Officer",
           href: "/record_officer",
           access: ["record_officer"],
-          icon: ClipboardUser,
+          icon: ClipboardList,
         },
         {
           name: "Billing",

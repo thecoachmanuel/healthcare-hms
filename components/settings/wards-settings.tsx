@@ -5,6 +5,7 @@ import { Table } from "../tables/table";
 import { ConfirmDelete } from "../dialogs/confirm-delete";
 import { AddWard, EditWard } from "../dialogs/ward-dialog";
 import { deleteWard } from "@/app/actions/ward";
+import { ensureDefaultDepartments, ensureDefaultWards } from "@/utils/services/catalog-seed";
 
 const columns = [
   { header: "ID", key: "id", className: "hidden md:table-cell" },
@@ -16,10 +17,18 @@ const columns = [
 ];
 
 export const WardsSettings = async ({ q }: { q?: string }) => {
-  const wards = await db.ward.findMany({
-    where: q ? { name: { contains: q, mode: "insensitive" } } : {},
-    orderBy: { name: "asc" },
-  });
+  await ensureDefaultDepartments();
+  await ensureDefaultWards();
+  const wards = await (async () => {
+    try {
+      return await db.ward.findMany({
+        where: q ? { name: { contains: q, mode: "insensitive" } } : {},
+        orderBy: { name: "asc" },
+      });
+    } catch {
+      return [];
+    }
+  })();
   const departments = await db.department.findMany({ where: { active: true }, orderBy: { name: "asc" } });
   const departmentOptions = departments.map((d: any) => ({ label: d.name, value: d.name }));
 
@@ -55,4 +64,3 @@ export const WardsSettings = async ({ q }: { q?: string }) => {
     </div>
   );
 };
-

@@ -16,7 +16,7 @@ import { format } from "date-fns";
 import { Users, User, UserCheck, UserX } from "lucide-react";
 import React from "react";
 import db from "@/lib/db";
-import { ensureDefaultDepartments, ensureDefaultDoctorSpecializations } from "@/utils/services/catalog-seed";
+import { ensureDefaultDepartments, ensureDefaultDoctorSpecializations, ensureDefaultWards } from "@/utils/services/catalog-seed";
 import { StatCard } from "@/components/stat-card";
 import { DoctorSpecializationChart } from "@/components/charts/doctor-specialization-chart";
 
@@ -71,7 +71,14 @@ const DoctorsList = async (props: SearchParamsProps) => {
   const isAdmin = await checkRole("ADMIN");
   await ensureDefaultDoctorSpecializations();
   await ensureDefaultDepartments();
-  const wardsDb = await db.ward.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+  await ensureDefaultWards();
+  const wardsDb = await (async () => {
+    try {
+      return await db.ward.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+    } catch {
+      return [];
+    }
+  })();
   const specializationsDb = await db.doctorSpecialization.findMany({
     where: { active: true },
     orderBy: { name: "asc" },

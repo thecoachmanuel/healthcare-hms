@@ -15,7 +15,7 @@ import type { Staff } from "@prisma/client";
 import { format } from "date-fns";
 import { Users } from "lucide-react";
 import db from "@/lib/db";
-import { ensureDefaultDepartments, ensureDefaultLabUnits } from "@/utils/services/catalog-seed";
+import { ensureDefaultDepartments, ensureDefaultLabUnits, ensureDefaultWards } from "@/utils/services/catalog-seed";
 import { StatCard } from "@/components/stat-card";
 import { StaffRoleChart } from "@/components/charts/staff-role-chart";
 import { UserRound, UserX, UserCheck } from "lucide-react";
@@ -93,12 +93,19 @@ const StaffList = async (props: SearchParamsProps) => {
   });
   await ensureDefaultLabUnits();
   await ensureDefaultDepartments();
+  await ensureDefaultWards();
   const labUnits = await db.labUnit.findMany({
     where: { active: true },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
-  const wards = await db.ward.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+  const wards = await (async () => {
+    try {
+      return await db.ward.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+    } catch {
+      return [];
+    }
+  })();
   const departments = await db.department.findMany({
     where: { active: true },
     select: { id: true, name: true },

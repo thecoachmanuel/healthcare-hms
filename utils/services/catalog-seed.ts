@@ -26,9 +26,18 @@ const DEFAULT_DEPARTMENTS = [
   "Medical Records",
 ];
 
+const DEFAULT_WARDS = [
+  { name: "General Ward", department: "Inpatient Ward", capacity: 40 },
+  { name: "Pediatrics Ward", department: "Pediatrics", capacity: 20 },
+  { name: "Maternity Ward", department: "Maternity", capacity: 20 },
+  { name: "Surgical Ward", department: "Surgery", capacity: 20 },
+  { name: "ICU", department: "ICU", capacity: 10 },
+];
+
 let labUnitsEnsured = false;
 let doctorSpecializationsEnsured = false;
 let departmentsEnsured = false;
+let wardsEnsured = false;
 
 export async function ensureDefaultLabUnits() {
   if (labUnitsEnsured) return;
@@ -67,4 +76,21 @@ export async function ensureDefaultDepartments() {
     skipDuplicates: true,
   });
   departmentsEnsured = true;
+}
+
+export async function ensureDefaultWards() {
+  if (wardsEnsured) return;
+  try {
+    const count = await db.ward.count();
+    if (count > 0) return;
+
+    await db.ward.createMany({
+      data: DEFAULT_WARDS.map((w) => ({ name: w.name, department: w.department, capacity: w.capacity, active: true })),
+      skipDuplicates: true,
+    });
+
+    wardsEnsured = true;
+  } catch {
+    return;
+  }
 }
