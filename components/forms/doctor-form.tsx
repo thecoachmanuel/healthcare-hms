@@ -47,9 +47,11 @@ type Day = {
 export const DoctorForm = ({
   specializations,
   departments,
+  wards,
 }: {
   specializations: { label: string; value: string; department: string }[];
   departments: { label: string; value: string }[];
+  wards: { label: string; value: string }[];
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -66,6 +68,7 @@ export const DoctorForm = ({
       address: "",
       type: "FULL",
       department: "",
+      ward_id: "",
       img: "",
       password: "",
       license_number: "",
@@ -178,6 +181,15 @@ export const DoctorForm = ({
                   selectList={[{ label: "Select department", value: "" }, ...departments]}
                 />
               </div>
+
+            <CustomInput
+              type="select"
+              control={form.control}
+              name="ward_id"
+              placeholder="Select ward (optional)"
+              label="Ward Assignment"
+              selectList={[{ label: "None", value: "" }, ...wards]}
+            />
 
               <CustomInput
                 type="input"

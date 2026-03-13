@@ -17,6 +17,7 @@ const AdminDashboard = async () => {
     totalDoctors,
     totalPatient,
     totalAppointments,
+    auditLogs,
   } = await getAdminDashboardStats();
 
   const cardData = [
@@ -103,6 +104,27 @@ const AdminDashboard = async () => {
         </div>
 
         <AvailableDoctors data={availableDoctors as any} />
+
+        <div className="bg-white rounded-xl p-4 mt-6">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-lg font-semibold">Live Activity</h2>
+          </div>
+          <div className="space-y-2">
+            {(auditLogs ?? []).slice(0, 10).map((l: any) => (
+              <div key={l.id} className="border rounded-md p-3">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium">{l.action} {l.model}</div>
+                  <div className="text-xs text-gray-500">{new Date(l.created_at).toISOString().slice(0, 16).replace("T", " ")}</div>
+                </div>
+                <div className="text-xs text-gray-600 break-all">user: {l.user_id} • record: {l.record_id}</div>
+                {l.details ? <div className="text-xs text-gray-500 mt-1">{l.details}</div> : null}
+              </div>
+            ))}
+            {(auditLogs ?? []).length === 0 ? (
+              <div className="text-sm text-gray-500">No recent activity.</div>
+            ) : null}
+          </div>
+        </div>
       </div>
     </div>
   );

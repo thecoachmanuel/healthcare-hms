@@ -8,7 +8,7 @@ import { ensureDefaultLabUnits } from "@/utils/services/catalog-seed";
 
 const LabTechnicianUnitPage = async () => {
   const userId = await requireAuthUserId();
-  const isAllowed = await checkRole("LAB_TECHNICIAN");
+  const isAllowed = (await checkRole("LAB_TECHNICIAN")) || (await checkRole("LAB_RECEPTIONIST"));
   if (!isAllowed) return null;
 
   await ensureDefaultLabUnits();

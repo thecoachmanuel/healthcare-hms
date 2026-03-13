@@ -18,8 +18,10 @@ enum Role {
   DOCTOR
   LAB_SCIENTIST
   LAB_TECHNICIAN
+  LAB_RECEPTIONIST
   PHARMACIST
   RECORD_OFFICER
+  RECEPTIONIST
   PATIENT
   CASHIER
 }
@@ -97,6 +99,7 @@ model Patient {
   ratings                  Rating[]
   prescriptions            Prescription[]
   medication_administrations MedicationAdministration[]
+  admissions               InpatientAdmission[]
 
   created_at               DateTime @default(now())
   updated_at               DateTime @updatedAt
@@ -111,6 +114,7 @@ model Doctor {
   phone                 String
   address               String
   department            String?
+  ward_id               Int?
   img                   String?
   colorCode             String?
   availability_status   String?
@@ -121,6 +125,8 @@ model Doctor {
   ratings               Rating[]
   diagnosis             Diagnosis[] 
   prescriptions         Prescription[]
+  ward                  Ward? @relation(fields: [ward_id], references: [id])
+  admissions            InpatientAdmission[]
 
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
@@ -152,15 +158,64 @@ model Staff {
   license_number String?
   colorCode      String?
   lab_unit_id   Int?
+  ward_id       Int?
 
   role          Role
   status        Status @default(ACTIVE)
 
   lab_unit      LabUnit? @relation(fields: [lab_unit_id], references: [id])
+  ward          Ward? @relation(fields: [ward_id], references: [id])
   medication_administrations MedicationAdministration[]
 
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
+}
+
+enum AdmissionStatus {
+  ADMITTED
+  DISCHARGED
+  TRANSFERRED
+}
+
+model Ward {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  department String?
+  capacity   Int      @default(0)
+  active     Boolean  @default(true)
+
+  staff      Staff[]
+  doctors    Doctor[]
+  admissions InpatientAdmission[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model InpatientAdmission {
+  id                  Int              @id @default(autoincrement())
+  patient_id          String
+  ward_id             Int
+  attending_doctor_id String?
+  admitted_by_id      String?
+  admitted_by_role    Role?
+  status              AdmissionStatus  @default(ADMITTED)
+  admitted_at         DateTime         @default(now())
+  discharged_at       DateTime?
+  discharge_notes     String?
+  discharged_by_id    String?
+  discharged_by_role  Role?
+
+  patient             Patient          @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  ward                Ward             @relation(fields: [ward_id], references: [id], onDelete: Cascade)
+  attending_doctor    Doctor?          @relation(fields: [attending_doctor_id], references: [id])
+
+  created_at          DateTime @default(now())
+  updated_at          DateTime @updatedAt
+
+  @@index([patient_id])
+  @@index([ward_id])
+  @@index([status])
 }
 
 model Department {
@@ -170,6 +225,7 @@ model Department {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 }
+
 
 
 model Appointment {

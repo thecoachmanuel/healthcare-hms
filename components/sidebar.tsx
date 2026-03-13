@@ -25,10 +25,12 @@ const ACCESS_LEVELS_ALL = [
   "nurse",
   "lab_scientist",
   "lab_technician",
+  "lab_receptionist",
   "cashier",
   "pharmacist",
   "patient",
   "record_officer",
+  "receptionist",
 ];
 
 const SidebarIcon = ({ icon: Icon }: { icon: LucideIcon }) => {
@@ -86,7 +88,7 @@ export const Sidebar = async () => {
         {
           name: "Appointments",
           href: "/record/appointments",
-          access: ["admin", "doctor", "nurse", "lab_scientist", "lab_technician", "cashier", "pharmacist"],
+          access: ["admin", "doctor", "nurse", "lab_scientist", "lab_technician", "lab_receptionist", "cashier", "pharmacist", "receptionist"],
           icon: ListOrdered,
         },
         {
@@ -98,7 +100,7 @@ export const Sidebar = async () => {
         {
           name: "Lab Tests",
           href: "/lab_scientist/lab-tests",
-          access: ["lab_scientist", "lab_technician"],
+          access: ["lab_scientist", "lab_technician", "lab_receptionist"],
           icon: SquareActivity,
         },
         {

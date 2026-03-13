@@ -98,6 +98,7 @@ const StaffList = async (props: SearchParamsProps) => {
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
+  const wards = await db.ward.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
   const departments = await db.department.findMany({
     where: { active: true },
     select: { id: true, name: true },
@@ -219,8 +220,10 @@ const StaffList = async (props: SearchParamsProps) => {
               { label: "All", value: "" },
               { label: "Admin", value: "ADMIN" },
               { label: "Nurse", value: "NURSE" },
+              { label: "Receptionist", value: "RECEPTIONIST" },
               { label: "Lab Scientist", value: "LAB_SCIENTIST" },
               { label: "Lab Technician", value: "LAB_TECHNICIAN" },
+              { label: "Lab Receptionist", value: "LAB_RECEPTIONIST" },
               { label: "Cashier", value: "CASHIER" },
               { label: "Pharmacist", value: "PHARMACIST" },
               { label: "Record Officer", value: "RECORD_OFFICER" },
@@ -247,6 +250,7 @@ const StaffList = async (props: SearchParamsProps) => {
                 label: d.name,
                 value: d.name,
               }))}
+              wards={wards.map((w: { id: number; name: string }) => ({ label: w.name, value: String(w.id) }))}
             />
           )}
         </div>

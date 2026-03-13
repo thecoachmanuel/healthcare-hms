@@ -1,6 +1,7 @@
 "use server";
 
 import db from "@/lib/db";
+import { revalidatePath, revalidateTag } from "next/cache";
 import {
   DoctorSchema,
   ServicesSchema,
@@ -15,6 +16,8 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 function mapRoleToRoute(role: string) {
   if (role === "LAB_SCIENTIST") return "lab_scientist";
   if (role === "LAB_TECHNICIAN") return "lab_technician";
+  if (role === "LAB_RECEPTIONIST") return "lab_receptionist";
+  if (role === "RECEPTIONIST") return "receptionist";
   if (role === "PHARMACIST") return "pharmacist";
   if (role === "CASHIER") return "cashier";
   return role.toLowerCase();
@@ -52,7 +55,8 @@ export async function createNewStaff(data: any) {
     }
     if (
       (validatedValues.role === "LAB_SCIENTIST" ||
-        validatedValues.role === "LAB_TECHNICIAN") &&
+        validatedValues.role === "LAB_TECHNICIAN" ||
+        validatedValues.role === "LAB_RECEPTIONIST") &&
       (!validatedValues.lab_unit_id || validatedValues.lab_unit_id.trim().length === 0)
     ) {
       return { success: false, msg: "Please select a lab unit", error: true };
@@ -89,6 +93,7 @@ export async function createNewStaff(data: any) {
         address: validatedValues.address,
         role: validatedValues.role as any,
         lab_unit_id: validatedValues.lab_unit_id ? Number(validatedValues.lab_unit_id) : null,
+        ward_id: validatedValues.ward_id ? Number(validatedValues.ward_id) : null,
         license_number: validatedValues.license_number,
         department: validatedValues.department,
         img: validatedValues.img,
@@ -162,9 +167,13 @@ export async function createNewDoctor(data: any) {
 
     delete validatedValues["password"];
 
+    const wardId = (validatedValues as any).ward_id ? Number((validatedValues as any).ward_id) : null;
+    delete (validatedValues as any).ward_id;
+
     const doctor = await db.doctor.create({
       data: {
         ...validatedValues,
+        ward_id: wardId,
         id: created.user.id,
       },
     });
@@ -320,6 +329,10 @@ export async function setSiteSettings(data: {
       },
     });
 
+    revalidateTag("site-settings");
+    revalidatePath("/");
+    revalidatePath("/admin/system-settings");
+
     return { success: true, msg: "Settings updated" };
   } catch (error: any) {
     return { success: false, msg: error?.message ?? "Internal Server Error" };
@@ -340,7 +353,8 @@ export async function updateStaff(data: any, staffId: string) {
     const validatedValues = values.data;
     if (
       (validatedValues.role === "LAB_SCIENTIST" ||
-        validatedValues.role === "LAB_TECHNICIAN") &&
+        validatedValues.role === "LAB_TECHNICIAN" ||
+        validatedValues.role === "LAB_RECEPTIONIST") &&
       (!validatedValues.lab_unit_id || validatedValues.lab_unit_id.trim().length === 0)
     ) {
       return { success: false, msg: "Please select a lab unit" };
@@ -370,6 +384,7 @@ export async function updateStaff(data: any, staffId: string) {
         lab_unit_id: validatedValues.lab_unit_id
           ? Number(validatedValues.lab_unit_id)
           : null,
+        ward_id: validatedValues.ward_id ? Number(validatedValues.ward_id) : null,
         license_number: validatedValues.license_number,
         department: validatedValues.department,
         img: validatedValues.img,
@@ -429,6 +444,7 @@ export async function updateDoctor(data: any, doctorId: string) {
         address: validatedValues.address,
         type: validatedValues.type,
         department: validatedValues.department,
+        ward_id: validatedValues.ward_id ? Number(validatedValues.ward_id) : null,
         img: validatedValues.img,
         license_number: validatedValues.license_number,
       },

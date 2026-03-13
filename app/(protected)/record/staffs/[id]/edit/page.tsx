@@ -26,6 +26,7 @@ const EditStaffPage = async (props: { params: Promise<{ id: string }> }) => {
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
+  const wards = await db.ward.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
 
   return (
     <div className="p-6">
@@ -35,6 +36,7 @@ const EditStaffPage = async (props: { params: Promise<{ id: string }> }) => {
           staff={staff}
           labUnits={labUnits.map((u: any) => ({ label: u.name, value: String(u.id) }))}
           departments={departments.map((d: any) => ({ label: d.name, value: d.name }))}
+          wards={wards.map((w: any) => ({ label: w.name, value: String(w.id) }))}
         />
       </Card>
     </div>

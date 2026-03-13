@@ -19,8 +19,10 @@ import { Label } from "@/components/ui/label";
 const TYPES = [
   { label: "Admin", value: "ADMIN" },
   { label: "Nurse", value: "NURSE" },
+  { label: "Receptionist", value: "RECEPTIONIST" },
   { label: "Lab Scientist", value: "LAB_SCIENTIST" },
   { label: "Lab Technician", value: "LAB_TECHNICIAN" },
+  { label: "Lab Receptionist", value: "LAB_RECEPTIONIST" },
   { label: "Cashier", value: "CASHIER" },
   { label: "Pharmacist", value: "PHARMACIST" },
   { label: "Record Officer", value: "RECORD_OFFICER" },
@@ -30,10 +32,12 @@ export const EditStaffForm = ({
   staff,
   labUnits,
   departments,
+  wards,
 }: {
   staff: Staff;
   labUnits: { label: string; value: string }[];
   departments: { label: string; value: string }[];
+  wards: { label: string; value: string }[];
 }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -47,6 +51,7 @@ export const EditStaffForm = ({
       phone: staff.phone ?? "",
       role: staff.role as any,
       lab_unit_id: (staff as any)?.lab_unit_id ? String((staff as any).lab_unit_id) : "",
+      ward_id: (staff as any)?.ward_id ? String((staff as any).ward_id) : "",
       address: staff.address ?? "",
       department: staff.department ?? "",
       img: staff.img ?? "",
@@ -84,7 +89,7 @@ export const EditStaffForm = ({
       <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-8 mt-6">
         <CustomInput type="input" control={form.control} name="name" label="Full Name" placeholder="" />
         <CustomInput type="select" control={form.control} name="role" label="Role" placeholder="Select role" selectList={TYPES} />
-        {(role === "LAB_SCIENTIST" || role === "LAB_TECHNICIAN") && (
+        {(role === "LAB_SCIENTIST" || role === "LAB_TECHNICIAN" || role === "LAB_RECEPTIONIST") && (
           <CustomInput
             type="select"
             control={form.control}
@@ -110,6 +115,17 @@ export const EditStaffForm = ({
           />
           <CustomInput type="input" control={form.control} name="license_number" label="License Number" placeholder="" />
         </div>
+
+        {role === "NURSE" && (
+          <CustomInput
+            type="select"
+            control={form.control}
+            name="ward_id"
+            label="Ward Assignment"
+            placeholder="Select ward (optional)"
+            selectList={[{ label: "None", value: "" }, ...wards]}
+          />
+        )}
         <div className="space-y-2">
           <Label htmlFor="staff-photo">Profile photo</Label>
           <Input id="staff-photo" type="file" accept="image/*" onChange={(e) => setProfileFile(e.target.files?.[0] ?? null)} />

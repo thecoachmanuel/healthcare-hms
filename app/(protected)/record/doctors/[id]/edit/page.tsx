@@ -16,6 +16,7 @@ const EditDoctorPage = async (props: { params: Promise<{ id: string }> }) => {
   if (!doctor) return null;
   await ensureDefaultDoctorSpecializations();
   await ensureDefaultDepartments();
+  const wardsDb = await db.ward.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
   const specializationsDb = await db.doctorSpecialization.findMany({
     where: { active: true },
     orderBy: { name: "asc" },
@@ -38,6 +39,7 @@ const EditDoctorPage = async (props: { params: Promise<{ id: string }> }) => {
     departmentsDb.length > 0
       ? departmentsDb.map((d: { name: string }) => ({ label: d.name, value: d.name }))
       : [];
+  const wards = wardsDb.map((w: any) => ({ label: w.name, value: String(w.id) }));
 
   return (
     <div className="p-6">
@@ -47,6 +49,7 @@ const EditDoctorPage = async (props: { params: Promise<{ id: string }> }) => {
           doctor={doctor}
           specializations={specializations as any}
           departments={departments}
+          wards={wards}
         />
       </Card>
     </div>

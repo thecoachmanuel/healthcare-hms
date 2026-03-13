@@ -11,18 +11,22 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useRouter } from "next/navigation";
 
 export function SiteSettingsForm({ initial }: { initial: any }) {
   const [loading, setLoading] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
+  const router = useRouter();
   const form = useForm({
     defaultValues: {
       site_name: initial?.site_name ?? "Healthcare HMS",
       site_title: initial?.site_title ?? "",
       logo_url: initial?.logo_url ?? "",
-      homepage_title: initial?.homepage_title ?? "",
+      homepage_title: initial?.homepage_title ?? "Welcome to Healthcare HMS",
       homepage_subtitle: initial?.homepage_subtitle ?? "",
-      homepage_text: initial?.homepage_text ?? "",
+      homepage_text:
+        initial?.homepage_text ??
+        "Lorem ipsum dolor sit amet consectetur adipisicing elit. Esse maxime quae numquam possimus dolor. Illum, ipsam laudantium. Reprehenderit",
     },
   });
 
@@ -42,7 +46,10 @@ export function SiteSettingsForm({ initial }: { initial: any }) {
         homepage_subtitle: values.homepage_subtitle,
         homepage_text: values.homepage_text,
       });
-      if (res.success) toast.success(res.msg);
+      if (res.success) {
+        toast.success(res.msg);
+        router.refresh();
+      }
       else toast.error(res.msg);
     } catch (e: any) {
       toast.error(e?.message ?? "Failed to update settings");

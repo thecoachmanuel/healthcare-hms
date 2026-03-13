@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import Link from "next/link";
 import React from "react";
 import { SelectFilter } from "@/components/filters/select-filter";
+import { AddService } from "@/components/dialogs/add-service";
 
 const columns = [
   { header: "Patient", key: "patient" },
@@ -28,7 +29,8 @@ const LabTestsPage = async ({
   const userId = await requireAuthUserId();
   const isLabScientist = await checkRole("LAB_SCIENTIST");
   const isLabTechnician = await checkRole("LAB_TECHNICIAN");
-  if (!isLabScientist && !isLabTechnician) return null;
+  const isLabReceptionist = await checkRole("LAB_RECEPTIONIST");
+  if (!isLabScientist && !isLabTechnician && !isLabReceptionist) return null;
 
   const sp = await searchParams;
   const page = Number((sp?.p || "1") as string) || 1;
@@ -226,6 +228,20 @@ const LabTestsPage = async ({
                 { label: "All", value: "" },
                 ...units.map((u: any) => ({ label: u.name, value: String(u.id) })),
               ]}
+            />
+          )}
+          {(isLabScientist || isLabReceptionist) && (
+            <AddService
+              category="LAB_TEST"
+              buttonText="Add Lab Test"
+              title="Add Lab Test"
+              description="Create a lab test under your unit."
+              labUnits={(() => {
+                const opts = units.map((u: any) => ({ label: u.name, value: String(u.id) }));
+                if (isLabScientist) return opts;
+                // Restrict receptionist to their own unit
+                return opts.filter((u: any) => u.value === allowedUnitId);
+              })()}
             />
           )}
         </div>

@@ -51,6 +51,13 @@ export const SettingsQuickLinks = () => {
         </Link>
 
         <Link
+          href={{ pathname: "/admin/system-settings", query: { cat: "wards" } }}
+          className="px-4 py-2 rounded-lg bg-fuchsia-100 text-fuchsia-700"
+        >
+          Wards
+        </Link>
+
+        <Link
           href={{ pathname: "/admin/system-settings", query: { cat: "site" } }}
           className="px-4 py-2 rounded-lg bg-blue-100 text-blue-600"
         >

@@ -26,8 +26,10 @@ import { uploadToCloudinary } from "@/lib/cloudinary/upload";
 const TYPES = [
   { label: "Admin", value: "ADMIN" },
   { label: "Nurse", value: "NURSE" },
+  { label: "Receptionist", value: "RECEPTIONIST" },
   { label: "Lab Scientist", value: "LAB_SCIENTIST" },
   { label: "Lab Technician", value: "LAB_TECHNICIAN" },
+  { label: "Lab Receptionist", value: "LAB_RECEPTIONIST" },
   { label: "Cashier", value: "CASHIER" },
   { label: "Pharmacist", value: "PHARMACIST" },
   { label: "Record Officer", value: "RECORD_OFFICER" },
@@ -36,9 +38,11 @@ const TYPES = [
 export const StaffForm = ({
   labUnits,
   departments,
+  wards,
 }: {
   labUnits: { label: string; value: string }[];
   departments: { label: string; value: string }[];
+  wards: { label: string; value: string }[];
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
@@ -116,7 +120,7 @@ export const StaffForm = ({
                 placeholder="Select role"
               />
 
-              {(role === "LAB_SCIENTIST" || role === "LAB_TECHNICIAN") && (
+              {(role === "LAB_SCIENTIST" || role === "LAB_TECHNICIAN" || role === "LAB_RECEPTIONIST") && (
                 <CustomInput
                   type="select"
                   selectList={labUnits}
@@ -168,6 +172,17 @@ export const StaffForm = ({
                 label="Department"
                 selectList={[{ label: "Select department", value: "" }, ...departments]}
               />
+
+              {role === "NURSE" && (
+                <CustomInput
+                  type="select"
+                  control={form.control}
+                  name="ward_id"
+                  placeholder="Select ward (optional)"
+                  label="Ward Assignment"
+                  selectList={[{ label: "None", value: "" }, ...wards]}
+                />
+              )}
 
               <CustomInput
                 type="input"

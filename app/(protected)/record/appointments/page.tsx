@@ -16,6 +16,7 @@ import { BriefcaseBusiness } from "lucide-react";
 import React from "react";
 import { Pagination } from "@/components/pagination";
 import { AppointmentContainer } from "@/components/appointment-container";
+import { ReceptionistAppointmentContainer } from "@/components/appointments/receptionist-appointment-container";
 const columns = [
   {
     header: "Info",
@@ -58,6 +59,7 @@ const Appointments = async (props: {
   const userRole = await getRole();
   const userId = await requireAuthUserId();
   const isPatient = await checkRole("PATIENT");
+  const isReceptionist = userRole === "receptionist";
 
   const page = (searchParams?.p || "1") as string;
   const searchQuery = searchParams?.q || "";
@@ -69,17 +71,18 @@ const Appointments = async (props: {
   if (
     userRole == "admin" ||
     (userRole == "doctor" && id) ||
-    (userRole === "nurse" && id)
+    (userRole === "nurse" && id) ||
+    (userRole === "receptionist" && id)
   ) {
     queryId = id;
   } else if (userRole === "doctor" || userRole === "patient") {
     queryId = userId;
-  } else if (userRole === "nurse") {
+  } else if (userRole === "nurse" || userRole === "receptionist") {
     queryId = undefined;
   }
 
   let deptFilter: string | undefined = undefined;
-  if (userRole === "nurse" && !queryId) {
+  if ((userRole === "nurse" || userRole === "receptionist") && !queryId) {
     const staff = await db.staff.findUnique({ where: { id: userId }, select: { department: true } });
     const staffDept = staff?.department?.trim() ?? "";
     deptFilter = department.trim().length > 0 ? department : staffDept.length > 0 ? staffDept : undefined;
@@ -173,11 +176,11 @@ const Appointments = async (props: {
         <div className="w-full lg:w-fit flex items-center justify-between lg:justify-start gap-2">
           <SearchInput />
 
-          {userRole === "nurse" && (
+          {(userRole === "nurse" || userRole === "receptionist") && (
             <DepartmentFilter placeholder="e.g. OPD" />
           )}
-
           {isPatient && <AppointmentContainer id={userId!} />}
+          {isReceptionist && <ReceptionistAppointmentContainer />}
         </div>
       </div>
 

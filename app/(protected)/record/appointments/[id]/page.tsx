@@ -11,6 +11,7 @@ import { MedicalHistoryContainer } from "@/components/medical-history-container"
 import { PrescriptionContainer } from "@/components/appointment/prescription-container";
 import { getAppointmentWithMedicalRecordsById } from "@/utils/services/appointment";
 import db from "@/lib/db";
+import { InpatientContainer } from "@/components/appointment/inpatient-container";
 
 const AppointmentDetailsPage = async ({
   params,
@@ -73,6 +74,7 @@ const AppointmentDetailsPage = async ({
         {cat === "prescriptions" && (
           <PrescriptionContainer appointmentId={id} patientId={data?.patient_id!} />
         )}
+        <InpatientContainer patientId={data?.patient_id!} />
       </div>
       {/* RIGHT */}
       <div className="flex-1 space-y-6">

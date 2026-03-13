@@ -25,10 +25,12 @@ export const EditDoctorForm = ({
   doctor,
   specializations,
   departments,
+  wards,
 }: {
   doctor: Doctor;
   specializations: { label: string; value: string; department: string }[];
   departments: { label: string; value: string }[];
+  wards: { label: string; value: string }[];
 }) => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -44,6 +46,7 @@ export const EditDoctorForm = ({
       address: doctor.address ?? "",
       type: doctor.type as any,
       department: doctor.department ?? "",
+      ward_id: doctor.ward_id ? String(doctor.ward_id) : "",
       img: doctor.img ?? "",
       password: "",
       license_number: doctor.license_number ?? "",
@@ -115,6 +118,15 @@ export const EditDoctorForm = ({
             selectList={[{ label: "Select department", value: "" }, ...departments]}
           />
         </div>
+
+        <CustomInput
+          type="select"
+          control={form.control}
+          name="ward_id"
+          placeholder="Select ward (optional)"
+          label="Ward Assignment"
+          selectList={[{ label: "None", value: "" }, ...wards]}
+        />
 
         <CustomInput type="input" control={form.control} name="license_number" placeholder="" label="License Number" />
 

@@ -71,6 +71,7 @@ const DoctorsList = async (props: SearchParamsProps) => {
   const isAdmin = await checkRole("ADMIN");
   await ensureDefaultDoctorSpecializations();
   await ensureDefaultDepartments();
+  const wardsDb = await db.ward.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } });
   const specializationsDb = await db.doctorSpecialization.findMany({
     where: { active: true },
     orderBy: { name: "asc" },
@@ -93,6 +94,7 @@ const DoctorsList = async (props: SearchParamsProps) => {
     departmentsDb.length > 0
       ? departmentsDb.map((d: { name: string }) => ({ label: d.name, value: d.name }))
       : [];
+  const wards = wardsDb.map((w: any) => ({ label: w.name, value: String(w.id) }));
 
   const fullCount = stats?.typeCounts?.find((t: any) => t.type === "FULL")?.count ?? 0;
   const partCount = stats?.typeCounts?.find((t: any) => t.type === "PART")?.count ?? 0;
@@ -206,7 +208,7 @@ const DoctorsList = async (props: SearchParamsProps) => {
             ]}
           />
           {isAdmin && (
-            <DoctorForm specializations={specializations as any} departments={departments} />
+            <DoctorForm specializations={specializations as any} departments={departments} wards={wards} />
           )}
         </div>
       </div>

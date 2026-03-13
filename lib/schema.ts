@@ -95,6 +95,7 @@ export const DoctorSchema = z.object({
   license_number: z.string().min(2, "License number is required"),
   type: z.enum(["FULL", "PART"], { message: "Type is required." }),
   department: z.string().min(2, "Department is required."),
+  ward_id: z.string().optional(),
   img: z.string().optional(),
   password: z
     .string()
@@ -128,8 +129,10 @@ export const StaffSchema = z.object({
     [
       "ADMIN",
       "NURSE",
+      "RECEPTIONIST",
       "LAB_SCIENTIST",
       "LAB_TECHNICIAN",
+      "LAB_RECEPTIONIST",
       "CASHIER",
       "PHARMACIST",
       "RECORD_OFFICER",
@@ -137,6 +140,7 @@ export const StaffSchema = z.object({
     { message: "Role is required." }
   ),
   lab_unit_id: z.string().optional(),
+  ward_id: z.string().optional(),
   phone: phoneSchema,
   email: z.string().email("Invalid email address."),
   address: z
