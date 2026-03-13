@@ -113,6 +113,20 @@ export default async function middleware(request: NextRequest) {
   }
 
   const pathname = request.nextUrl.pathname;
+
+  // Path-based tenant fallback: /t/{slug}/... -> rewrite to /... while setting x-tenant-host
+  let rewriteTo: URL | null = null;
+  const pathMatch = pathname.match(/^\/t\/([^/]+)(?:\/(.*))?$/);
+  if (pathMatch) {
+    const slug = pathMatch[1].toLowerCase();
+    const rest = pathMatch[2] ? `/${pathMatch[2]}` : "/";
+    const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN || process.env.BASE_DOMAIN || process.env.VERCEL_URL || "").trim();
+    if (slug && baseDomain) {
+      const tenantHost = `${slug}.${baseDomain.replace(/^\./, "")}`.toLowerCase();
+      requestHeaders.set("x-tenant-host", tenantHost);
+    }
+    rewriteTo = new URL(rest, request.url);
+  }
   if (pathname.startsWith("/lab_technician")) {
     return applySupabaseCookies(
       NextResponse.redirect(
@@ -138,6 +152,16 @@ export default async function middleware(request: NextRequest) {
         NextResponse.redirect(new URL(role === "master_admin" ? "/saas" : `/${role}`, request.url))
       );
     }
+  }
+
+  if (rewriteTo) {
+    return applySupabaseCookies(
+      NextResponse.rewrite(rewriteTo, {
+        request: {
+          headers: requestHeaders,
+        },
+      })
+    );
   }
 
   return applySupabaseCookies(
