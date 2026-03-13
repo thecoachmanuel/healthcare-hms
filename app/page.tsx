@@ -4,30 +4,24 @@ import { getAuthUserId } from "@/lib/auth";
 import db from "@/lib/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { unstable_cache } from "next/cache";
 import Image from "next/image";
-
-const getSiteSettings = unstable_cache(
-  async () => {
-    try {
-      return await db.siteSettings.findFirst({ orderBy: { id: "asc" } });
-    } catch {
-      return null;
-    }
-  },
-  ["site-settings:primary"],
-  { tags: ["site-settings"], revalidate: 60 * 60 }
-);
 
 export default async function Home() {
   const userId = await getAuthUserId();
 
   if (userId) {
     const role = await getRole();
+    if (role === "master_admin") redirect("/saas");
     redirect(role === "sign-in" ? "/sign-in" : `/${role}`);
   }
 
-  const settings = await getSiteSettings();
+  const settings = await (async () => {
+    try {
+      return await db.siteSettings.findFirst({ orderBy: { id: "asc" } });
+    } catch {
+      return null;
+    }
+  })();
   const homepageTitle = settings?.homepage_title?.trim() || "Modern Hospital Management, Simplified";
   const homepageSubtitle = settings?.homepage_subtitle?.trim() || "";
   const homepageText =

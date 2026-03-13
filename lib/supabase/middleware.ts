@@ -1,10 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextRequest, NextResponse } from "next/server";
 
-export function createSupabaseMiddlewareClient(request: NextRequest) {
+export function createSupabaseMiddlewareClient(
+  request: NextRequest,
+  options?: { requestHeaders?: Headers }
+) {
   let response = NextResponse.next({
     request: {
-      headers: request.headers,
+      headers: options?.requestHeaders ?? request.headers,
     },
   });
 

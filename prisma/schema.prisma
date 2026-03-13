@@ -10,6 +10,150 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
+enum BillingInterval {
+  MONTHLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  INCOMPLETE
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+}
+
+enum PaymentProvider {
+  PAYSTACK
+}
+
+enum PaymentTransactionStatus {
+  INITIATED
+  SUCCESS
+  FAILED
+}
+
+enum HospitalDomainType {
+  SUBDOMAIN
+  CUSTOM
+}
+
+model Hospital {
+  id          Int      @id @default(autoincrement())
+  name        String
+  slug        String   @unique
+  active      Boolean  @default(true)
+
+  domains     HospitalDomain[]
+  subscriptions Subscription[]
+  transactions PaymentTransaction[]
+
+  patients    Patient[]
+  doctors     Doctor[]
+  working_days WorkingDays[]
+  staff       Staff[]
+  wards       Ward[]
+  departments Department[]
+  appointments Appointment[]
+  payments    Payment[]
+  patient_bills PatientBills[]
+  services    Services[]
+  lab_tests   LabTest[]
+  lab_units   LabUnit[]
+  specializations DoctorSpecialization[]
+  site_settings SiteSettings[]
+  notifications Notification[]
+  audit_logs  AuditLog[]
+  ratings     Rating[]
+  prescriptions Prescription[]
+  prescription_items PrescriptionItem[]
+  admissions  InpatientAdmission[]
+  medical_records MedicalRecords[]
+  vital_signs VitalSigns[]
+  diagnoses   Diagnosis[]
+  medication_administrations MedicationAdministration[]
+
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+}
+
+model HospitalDomain {
+  id            Int      @id @default(autoincrement())
+  hospital_id   Int
+  domain        String   @unique
+  type          HospitalDomainType @default(SUBDOMAIN)
+  verified      Boolean  @default(false)
+  verification_token String?
+
+  hospital      Hospital @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+
+  @@index([hospital_id])
+}
+
+model Plan {
+  id                Int      @id @default(autoincrement())
+  name              String
+  currency          String   @default("NGN")
+  monthly_price_kobo Int
+  yearly_price_kobo  Int
+  max_admins        Int
+  max_staff         Int
+  active            Boolean  @default(true)
+
+  subscriptions     Subscription[]
+
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  @@unique([name])
+}
+
+model Subscription {
+  id                   Int      @id @default(autoincrement())
+  hospital_id          Int
+  plan_id              Int
+  interval             BillingInterval
+  status               SubscriptionStatus @default(INCOMPLETE)
+  current_period_start DateTime?
+  current_period_end   DateTime?
+  cancel_at_period_end Boolean @default(false)
+  paystack_customer_code String?
+  paystack_subscription_code String?
+
+  hospital             Hospital @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+  plan                 Plan     @relation(fields: [plan_id], references: [id], onDelete: Restrict)
+  transactions         PaymentTransaction[]
+
+  created_at           DateTime @default(now())
+  updated_at           DateTime @updatedAt
+
+  @@index([hospital_id])
+  @@index([plan_id])
+}
+
+model PaymentTransaction {
+  id              Int      @id @default(autoincrement())
+  hospital_id     Int
+  subscription_id Int?
+  provider        PaymentProvider @default(PAYSTACK)
+  reference       String   @unique
+  amount_kobo     Int
+  currency        String   @default("NGN")
+  status          PaymentTransactionStatus @default(INITIATED)
+  raw             Json?
+
+  hospital        Hospital @relation(fields: [hospital_id], references: [id], onDelete: Cascade)
+  subscription    Subscription? @relation(fields: [subscription_id], references: [id], onDelete: SetNull)
+
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  @@index([hospital_id])
+  @@index([subscription_id])
+}
+
 
 
 enum Role {
@@ -69,7 +213,8 @@ enum PaymentStatus {
 
 model Patient {
   id                       String   @id //clerk userId
-  hospital_number          String?  @unique
+  hospital_id              Int      @default(1)
+  hospital_number          String?
   first_name               String
   last_name                String
   date_of_birth            DateTime
@@ -101,12 +246,18 @@ model Patient {
   medication_administrations MedicationAdministration[]
   admissions               InpatientAdmission[]
 
+  hospital                 Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at               DateTime @default(now())
   updated_at               DateTime @updatedAt
+
+  @@index([hospital_id])
+  @@unique([hospital_id, hospital_number])
 }
 
 model Doctor {
   id                    String   @id
+  hospital_id           Int      @default(1)
   email                 String   @unique
   name                  String
   specialization        String
@@ -128,27 +279,36 @@ model Doctor {
   ward                  Ward? @relation(fields: [ward_id], references: [id])
   admissions            InpatientAdmission[]
 
+  hospital              Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
+
+  @@index([hospital_id])
 }
 
 
 model WorkingDays {
   id              Int   @id @default(autoincrement())
+  hospital_id     Int   @default(1)
   doctor_id       String
   day             String
   start_time      String
   close_time      String
 
   doctor          Doctor  @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+  hospital        Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
 
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+
+  @@index([hospital_id])
 }
 
 
 model Staff {
   id            String   @id
+  hospital_id   Int      @default(1)
   email         String   @unique
   name          String
   phone         String
@@ -167,8 +327,12 @@ model Staff {
   ward          Ward? @relation(fields: [ward_id], references: [id])
   medication_administrations MedicationAdministration[]
 
+  hospital      Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
+
+  @@index([hospital_id])
 }
 
 enum AdmissionStatus {
@@ -179,7 +343,8 @@ enum AdmissionStatus {
 
 model Ward {
   id         Int      @id @default(autoincrement())
-  name       String   @unique
+  hospital_id Int     @default(1)
+  name       String
   department String?
   capacity   Int      @default(0)
   active     Boolean  @default(true)
@@ -188,12 +353,18 @@ model Ward {
   doctors    Doctor[]
   admissions InpatientAdmission[]
 
+  hospital   Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  @@index([hospital_id])
+  @@unique([hospital_id, name])
 }
 
 model InpatientAdmission {
   id                  Int              @id @default(autoincrement())
+  hospital_id         Int              @default(1)
   patient_id          String
   ward_id             Int
   attending_doctor_id String?
@@ -210,26 +381,37 @@ model InpatientAdmission {
   ward                Ward             @relation(fields: [ward_id], references: [id], onDelete: Cascade)
   attending_doctor    Doctor?          @relation(fields: [attending_doctor_id], references: [id])
 
+  hospital             Hospital         @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at          DateTime @default(now())
   updated_at          DateTime @updatedAt
 
   @@index([patient_id])
   @@index([ward_id])
   @@index([status])
+  @@index([hospital_id])
 }
 
 model Department {
   id         Int      @id @default(autoincrement())
-  name       String   @unique
+  hospital_id Int     @default(1)
+  name       String
   active     Boolean  @default(true)
+
+  hospital   Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  @@index([hospital_id])
+  @@unique([hospital_id, name])
 }
 
 
 
 model Appointment {
   id                Int   @id @default(autoincrement())
+  hospital_id       Int   @default(1)
   patient_id        String
   doctor_id         String
   appointment_date  DateTime
@@ -244,12 +426,17 @@ model Appointment {
   medical           MedicalRecords[]
 
   reason            String?
+
+  hospital          Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
+
+  @@index([hospital_id])
 }
 
 model Payment {
   id              Int   @id @default(autoincrement())
+  hospital_id     Int   @default(1)
   bill_id         Int?
   patient_id      String
   appointment_id  Int @unique
@@ -271,12 +458,17 @@ model Payment {
   patient         Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
   bills           PatientBills[]
 
+  hospital        Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+
+  @@index([hospital_id])
 }
 
 model PatientBills {
   id              Int   @id @default(autoincrement())
+  hospital_id     Int   @default(1)
   bill_id         Int
   service_id      Int
   service_date    DateTime
@@ -292,12 +484,17 @@ model PatientBills {
   service         Services @relation(fields: [service_id], references: [id])
   payment         Payment @relation(fields: [bill_id], references: [id], onDelete: Cascade)
 
+  hospital        Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+
+  @@index([hospital_id])
 }
 
 model LabTest {
   id            Int   @id @default(autoincrement())
+  hospital_id   Int   @default(1)
   record_id     Int
   test_date     DateTime
   result        String
@@ -308,26 +505,36 @@ model LabTest {
 
   medical_record MedicalRecords  @relation(fields: [record_id], references: [id], onDelete: Cascade)
 
+  hospital      Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
 
   @@unique([record_id, service_id])
+  @@index([hospital_id])
 }
 
 model LabUnit {
   id          Int @id @default(autoincrement())
-  name        String @unique
+  hospital_id Int @default(1)
+  name        String
   active      Boolean @default(true)
 
   staff       Staff[]
   services    Services[]
 
+  hospital    Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+
+  @@index([hospital_id])
+  @@unique([hospital_id, name])
 }
 
 model MedicalRecords {
   id              Int @id @default(autoincrement())
+  hospital_id     Int @default(1)
   patient_id      String
   appointment_id  Int
   doctor_id       String
@@ -343,12 +550,17 @@ model MedicalRecords {
   vital_signs     VitalSigns[]
   diagnosis       Diagnosis[]
 
+  hospital        Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+
+  @@index([hospital_id])
 }
 
 model VitalSigns {
   id                Int      @id @default(autoincrement())
+  hospital_id       Int      @default(1)
   patient_id        String
   medical_id        Int  
   medical           MedicalRecords @relation(fields: [medical_id], references: [id], onDelete: Cascade)
@@ -363,10 +575,15 @@ model VitalSigns {
 
   created_at        DateTime  @default(now())
   updated_at        DateTime  @updatedAt
+
+  hospital          Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
+  @@index([hospital_id])
 }
 
 model Diagnosis {
   id              Int      @id @default(autoincrement())
+  hospital_id     Int      @default(1)
   patient_id      String
   medical_id      Int
   doctor_id       String
@@ -379,34 +596,49 @@ model Diagnosis {
 
   medical          MedicalRecords @relation(fields: [medical_id ], references: [id], onDelete: Cascade)
 
+  hospital         Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at       DateTime  @default(now())
   updated_at       DateTime  @updatedAt
+
+  @@index([hospital_id])
 }
 
 model AuditLog {
   id          Int   @id @default(autoincrement())
+  hospital_id Int   @default(1)
   user_id     String
   record_id   String
   action      String
   details     String?
   model       String
 
+  hospital    Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+
+  @@index([hospital_id])
 }
 
 model Notification {
   id          Int   @id @default(autoincrement())
+  hospital_id Int   @default(1)
   user_id     String
   title       String
   body        String
   read        Boolean @default(false)
+
+  hospital    Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+
+  @@index([hospital_id])
 }
 
 model SiteSettings {
   id          Int    @id @default(autoincrement())
+  hospital_id Int    @default(1)
   site_name   String
   site_title  String?
   logo_url    String?
@@ -414,12 +646,18 @@ model SiteSettings {
   homepage_subtitle String?
   homepage_text  String?
   updated_by_id String?
+
+  hospital    Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+
+  @@index([hospital_id])
+  @@unique([hospital_id])
 }
 
 model Rating {
   id         Int      @id @default(autoincrement())
+  hospital_id Int     @default(1)
   staff_id   String
   patient_id String
   rating     Int      
@@ -428,12 +666,17 @@ model Rating {
   doctor     Doctor   @relation(fields: [staff_id], references: [id], onDelete: Cascade)
   patient    Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
 
+  hospital   Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
+
+  @@index([hospital_id])
 }
 
 model Services {
   id             Int    @id @default(autoincrement())
+  hospital_id    Int    @default(1)
   service_name    String
   description     String
   price           Float
@@ -446,18 +689,28 @@ model Services {
   prescription_items PrescriptionItem[]
   lab_unit        LabUnit? @relation(fields: [lab_unit_id], references: [id])
 
+  hospital        Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+
+  @@index([hospital_id])
 }
 
 model DoctorSpecialization {
   id          Int @id @default(autoincrement())
-  name        String @unique
+  hospital_id Int @default(1)
+  name        String
   department  String?
   active      Boolean @default(true)
 
+  hospital    Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+
+  @@index([hospital_id])
+  @@unique([hospital_id, name])
 }
 
 enum PrescriptionStatus {
@@ -476,6 +729,7 @@ enum CoverageType {
 
 model Prescription {
   id             Int   @id @default(autoincrement())
+  hospital_id    Int   @default(1)
   patient_id     String
   doctor_id      String
   appointment_id Int?
@@ -485,12 +739,17 @@ model Prescription {
   doctor         Doctor  @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
   items          PrescriptionItem[]
 
+  hospital       Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at     DateTime @default(now())
   updated_at     DateTime @updatedAt
+
+  @@index([hospital_id])
 }
 
 model PrescriptionItem {
   id               Int @id @default(autoincrement())
+  hospital_id      Int @default(1)
   prescription_id  Int
   medication_id    Int
   quantity         Int
@@ -501,15 +760,19 @@ model PrescriptionItem {
   medication       Services @relation(fields: [medication_id], references: [id], onDelete: Cascade)
   administrations  MedicationAdministration[]
 
+  hospital         Hospital @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at       DateTime @default(now())
   updated_at       DateTime @updatedAt
 
   @@index([prescription_id])
   @@index([medication_id])
+  @@index([hospital_id])
 }
 
 model MedicationAdministration {
   id                    Int      @id @default(autoincrement())
+  hospital_id           Int      @default(1)
   prescription_item_id  Int
   patient_id            String
   nurse_id              String
@@ -521,10 +784,13 @@ model MedicationAdministration {
   patient               Patient          @relation(fields: [patient_id], references: [id], onDelete: Cascade)
   nurse                 Staff            @relation(fields: [nurse_id], references: [id], onDelete: Cascade)
 
+  hospital              Hospital         @relation(fields: [hospital_id], references: [id], onDelete: Restrict)
+
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
 
   @@index([patient_id])
   @@index([nurse_id])
   @@index([prescription_item_id])
+  @@index([hospital_id])
 }
