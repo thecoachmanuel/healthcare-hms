@@ -4,6 +4,7 @@ import { setSiteSettings } from "@/app/actions/admin";
 import { CustomInput } from "@/components/custom-input";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form } from "@/components/ui/form";
 import { uploadToCloudinary } from "@/lib/cloudinary/upload";
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
@@ -59,28 +60,30 @@ export function SiteSettingsForm({ initial }: { initial: any }) {
         </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <CustomInput type="input" control={form.control} name="site_name" label="Site Name" placeholder="" />
-          <CustomInput type="input" control={form.control} name="site_title" label="Site Title" placeholder="" />
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <CustomInput type="input" control={form.control} name="site_name" label="Site Name" placeholder="" />
+            <CustomInput type="input" control={form.control} name="site_title" label="Site Title" placeholder="" />
 
-          <div className="space-y-2">
-            <Label htmlFor="site-logo">Site logo</Label>
-            <Input
-              id="site-logo"
-              type="file"
-              accept="image/*"
-              onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
-            />
-          </div>
+            <div className="space-y-2">
+              <Label htmlFor="site-logo">Site logo</Label>
+              <Input
+                id="site-logo"
+                type="file"
+                accept="image/*"
+                onChange={(e) => setLogoFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
 
-          <CustomInput type="input" control={form.control} name="logo_url" label="Logo URL" placeholder="" />
-          <CustomInput type="input" control={form.control} name="homepage_title" label="Homepage Title" placeholder="" />
-          <CustomInput type="input" control={form.control} name="homepage_subtitle" label="Homepage Subtitle" placeholder="" />
-          <CustomInput type="textarea" control={form.control} name="homepage_text" label="Homepage Text" placeholder="" />
-          <Button type="submit" disabled={loading} className="bg-blue-600">
-            {loading ? "Saving..." : "Save"}
-          </Button>
-        </form>
+            <CustomInput type="input" control={form.control} name="logo_url" label="Logo URL" placeholder="" />
+            <CustomInput type="input" control={form.control} name="homepage_title" label="Homepage Title" placeholder="" />
+            <CustomInput type="input" control={form.control} name="homepage_subtitle" label="Homepage Subtitle" placeholder="" />
+            <CustomInput type="textarea" control={form.control} name="homepage_text" label="Homepage Text" placeholder="" />
+            <Button type="submit" disabled={loading} className="bg-blue-600">
+              {loading ? "Saving..." : "Save"}
+            </Button>
+          </form>
+        </Form>
       </CardContent>
     </>
   );
