@@ -6,6 +6,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import Image from "next/image";
 import { headers } from "next/headers";
+import AgencyLandingPage from "./agency/page";
 
 function normalizeHost(raw: string | null): string {
   return String(raw ?? "")
@@ -56,7 +57,7 @@ export default async function Home() {
   }
 
   if (isAgencyHost) {
-    return redirect("/agency");
+    return <AgencyLandingPage />;
   }
 
   const settings = await (async () => {
