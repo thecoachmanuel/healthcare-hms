@@ -62,11 +62,13 @@ const RenderInput = ({ field, props }: { field: any; props: InputProps }) => {
             </SelectTrigger>
           </FormControl>
           <SelectContent>
-            {props.selectList?.map((i, id) => (
-              <SelectItem key={id} value={i.value}>
-                {i.label}
-              </SelectItem>
-            ))}
+            {props.selectList
+              ?.filter((i) => i.value !== "")
+              .map((i, id) => (
+                <SelectItem key={id} value={i.value}>
+                  {i.label}
+                </SelectItem>
+              ))}
           </SelectContent>
         </Select>
       );
