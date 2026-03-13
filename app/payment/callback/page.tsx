@@ -110,18 +110,66 @@ export default async function Page({
   });
 
   if (paymentTransaction.subscription_id) {
-    const subscription = await db.subscription.findFirst({ where: { id: paymentTransaction.subscription_id } });
-    if (subscription) {
+    const linked = await db.subscription.findFirst({
+      where: { id: paymentTransaction.subscription_id },
+      include: { plan: true },
+    });
+    if (linked) {
       const now = new Date();
-      const end = addInterval(now, subscription.interval);
-      await db.subscription.update({
-        where: { id: subscription.id },
-        data: {
+      const currentActive = await db.subscription.findFirst({
+        where: {
+          hospital_id: linked.hospital_id,
           status: SubscriptionStatus.ACTIVE,
-          current_period_start: now,
-          current_period_end: end,
+          current_period_end: { gt: now },
         },
+        orderBy: { current_period_end: "desc" },
+        include: { plan: true },
       });
+
+      if (currentActive) {
+        const samePlan = currentActive.plan_id === linked.plan_id;
+        const sameInterval = currentActive.interval === linked.interval;
+        if (samePlan && sameInterval) {
+          const base = currentActive.current_period_end ?? now;
+          const newEnd = addInterval(base, linked.interval);
+          await db.subscription.update({
+            where: { id: currentActive.id },
+            data: { current_period_end: newEnd },
+          });
+
+          await db.subscription.update({
+            where: { id: linked.id },
+            data: { status: SubscriptionStatus.CANCELLED, cancel_at_period_end: true },
+          });
+
+          await db.paymentTransaction.update({
+            where: { id: paymentTransaction.id },
+            data: { subscription_id: currentActive.id },
+          });
+        } else {
+          const start = currentActive.current_period_end ?? now;
+          const end = addInterval(start, linked.interval);
+          await db.subscription.update({
+            where: { id: linked.id },
+            data: {
+              status: SubscriptionStatus.ACTIVE,
+              current_period_start: start,
+              current_period_end: end,
+            },
+          });
+        }
+      } else {
+        const start = now;
+        const end = addInterval(start, linked.interval);
+        await db.subscription.update({
+          where: { id: linked.id },
+          data: {
+            status: SubscriptionStatus.ACTIVE,
+            current_period_start: start,
+            current_period_end: end,
+          },
+        });
+      }
     }
   }
 
