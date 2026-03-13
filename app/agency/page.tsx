@@ -6,8 +6,37 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 
 export const dynamic = "force-dynamic";
 
+type PublicPlan = {
+  id: number;
+  name: string;
+  max_admins: number;
+  max_staff: number;
+  monthly_price_kobo: number;
+  yearly_price_kobo: number;
+};
+
 async function AgencyLanding() {
-  const plans = await db.plan.findMany({ where: { active: true }, orderBy: { monthly_price_kobo: "asc" } });
+  let plans: PublicPlan[] = [];
+  try {
+    plans = await db.plan.findMany({
+      where: { active: true },
+      orderBy: { monthly_price_kobo: "asc" },
+      select: {
+        id: true,
+        name: true,
+        max_admins: true,
+        max_staff: true,
+        monthly_price_kobo: true,
+        yearly_price_kobo: true,
+      },
+    });
+  } catch {
+    plans = [
+      { id: 1, name: "Starter", max_admins: 2, max_staff: 10, monthly_price_kobo: 500000, yearly_price_kobo: 5000000 },
+      { id: 2, name: "Growth", max_admins: 5, max_staff: 25, monthly_price_kobo: 1500000, yearly_price_kobo: 15000000 },
+      { id: 3, name: "Scale", max_admins: 10, max_staff: 100, monthly_price_kobo: 4500000, yearly_price_kobo: 45000000 },
+    ];
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
