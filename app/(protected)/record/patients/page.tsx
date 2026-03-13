@@ -71,12 +71,17 @@ const PatientList = async (props: SearchParamsProps) => {
   const searchQuery = (searchParams?.q || "") as string;
   const gender = (searchParams?.gender || "") as string;
   const hn = (searchParams?.hn || "") as string;
+  const admission = (searchParams?.admission || "") as string;
 
   const { data, totalPages, totalRecords, currentPage } = await getAllPatients({
     page,
     search: searchQuery,
     gender: gender || undefined,
     hospitalNumber: hn || undefined,
+    admission:
+      admission === "ADMITTED" || admission === "NOT_ADMITTED"
+        ? (admission as any)
+        : undefined,
   });
   const isAdmin = await checkRole("ADMIN");
   const isRecordOfficer = await checkRole("RECORD_OFFICER");
@@ -101,7 +106,14 @@ const PatientList = async (props: SearchParamsProps) => {
             textClassName="text-black"
           />
           <div>
-            <h3 className="uppercase">{name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="uppercase">{name}</h3>
+              {(item as any)?.isAdmitted ? (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                  Admitted{(item as any)?.currentAdmission?.wardName ? ` • ${(item as any).currentAdmission.wardName}` : ""}
+                </span>
+              ) : null}
+            </div>
             <span className="text-sm capitalize">
               {calculateAge(item?.date_of_birth)}
             </span>
@@ -173,6 +185,15 @@ const PatientList = async (props: SearchParamsProps) => {
               { label: "All", value: "" },
               { label: "Male", value: "MALE" },
               { label: "Female", value: "FEMALE" },
+            ]}
+          />
+          <SelectFilter
+            param="admission"
+            label="Admission"
+            options={[
+              { label: "All", value: "" },
+              { label: "Admitted", value: "ADMITTED" },
+              { label: "Not admitted", value: "NOT_ADMITTED" },
             ]}
           />
           <TextFilter param="hn" label="HN" placeholder="Hospital #" />

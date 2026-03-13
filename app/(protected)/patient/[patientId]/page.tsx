@@ -57,6 +57,20 @@ const PatientProfile = async (props: ParamsProps) => {
             </h1>
             <span className="text-sm text-gray-500">{data?.email}</span>
 
+            {(data as any)?.isAdmitted ? (
+              <div className="mt-3">
+                <span className="text-[11px] px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                  Admitted{(data as any)?.currentAdmission?.wardName ? ` • ${(data as any).currentAdmission.wardName}` : ""}
+                </span>
+              </div>
+            ) : (
+              <div className="mt-3">
+                <span className="text-[11px] px-2 py-1 rounded-full bg-slate-100 text-slate-600">
+                  Not admitted
+                </span>
+              </div>
+            )}
+
             <div className="w-full flex items-center justify-center gap-2 mt-4">
               <div className="w-1/2 space-y-1 text-center">
                 <p className="text-xl font-medium">{data?.totalAppointments}</p>

@@ -232,12 +232,28 @@ export async function getPatientFullDataById(id: string) {
     }
     const lastVisit = patient.appointments[0]?.appointment_date || null;
 
+    const currentAdmission = await (async () => {
+      try {
+        const admission = await db.inpatientAdmission.findFirst({
+          where: { patient_id: patient.id, status: "ADMITTED" },
+          orderBy: { admitted_at: "desc" },
+          select: { admitted_at: true, ward: { select: { name: true } } },
+        });
+        if (!admission) return null;
+        return { admittedAt: admission.admitted_at, wardName: admission.ward?.name ?? null };
+      } catch {
+        return null;
+      }
+    })();
+
     return {
       success: true,
       data: {
         ...patient,
         totalAppointments: patient._count.appointments,
         lastVisit,
+        currentAdmission,
+        isAdmitted: Boolean(currentAdmission),
       },
       status: 200,
     };
@@ -253,12 +269,14 @@ export async function getAllPatients({
   search,
   gender,
   hospitalNumber,
+  admission,
 }: {
   page: number | string;
   limit?: number | string;
   search?: string;
   gender?: string;
   hospitalNumber?: string;
+  admission?: "ADMITTED" | "NOT_ADMITTED";
 }) {
   try {
     const PAGE_NUMBER = Number(page) <= 0 ? 1 : Number(page);
@@ -266,68 +284,109 @@ export async function getAllPatients({
 
     const SKIP = (PAGE_NUMBER - 1) * LIMIT;
 
-    const [patients, totalRecords] = await Promise.all([
-      db.patient.findMany({
-        where: {
-          AND: [
-            {
-              OR: [
-                { first_name: { contains: search, mode: "insensitive" } },
-                { last_name: { contains: search, mode: "insensitive" } },
-                { phone: { contains: search, mode: "insensitive" } },
-                { email: { contains: search, mode: "insensitive" } },
-                { hospital_number: { contains: search, mode: "insensitive" } },
-              ],
-            },
-            gender ? { gender: gender as any } : {},
-            hospitalNumber
-              ? { hospital_number: { contains: hospitalNumber, mode: "insensitive" } }
-              : {},
-          ],
-        },
-        include: {
-          appointments: {
-            select: {
-              medical: {
-                select: { created_at: true, treatment_plan: true },
-                orderBy: { created_at: "desc" },
-                take: 1,
+    const baseAnd = [
+      {
+        OR: [
+          { first_name: { contains: search, mode: "insensitive" } },
+          { last_name: { contains: search, mode: "insensitive" } },
+          { phone: { contains: search, mode: "insensitive" } },
+          { email: { contains: search, mode: "insensitive" } },
+          { hospital_number: { contains: search, mode: "insensitive" } },
+        ],
+      },
+      gender ? { gender: gender as any } : {},
+      hospitalNumber
+        ? { hospital_number: { contains: hospitalNumber, mode: "insensitive" } }
+        : {},
+    ];
+
+    const admissionFilter =
+      admission === "ADMITTED"
+        ? ({ admissions: { some: { status: "ADMITTED" } } } as const)
+        : admission === "NOT_ADMITTED"
+        ? ({ admissions: { none: { status: "ADMITTED" } } } as const)
+        : ({} as const);
+
+    const whereWithAdmission = {
+      AND: [...baseAnd, admissionFilter],
+    } as const;
+
+    const whereWithoutAdmission = {
+      AND: baseAnd,
+    } as const;
+
+    const fetchPatients = async (useAdmission: boolean) => {
+      const where = useAdmission ? (whereWithAdmission as any) : (whereWithoutAdmission as any);
+      const [patients, totalRecords] = await Promise.all([
+        db.patient.findMany({
+          where,
+          include: {
+            appointments: {
+              select: {
+                medical: {
+                  select: { created_at: true, treatment_plan: true },
+                  orderBy: { created_at: "desc" },
+                  take: 1,
+                },
               },
+              orderBy: { appointment_date: "desc" },
+              take: 1,
             },
-            orderBy: { appointment_date: "desc" },
-            take: 1,
           },
+          skip: SKIP,
+          take: LIMIT,
+          orderBy: { first_name: "asc" },
+        }),
+        db.patient.count({ where }),
+      ]);
+      return { patients, totalRecords };
+    };
+
+    const { patients, totalRecords } = await (async () => {
+      try {
+        return await fetchPatients(true);
+      } catch {
+        return await fetchPatients(false);
+      }
+    })();
+
+    const currentAdmissions = await (async () => {
+      try {
+        const ids = patients.map((p) => p.id);
+        if (ids.length === 0) return [];
+        return await db.inpatientAdmission.findMany({
+          where: { status: "ADMITTED", patient_id: { in: ids } },
+          select: { patient_id: true, ward: { select: { name: true } }, admitted_at: true },
+        });
+      } catch {
+        return [];
+      }
+    })();
+
+    const admissionByPatientId = new Map(
+      currentAdmissions.map((a: any) => [
+        a.patient_id,
+        {
+          wardName: a.ward?.name ?? null,
+          admittedAt: a.admitted_at,
         },
-        skip: SKIP,
-        take: LIMIT,
-        orderBy: { first_name: "asc" },
-      }),
-      db.patient.count({
-        where: {
-          AND: [
-            {
-              OR: [
-                { first_name: { contains: search, mode: "insensitive" } },
-                { last_name: { contains: search, mode: "insensitive" } },
-                { phone: { contains: search, mode: "insensitive" } },
-                { email: { contains: search, mode: "insensitive" } },
-                { hospital_number: { contains: search, mode: "insensitive" } },
-              ],
-            },
-            gender ? { gender: gender as any } : {},
-            hospitalNumber
-              ? { hospital_number: { contains: hospitalNumber, mode: "insensitive" } }
-              : {},
-          ],
-        },
-      }),
-    ]);
+      ])
+    );
+
+    const patientsWithAdmission = patients.map((p: any) => {
+      const a = admissionByPatientId.get(p.id) ?? null;
+      return {
+        ...p,
+        currentAdmission: a,
+        isAdmitted: Boolean(a),
+      };
+    });
 
     const totalPages = Math.ceil(totalRecords / LIMIT);
 
     return {
       success: true,
-      data: patients,
+      data: patientsWithAdmission,
       totalRecords,
       totalPages,
       currentPage: PAGE_NUMBER,
