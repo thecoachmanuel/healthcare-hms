@@ -22,11 +22,11 @@ export function SiteSettingsForm({ initial }: { initial: any }) {
       site_name: initial?.site_name ?? "Healthcare HMS",
       site_title: initial?.site_title ?? "",
       logo_url: initial?.logo_url ?? "",
-      homepage_title: initial?.homepage_title ?? "Welcome to Healthcare HMS",
+      homepage_title: initial?.homepage_title ?? "Modern Hospital Management, Simplified",
       homepage_subtitle: initial?.homepage_subtitle ?? "",
       homepage_text:
         initial?.homepage_text ??
-        "Lorem ipsum dolor sit amet consectetur adipisicing elit. Esse maxime quae numquam possimus dolor. Illum, ipsam laudantium. Reprehenderit",
+        "Streamline appointments, clinical documentation, lab workflows, billing, and inpatient care in one secure system. Built for frontline teams and administrators to work faster, reduce errors, and deliver better patient outcomes.",
     },
   });
 

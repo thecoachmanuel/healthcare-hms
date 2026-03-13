@@ -28,11 +28,11 @@ export default async function Home() {
   }
 
   const settings = await getSiteSettings();
-  const homepageTitle = settings?.homepage_title?.trim() || "Welcome to Healthcare HMS";
+  const homepageTitle = settings?.homepage_title?.trim() || "Modern Hospital Management, Simplified";
   const homepageSubtitle = settings?.homepage_subtitle?.trim() || "";
   const homepageText =
     settings?.homepage_text?.trim() ||
-    "Lorem ipsum dolor sit amet consectetur adipisicing elit. Esse maxime quae numquam possimus dolor. Illum, ipsam laudantium. Reprehenderit";
+    "Streamline appointments, clinical documentation, lab workflows, billing, and inpatient care in one secure system. Built for frontline teams and administrators to work faster, reduce errors, and deliver better patient outcomes.";
   const siteName = settings?.site_name?.trim() || "Healthcare HMS";
   const logoUrl = settings?.logo_url?.trim() || "";
 
