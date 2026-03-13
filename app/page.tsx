@@ -5,14 +5,58 @@ import db from "@/lib/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import Image from "next/image";
+import { headers } from "next/headers";
+
+function normalizeHost(raw: string | null): string {
+  return String(raw ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/:\d+$/, "");
+}
+
+function getBaseDomain(): string {
+  const fromEnv =
+    process.env.NEXT_PUBLIC_BASE_DOMAIN?.trim() ||
+    process.env.BASE_DOMAIN?.trim() ||
+    process.env.VERCEL_URL?.trim() ||
+    "";
+  return fromEnv.toLowerCase();
+}
+
+function parseHospitalSlugFromHost(host: string, baseDomain: string): string | null {
+  if (!host) return null;
+  if (!baseDomain) return null;
+  if (host === baseDomain) return null;
+  const suffix = `.${baseDomain}`;
+  if (!host.endsWith(suffix)) return null;
+  const subdomain = host.slice(0, -suffix.length);
+  if (!subdomain) return null;
+  if (subdomain.includes(".")) return null;
+  return subdomain;
+}
 
 export default async function Home() {
+  const headerStore = await headers();
+  const host = normalizeHost(headerStore.get("x-tenant-host") ?? headerStore.get("host"));
+  const baseDomain = getBaseDomain();
+  const tenantSlug = parseHospitalSlugFromHost(host, baseDomain);
+  const isAgencyHost =
+    host === "" ||
+    host === baseDomain ||
+    host === "localhost" ||
+    host === "127.0.0.1" ||
+    (host === "localhost" && !tenantSlug);
+
   const userId = await getAuthUserId();
 
   if (userId) {
     const role = await getRole();
     if (role === "master_admin") redirect("/saas");
-    redirect(role === "sign-in" ? "/sign-in" : `/${role}`);
+    if (!isAgencyHost) redirect(role === "sign-in" ? "/sign-in" : `/${role}`);
+  }
+
+  if (isAgencyHost) {
+    return redirect("/agency");
   }
 
   const settings = await (async () => {

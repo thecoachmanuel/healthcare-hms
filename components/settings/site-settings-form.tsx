@@ -1,6 +1,7 @@
 "use client";
 
 import { setSiteSettings } from "@/app/actions/admin";
+import { setHospitalSubdomain } from "@/app/actions/admin";
 import { CustomInput } from "@/components/custom-input";
 import { Button } from "@/components/ui/button";
 import { CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,12 +14,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 
-export function SiteSettingsForm({ initial }: { initial: any }) {
+export function SiteSettingsForm({
+  initial,
+  hospital,
+}: {
+  initial: any;
+  hospital: { id: number; name: string; slug: string } | null;
+}) {
   const [loading, setLoading] = useState(false);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const router = useRouter();
+  const baseDomain = (process.env.NEXT_PUBLIC_BASE_DOMAIN ?? "").trim();
   const form = useForm({
     defaultValues: {
+      subdomain: hospital?.slug ?? "",
       site_name: initial?.site_name ?? "Healthcare HMS",
       site_title: initial?.site_title ?? "",
       logo_url: initial?.logo_url ?? "",
@@ -33,6 +42,22 @@ export function SiteSettingsForm({ initial }: { initial: any }) {
   const onSubmit = async (values: any) => {
     try {
       setLoading(true);
+
+      if (hospital) {
+        const desiredSubdomain = String(values.subdomain ?? "").trim();
+        if (desiredSubdomain.length === 0) {
+          toast.error("Subdomain is required");
+          return;
+        }
+        if (desiredSubdomain !== hospital.slug) {
+          const subdomainRes = await setHospitalSubdomain({ slug: desiredSubdomain });
+          if (!subdomainRes.success) {
+            toast.error(subdomainRes.msg);
+            return;
+          }
+        }
+      }
+
       let logo_url = values.logo_url;
       if (logoFile) {
         logo_url = await uploadToCloudinary(logoFile, "hms/site");
@@ -69,6 +94,15 @@ export function SiteSettingsForm({ initial }: { initial: any }) {
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {hospital ? (
+              <div className="space-y-2">
+                <Label htmlFor="subdomain">Subdomain</Label>
+                <Input id="subdomain" placeholder="e.g. st-marys" {...form.register("subdomain")} />
+                {baseDomain ? (
+                  <div className="text-xs text-slate-500">{`${form.watch("subdomain")}.${baseDomain}`}</div>
+                ) : null}
+              </div>
+            ) : null}
             <CustomInput type="input" control={form.control} name="site_name" label="Site Name" placeholder="" />
             <CustomInput type="input" control={form.control} name="site_title" label="Site Title" placeholder="" />
 

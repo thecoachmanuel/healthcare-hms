@@ -87,7 +87,7 @@ export default async function Page() {
                       {(plan.yearly_price_kobo / 100).toLocaleString()}
                     </div>
                     <div className="text-xs text-gray-500">
-                      Limits: {plan.max_admins} admins • {plan.max_staff} staff
+                      Limits: {plan.max_admins} admins • {plan.max_staff} staff • {plan.max_patients} patients
                     </div>
                   </div>
                 </label>
@@ -115,4 +115,3 @@ export default async function Page() {
     </div>
   );
 }
-

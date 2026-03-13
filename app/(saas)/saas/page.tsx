@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Table } from "@/components/tables/table";
-import { agencyChangeHospitalPlan, agencyCreateHospital, agencySetHospitalActive } from "@/app/actions/agency";
+import { agencyChangeHospitalPlan, agencyCreateHospital, agencySetHospitalActive, agencySetTrialDays } from "@/app/actions/agency";
 import { requireMasterAdmin } from "@/lib/auth";
 import { BillingInterval, Role, SubscriptionStatus } from "@prisma/client";
 
@@ -26,7 +26,7 @@ function daysUntil(date?: Date | null) {
 export default async function Page() {
   await requireMasterAdmin();
 
-  const [hospitals, plans, subscriptions, staffTotals, adminTotals] = await Promise.all([
+  const [hospitals, plans, subscriptions, staffTotals, adminTotals, saasSettings] = await Promise.all([
     db.hospital.findMany({
       orderBy: { created_at: "desc" },
       select: { id: true, name: true, slug: true, active: true, created_at: true },
@@ -45,6 +45,7 @@ export default async function Page() {
       where: { role: Role.ADMIN },
       _count: { _all: true },
     }),
+    db.saaSSettings.findFirst({ select: { trial_days_default: true } }),
   ]);
 
   const latestSubscriptionByHospital = new Map<number, typeof subscriptions[number]>();
@@ -131,6 +132,22 @@ export default async function Page() {
         </CardContent>
       </Card>
 
+      <Card className="shadow-sm">
+        <CardHeader>
+          <CardTitle>Free trial settings</CardTitle>
+          <CardDescription>Default trial length for new hospitals (days).</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={agencySetTrialDays} className="flex items-end gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="trialDays">Trial days</Label>
+              <Input id="trialDays" name="trialDays" type="number" min={0} max={365} defaultValue={saasSettings?.trial_days_default ?? 30} />
+            </div>
+            <Button type="submit">Save</Button>
+          </form>
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <Card className="shadow-sm">
           <CardHeader className="pb-2">
@@ -165,7 +182,7 @@ export default async function Page() {
       </div>
 
       <Card className="shadow-sm">
-        <CardHeader>
+            <CardHeader>
           <CardTitle>Hospitals</CardTitle>
           <CardDescription>Track plan status, usage limits, and upcoming expirations.</CardDescription>
         </CardHeader>

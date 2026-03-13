@@ -24,11 +24,45 @@ function toSlug(input: string) {
     .replace(/(^-|-$)/g, "");
 }
 
+const RESERVED_HOSPITAL_SLUGS = new Set([
+  "www",
+  "api",
+  "admin",
+  "agency",
+  "saas",
+  "login",
+  "sign-in",
+  "sign-up",
+  "hospital-signup",
+  "payment",
+  "subscription",
+  "_next",
+]);
+
+async function createUniqueHospitalSlug(preferred: string) {
+  const base = preferred.slice(0, 63);
+  let attempt = base;
+  for (let i = 0; i < 50; i++) {
+    if (!RESERVED_HOSPITAL_SLUGS.has(attempt)) {
+      const existing = await db.hospital.findFirst({ where: { slug: attempt }, select: { id: true } });
+      if (!existing) return attempt;
+    }
+    const suffix = `-${i + 2}`;
+    attempt = `${base.slice(0, Math.max(1, 63 - suffix.length))}${suffix}`;
+  }
+  throw new Error("Unable to allocate a unique subdomain");
+}
+
 function getAppUrlFromEnvOrHost(host?: string) {
   const configured = process.env.NEXT_PUBLIC_APP_URL?.trim();
   if (configured) return configured.replace(/\/+$/g, "");
   if (!host) return "";
   return `https://${host}`;
+}
+
+async function getTrialDaysDefault() {
+  const settings = await db.saaSSettings.findFirst({ select: { trial_days_default: true } });
+  return settings?.trial_days_default ?? 30;
 }
 
 function getPaystackSecretKey() {
@@ -93,20 +127,18 @@ export async function hospitalSignUpAndSubscribe(formData: FormData) {
   if (!Number.isFinite(planId) || planId <= 0) throw new Error("Please select a plan");
   const interval = intervalRaw === "YEARLY" ? BillingInterval.YEARLY : BillingInterval.MONTHLY;
 
-  const slug = toSlug(desiredSlugRaw || hospitalNameRaw);
-  if (slug.length < 3) throw new Error("Subdomain is too short");
-  if (slug === "www" || slug === "api" || slug === "admin" || slug === "saas") {
-    throw new Error("Subdomain is reserved");
+  const baseSlug = toSlug(desiredSlugRaw || hospitalNameRaw);
+  if (baseSlug.length < 3) throw new Error("Subdomain is too short");
+  if (desiredSlugRaw) {
+    const desired = toSlug(desiredSlugRaw);
+    if (RESERVED_HOSPITAL_SLUGS.has(desired)) throw new Error("Subdomain is reserved");
+    const existingHospital = await db.hospital.findFirst({ where: { slug: desired }, select: { id: true } });
+    if (existingHospital) throw new Error("That subdomain is already taken");
   }
-
-  const existingHospital = await db.hospital.findFirst({ where: { slug }, select: { id: true } });
-  if (existingHospital) throw new Error("That subdomain is already taken");
+  const slug = desiredSlugRaw ? toSlug(desiredSlugRaw) : await createUniqueHospitalSlug(baseSlug);
 
   const plan = await db.plan.findFirst({ where: { id: planId, active: true } });
   if (!plan) throw new Error("Selected plan is not available");
-
-  const amountKobo = interval === BillingInterval.YEARLY ? plan.yearly_price_kobo : plan.monthly_price_kobo;
-  if (!Number.isFinite(amountKobo) || amountKobo <= 0) throw new Error("Invalid plan price");
 
   const supabaseAdmin = createSupabaseAdminClient();
   const [firstName, ...rest] = adminName.split(" ");
@@ -125,8 +157,6 @@ export async function hospitalSignUpAndSubscribe(formData: FormData) {
     throw new Error(createUserError?.message ?? "Failed to create admin user");
   }
 
-  const reference = `hms_${crypto.randomUUID().replace(/-/g, "")}`;
-
   const createdHospital = await db.hospital.create({
     data: {
       name: hospitalNameRaw,
@@ -135,6 +165,10 @@ export async function hospitalSignUpAndSubscribe(formData: FormData) {
     },
     select: { id: true, slug: true, name: true },
   });
+
+  const trialDays = await getTrialDaysDefault();
+  const trialEnds = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
+  await db.hospital.update({ where: { id: createdHospital.id }, data: { trial_ends_at: trialEnds } });
 
   await db.staff.create({
     data: {
@@ -149,53 +183,11 @@ export async function hospitalSignUpAndSubscribe(formData: FormData) {
     },
   });
 
-  const subscription = await db.subscription.create({
-    data: {
-      hospital_id: createdHospital.id,
-      plan_id: plan.id,
-      interval,
-      status: SubscriptionStatus.INCOMPLETE,
-    },
-    select: { id: true },
-  });
 
-  await db.paymentTransaction.create({
-    data: {
-      hospital_id: createdHospital.id,
-      subscription_id: subscription.id,
-      provider: PaymentProvider.PAYSTACK,
-      reference,
-      amount_kobo: amountKobo,
-      currency: "NGN",
-      status: PaymentTransactionStatus.INITIATED,
-    },
-  });
-
-  const callbackHost = process.env.BASE_DOMAIN?.trim() || process.env.VERCEL_URL?.trim() || "";
-  const callbackUrl = `${getAppUrlFromEnvOrHost(callbackHost)}/payment/callback?reference=${encodeURIComponent(
-    reference
-  )}`;
-
-  const { authorizationUrl, raw } = await paystackInitializeTransaction({
-    email,
-    amountKobo,
-    reference,
-    callbackUrl,
-    metadata: {
-      hospitalId: createdHospital.id,
-      subscriptionId: subscription.id,
-      planId: plan.id,
-      interval,
-      hospitalSlug: createdHospital.slug,
-    },
-  });
-
-  await db.paymentTransaction.update({
-    where: { reference },
-    data: { raw },
-  });
-
-  redirect(authorizationUrl);
+  const baseDomain = process.env.BASE_DOMAIN?.trim() || process.env.NEXT_PUBLIC_BASE_DOMAIN?.trim() || process.env.VERCEL_URL?.trim() || "";
+  const host = baseDomain ? `${createdHospital.slug}.${baseDomain}` : "";
+  const dest = host ? `${getAppUrlFromEnvOrHost(host)}/sign-in?trial=1` : "/sign-in";
+  redirect(dest);
 }
 
 export async function getActiveHospitalSubscription() {

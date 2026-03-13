@@ -42,6 +42,7 @@ model Hospital {
   name        String
   slug        String   @unique
   active      Boolean  @default(true)
+  trial_ends_at DateTime?
 
   domains     HospitalDomain[]
   subscriptions Subscription[]
@@ -100,6 +101,7 @@ model Plan {
   yearly_price_kobo  Int
   max_admins        Int
   max_staff         Int
+  max_patients      Int       @default(1000)
   active            Boolean  @default(true)
 
   subscriptions     Subscription[]
@@ -108,6 +110,14 @@ model Plan {
   updated_at        DateTime @updatedAt
 
   @@unique([name])
+}
+
+model SaaSSettings {
+  id                 Int      @id @default(autoincrement())
+  trial_days_default Int      @default(30)
+
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
 }
 
 model Subscription {

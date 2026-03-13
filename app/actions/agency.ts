@@ -24,6 +24,40 @@ function normalizeHospitalSlug(input: string) {
   return replaced;
 }
 
+const RESERVED_HOSPITAL_SLUGS = new Set([
+  "www",
+  "api",
+  "admin",
+  "agency",
+  "saas",
+  "login",
+  "sign-in",
+  "sign-up",
+  "hospital-signup",
+  "payment",
+  "subscription",
+  "_next",
+]);
+
+async function createUniqueHospitalSlug(preferred: string) {
+  const base = preferred.slice(0, 63);
+  let attempt = base;
+  for (let i = 0; i < 50; i++) {
+    if (!RESERVED_HOSPITAL_SLUGS.has(attempt)) {
+      const existing = await db.hospital.findFirst({ where: { slug: attempt }, select: { id: true } });
+      if (!existing) return attempt;
+    }
+    const suffix = `-${i + 2}`;
+    attempt = `${base.slice(0, Math.max(1, 63 - suffix.length))}${suffix}`;
+  }
+  throw new Error("Unable to allocate a unique subdomain");
+}
+
+async function getTrialDaysDefault() {
+  const settings = await db.saaSSettings.findFirst({ select: { trial_days_default: true } });
+  return settings?.trial_days_default ?? 30;
+}
+
 function normalizeDomain(input: string) {
   const raw = String(input ?? "").trim().toLowerCase();
   if (!raw) return "";
@@ -67,16 +101,18 @@ export async function agencyCreateHospital(formData: FormData) {
   await requireMasterAdmin();
 
   const name = String(formData.get("name") ?? "").trim();
-  const slug = normalizeHospitalSlug(String(formData.get("slug") ?? ""));
+  const slugInput = normalizeHospitalSlug(String(formData.get("slug") ?? ""));
+  const baseSlug = slugInput || normalizeHospitalSlug(name);
 
   if (!name) throw new Error("Name is required");
-  if (!slug || slug.length < 2) throw new Error("Invalid slug");
+  if (!baseSlug || baseSlug.length < 2) throw new Error("Invalid slug");
 
-  const existing = await db.hospital.findFirst({ where: { slug }, select: { id: true } });
-  if (existing) throw new Error("Slug is already in use");
+  const slug = await createUniqueHospitalSlug(baseSlug);
 
+  const trialDays = await getTrialDaysDefault();
+  const trialEnds = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000);
   await db.hospital.create({
-    data: { name, slug, active: true },
+    data: { name, slug, active: true, trial_ends_at: trialEnds },
   });
 
   revalidatePath("/saas");
@@ -92,6 +128,10 @@ export async function agencyUpdateHospital(formData: FormData) {
   if (!Number.isFinite(hospitalId) || hospitalId <= 0) throw new Error("Invalid hospital");
   if (!name) throw new Error("Name is required");
   if (!slug || slug.length < 2) throw new Error("Invalid slug");
+  if (RESERVED_HOSPITAL_SLUGS.has(slug)) throw new Error("Slug is reserved");
+
+  const existing = await db.hospital.findFirst({ where: { slug }, select: { id: true } });
+  if (existing && existing.id !== hospitalId) throw new Error("Slug is already in use");
 
   await db.hospital.update({
     where: { id: hospitalId },
@@ -199,6 +239,22 @@ export async function agencyRemoveHospitalDomain(formData: FormData) {
 
   await db.hospitalDomain.delete({ where: { id: existing.id } });
   revalidatePath(`/saas/hospitals/${existing.hospital_id}`);
+}
+
+export async function agencySetTrialDays(formData: FormData) {
+  await requireMasterAdmin();
+
+  const days = Number(String(formData.get("trialDays") ?? "").trim());
+  if (!Number.isFinite(days) || days < 0 || days > 365) throw new Error("Invalid days");
+
+  const existing = await db.saaSSettings.findFirst({ select: { id: true } });
+  if (existing) {
+    await db.saaSSettings.update({ where: { id: existing.id }, data: { trial_days_default: days } });
+  } else {
+    await db.saaSSettings.create({ data: { trial_days_default: days } });
+  }
+
+  revalidatePath("/saas");
 }
 
 export async function agencyVerifyHospitalDomain(formData: FormData) {

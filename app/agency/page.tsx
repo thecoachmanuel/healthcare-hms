@@ -6,7 +6,7 @@ import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/ca
 
 export const dynamic = "force-dynamic";
 
-export default async function Page() {
+async function AgencyLanding() {
   const plans = await db.plan.findMany({ where: { active: true }, orderBy: { monthly_price_kobo: "asc" } });
 
   return (
@@ -127,7 +127,7 @@ export default async function Page() {
                 Use the master admin account to track all hospitals, subscriptions, and upcoming expirations.
               </div>
               <div className="mt-4">
-                <Link href="/sign-in">
+                <Link href="/saas/login">
                   <Button variant="secondary" className="w-full">
                     Master admin login
                   </Button>
@@ -139,4 +139,8 @@ export default async function Page() {
       </div>
     </div>
   );
+}
+
+export default async function Page() {
+  return <AgencyLanding />;
 }
