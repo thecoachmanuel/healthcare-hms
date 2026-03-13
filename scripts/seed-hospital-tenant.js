@@ -32,11 +32,23 @@ async function main() {
   const hospitalName = "LASUTH";
 
   // Ensure hospital #1 exists and has slug/name
-  const hospital = await prisma.hospital.upsert({
+  let hospital = await prisma.hospital.upsert({
     where: { id: 1 },
     update: { name: hospitalName, slug, active: true },
     create: { id: 1, name: hospitalName, slug, active: true },
   });
+
+  // Ensure trial is set for the first hospital if missing
+  try {
+    const settings = await prisma.saaSSettings.findFirst({ select: { trial_days_default: true } });
+    const trialDays = settings?.trial_days_default ?? 30;
+    hospital = await prisma.hospital.update({
+      where: { id: hospital.id },
+      data: {
+        trial_ends_at: hospital.trial_ends_at ?? new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000),
+      },
+    });
+  } catch {}
 
   // Ensure domain mapping
   if (baseDomain) {
@@ -74,4 +86,3 @@ main().catch((e) => {
   console.error(e);
   process.exit(1);
 });
-
