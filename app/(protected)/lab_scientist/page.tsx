@@ -23,6 +23,9 @@ const LabScientistDashboardPage = async () => {
             <Link href="/lab_scientist/lab-tests" className="text-blue-600 hover:underline">
               View Lab Requests
             </Link>
+            <Link href="/lab_scientist/catalog" className="text-blue-600 hover:underline">
+              Lab Catalog
+            </Link>
             {!staff?.lab_unit_id && (
               <Link href="/lab_scientist/unit" className="text-blue-600 hover:underline">
                 Set My Unit

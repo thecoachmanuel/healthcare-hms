@@ -28,6 +28,9 @@ export default async function middleware(request: NextRequest) {
   );
 
   const pathname = request.nextUrl.pathname;
+  if (user && (pathname.startsWith("/sign-in") || pathname.startsWith("/sign-up") || pathname.startsWith("/forgot-password") || pathname.startsWith("/reset-password"))) {
+    return NextResponse.redirect(new URL(`/${role}`, request.url));
+  }
   if (pathname.startsWith("/lab_technician")) {
     return NextResponse.redirect(
       new URL(pathname.replace("/lab_technician", "/lab_scientist"), request.url)

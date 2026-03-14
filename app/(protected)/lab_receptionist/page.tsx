@@ -28,6 +28,9 @@ const LabReceptionistDashboardPage = async () => {
             <Link href="/lab_scientist/lab-tests" className="text-blue-600 hover:underline">
               View Lab Requests
             </Link>
+            <Link href="/lab_scientist/catalog" className="text-blue-600 hover:underline">
+              Lab Catalog
+            </Link>
             <Link href="/notifications" className="text-blue-600 hover:underline">
               Notifications
             </Link>

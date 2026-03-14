@@ -257,7 +257,7 @@ const LabTestsPage = async ({
           ) : departmentFilter ? (
             <div className="text-xs px-2 py-1 border rounded-md bg-slate-50">Dept: {departmentFilter}</div>
           ) : null}
-          {(isLabScientist || isLabReceptionist) && (
+          {(isLabScientist || isLabReceptionist || isLabTechnician) && (
             <AddService
               category="LAB_TEST"
               buttonText="Add Lab Test"
@@ -266,7 +266,6 @@ const LabTestsPage = async ({
               labUnits={(() => {
                 const opts = units.map((u: any) => ({ label: u.name, value: String(u.id) }));
                 if (allowedUnitId) return opts.filter((u: any) => u.value === allowedUnitId);
-                if (isLabScientist) return opts;
                 return opts;
               })()}
             />

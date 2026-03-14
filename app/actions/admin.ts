@@ -202,9 +202,11 @@ export async function addNewService(data: any) {
     const userId = await requireAuthUserId();
     const isAdmin = await checkRole("ADMIN");
     const isLabScientist = await checkRole("LAB_SCIENTIST");
+    const isLabTechnician = await checkRole("LAB_TECHNICIAN");
+    const isLabReceptionist = await checkRole("LAB_RECEPTIONIST");
     const isPharmacist = await checkRole("PHARMACIST");
 
-    if (!isAdmin && !isLabScientist && !isPharmacist) {
+    if (!isAdmin && !isLabScientist && !isLabTechnician && !isLabReceptionist && !isPharmacist) {
       return { success: false, msg: "Unauthorized", error: true };
     }
 
@@ -224,12 +226,12 @@ export async function addNewService(data: any) {
     const requestedCategory = validatedData?.category ?? "GENERAL";
     const category = isAdmin
       ? requestedCategory
-      : isLabScientist
+      : (isLabScientist || isLabTechnician || isLabReceptionist)
       ? "LAB_TEST"
       : "MEDICATION";
 
     if (
-      (category === "LAB_TEST" && !(isAdmin || isLabScientist)) ||
+      (category === "LAB_TEST" && !(isAdmin || isLabScientist || isLabTechnician || isLabReceptionist)) ||
       (category === "MEDICATION" && !(isAdmin || isPharmacist)) ||
       (category === "GENERAL" && !isAdmin)
     ) {
@@ -255,7 +257,21 @@ export async function addNewService(data: any) {
           ? "ADMIN"
           : isLabScientist
           ? "LAB_SCIENTIST"
+          : isLabTechnician
+          ? "LAB_TECHNICIAN"
+          : isLabReceptionist
+          ? "LAB_RECEPTIONIST"
           : "PHARMACIST",
+        approved: isAdmin || (category === "LAB_TEST" && isLabScientist) || (category === "MEDICATION" && isPharmacist),
+        approved_by_id: isAdmin || (category === "LAB_TEST" && isLabScientist) || (category === "MEDICATION" && isPharmacist) ? userId : null,
+        approved_by_role: isAdmin
+          ? "ADMIN"
+          : (category === "LAB_TEST" && isLabScientist)
+          ? "LAB_SCIENTIST"
+          : (category === "MEDICATION" && isPharmacist)
+          ? "PHARMACIST"
+          : null,
+        approved_at: isAdmin || (category === "LAB_TEST" && isLabScientist) || (category === "MEDICATION" && isPharmacist) ? new Date() : null,
       },
     });
 

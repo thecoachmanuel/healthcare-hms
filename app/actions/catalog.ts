@@ -378,3 +378,63 @@ export async function deleteServiceCatalogItem(id: number) {
     return { success: false, msg: error?.message ?? "Internal Server Error" };
   }
 }
+
+export async function approveLabTestService(id: number) {
+  try {
+    const userId = await requireAuthUserId();
+    const isAdmin = await checkRole("ADMIN" as any);
+    const isLabScientist = await checkRole("LAB_SCIENTIST" as any);
+
+    const service = await db.services.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        category: true,
+        lab_unit_id: true,
+        approved: true,
+        created_by_role: true,
+      },
+    });
+    if (!service || service.category !== ("LAB_TEST" as any)) {
+      return { success: false, msg: "Item not found" };
+    }
+    if (service.approved) return { success: true, msg: "Already approved" };
+
+    if (!isAdmin && !isLabScientist) {
+      return { success: false, msg: "Unauthorized" };
+    }
+
+    if (isLabScientist && !isAdmin) {
+      const me = await db.staff.findUnique({ where: { id: userId }, select: { lab_unit_id: true } });
+      const sameUnit = me?.lab_unit_id && service.lab_unit_id && me.lab_unit_id === service.lab_unit_id;
+      const createdByAllowed = service.created_by_role === ("LAB_RECEPTIONIST" as any) || service.created_by_role === ("LAB_TECHNICIAN" as any);
+      if (!sameUnit || !createdByAllowed) {
+        return { success: false, msg: "Not permitted to approve this item" };
+      }
+    }
+
+    const updated = await db.services.update({
+      where: { id },
+      data: {
+        approved: true,
+        approved_by_id: userId,
+        approved_by_role: isAdmin ? ("ADMIN" as any) : ("LAB_SCIENTIST" as any),
+        approved_at: new Date(),
+      },
+    });
+
+    await db.auditLog.create({
+      data: {
+        user_id: userId,
+        record_id: String(updated.id),
+        action: "UPDATE",
+        model: "Services",
+        details: `approved=true category=LAB_TEST`,
+      },
+    });
+
+    return { success: true, msg: "Approved" };
+  } catch (error: any) {
+    return { success: false, msg: error?.message ?? "Internal Server Error" };
+  }
+}

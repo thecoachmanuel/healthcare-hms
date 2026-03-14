@@ -463,6 +463,10 @@ model Services {
   lab_unit_id     Int?
   created_by_id   String?
   created_by_role Role?
+  approved        Boolean @default(false)
+  approved_by_id  String?
+  approved_by_role Role?
+  approved_at     DateTime?
   labtests        LabTest[]
   bills           PatientBills[]
   prescription_items PrescriptionItem[]
