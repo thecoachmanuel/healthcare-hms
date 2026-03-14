@@ -46,13 +46,14 @@ const LabTestsPage = async ({
   });
 
   const allowedUnitId = staff?.lab_unit_id ? String(staff.lab_unit_id) : "";
-  const unitFilter = isLabScientist ? unit : allowedUnitId;
+  const unitFilter = allowedUnitId || (isLabScientist ? unit : "");
 
   const units = await db.labUnit.findMany({
     where: { active: true },
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
+  const allowedUnitName = allowedUnitId ? (units.find((u: any) => String(u.id) === String(allowedUnitId))?.name ?? "") : "";
 
   const [tests, totalRecords] = await Promise.all([
     db.labTest.findMany({
@@ -235,7 +236,7 @@ const LabTestsPage = async ({
               { label: "Cancelled", value: "CANCELLED" },
             ]}
           />
-          {isLabScientist && (
+          {isLabScientist && !allowedUnitId && (
             <SelectFilter
               param="unit"
               label="Unit"
@@ -245,6 +246,11 @@ const LabTestsPage = async ({
               ]}
             />
           )}
+          {isLabScientist && allowedUnitId && (
+            <div className="text-xs px-2 py-1 border rounded-md bg-slate-50">
+              Unit: {allowedUnitName}
+            </div>
+          )}
           {(isLabScientist || isLabReceptionist) && (
             <AddService
               category="LAB_TEST"
@@ -253,9 +259,9 @@ const LabTestsPage = async ({
               description="Create a lab test under your unit."
               labUnits={(() => {
                 const opts = units.map((u: any) => ({ label: u.name, value: String(u.id) }));
+                if (allowedUnitId) return opts.filter((u: any) => u.value === allowedUnitId);
                 if (isLabScientist) return opts;
-                // Restrict receptionist to their own unit
-                return opts.filter((u: any) => u.value === allowedUnitId);
+                return opts;
               })()}
             />
           )}

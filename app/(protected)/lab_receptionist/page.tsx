@@ -1,10 +1,15 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireAuthUserId } from "@/lib/auth";
+import db from "@/lib/db";
 import Link from "next/link";
 import React from "react";
 
 const LabReceptionistDashboardPage = async () => {
-  await requireAuthUserId();
+  const userId = await requireAuthUserId();
+  const staff = await db.staff.findUnique({ where: { id: userId }, select: { lab_unit_id: true } });
+  const unit = staff?.lab_unit_id
+    ? await db.labUnit.findUnique({ where: { id: staff.lab_unit_id }, select: { name: true } })
+    : null;
 
   return (
     <div className="p-6">
@@ -26,10 +31,12 @@ const LabReceptionistDashboardPage = async () => {
             </Link>
           </div>
         </CardContent>
+        <CardContent className="text-xs text-gray-600 pt-0">
+          Current Unit: <span className="font-medium">{unit?.name ?? "Not set"}</span>
+        </CardContent>
       </Card>
     </div>
   );
 };
 
 export default LabReceptionistDashboardPage;
-
