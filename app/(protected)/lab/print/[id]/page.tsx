@@ -2,7 +2,18 @@ import { requireAuthUserId } from "@/lib/auth";
 import db from "@/lib/db";
 import { checkRole } from "@/utils/roles";
 import { format } from "date-fns";
+import { unstable_cache } from "next/cache";
 import PrintActions from "./print-actions";
+
+const getSiteSettings = unstable_cache(
+  async () =>
+    db.siteSettings.findFirst({
+      orderBy: { id: "asc" },
+      select: { site_name: true, logo_url: true },
+    }),
+  ["site-settings"],
+  { tags: ["site-settings"] }
+);
 
 interface ParamsProps {
   params: Promise<{ id: string }>;
@@ -57,7 +68,10 @@ const PrintLabResultPage = async (props: ParamsProps) => {
   const sampleId = (test as any).sample_id as string | undefined;
   const approvedAt = (test as any).approved_at as Date | undefined;
   const approvedById = (test as any).approved_by_id as string | undefined;
-  const settings = await db.siteSettings.findFirst({ select: { site_name: true, logo_url: true } });
+  const settings = await getSiteSettings();
+  const siteName = (settings?.site_name ?? "").trim();
+  const siteLogoUrl = (settings?.logo_url ?? "").trim();
+  const displaySiteName = siteName.length > 0 ? siteName : "Healthcare HMS";
   const approvedByStaff = approvedById
     ? await db.staff.findUnique({ where: { id: approvedById }, select: { name: true } })
     : null;
@@ -67,12 +81,12 @@ const PrintLabResultPage = async (props: ParamsProps) => {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div>
-            <h1 className="text-xl font-semibold">{settings?.site_name ?? ""}</h1>
+            <h1 className="text-xl font-semibold">{displaySiteName}</h1>
             <p className="text-sm text-gray-600">Laboratory Result</p>
           </div>
-          {settings?.logo_url ? (
+          {siteLogoUrl.length > 0 ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={settings.logo_url} alt={settings?.site_name ?? "Site Logo"} className="h-10 w-auto" />
+            <img src={siteLogoUrl} alt={displaySiteName} className="h-10 w-auto" />
           ) : null}
         </div>
         <div className="print:hidden">

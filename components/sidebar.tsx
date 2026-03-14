@@ -1,4 +1,6 @@
 import { getRole } from "@/utils/roles";
+import db from "@/lib/db";
+import { unstable_cache } from "next/cache";
 import {
   Bell,
   CalendarDays,
@@ -29,6 +31,16 @@ import Link from "next/link";
 import React from "react";
 import { LogoutButton } from "./logout-button";
 
+const getSiteSettings = unstable_cache(
+  async () =>
+    db.siteSettings.findFirst({
+      orderBy: { id: "asc" },
+      select: { site_name: true, logo_url: true },
+    }),
+  ["site-settings"],
+  { tags: ["site-settings"] }
+);
+
 const ACCESS_LEVELS_ALL = [
   "admin",
   "doctor",
@@ -49,6 +61,10 @@ const SidebarIcon = ({ icon: Icon }: { icon: LucideIcon }) => {
 
 export const Sidebar = async () => {
   const role = await getRole();
+  const settings = await getSiteSettings();
+  const siteName = (settings?.site_name ?? "").trim();
+  const siteLogoUrl = (settings?.logo_url ?? "").trim();
+  const displaySiteName = siteName.length > 0 ? siteName : "Healthcare HMS";
 
   const SIDEBAR_LINKS = [
     {
@@ -247,13 +263,15 @@ export const Sidebar = async () => {
       <div className="">
         <div className="flex items-center justify-center lg:justify-start gap-2">
           <div className="p-1.5 rounded-md bg-blue-600 text-white">
-            <SquareActivity size={22} />
+            {siteLogoUrl.length > 0 ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={siteLogoUrl} alt={displaySiteName} className="size-[22px] object-contain" />
+            ) : (
+              <SquareActivity size={22} />
+            )}
           </div>
-          <Link
-            href={"/"}
-            className="hidden lg:flex text-base 2xl:text-xl font-bold"
-          >
-            Healthcare HMS
+          <Link href={"/"} className="hidden lg:flex text-base 2xl:text-xl font-bold">
+            {displaySiteName}
           </Link>
         </div>
 
