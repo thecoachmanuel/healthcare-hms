@@ -67,6 +67,9 @@ const InsurancePage = async (props: SearchParamsProps) => {
       coverage: coverage || undefined,
       provider: provider || undefined,
     });
+    const totalPagesNum = Math.max(1, Number(totalPages ?? 1));
+    const currentPageNum = Math.max(1, Number(currentPage ?? 1));
+    const totalRecordsNum = Number(totalRecords ?? 0);
 
     const renderRow = (row: any) => (
       <tr
@@ -101,7 +104,7 @@ const InsurancePage = async (props: SearchParamsProps) => {
         <div className="bg-white rounded-xl py-6 px-3 2xl:px-6">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
             <div className="hidden lg:flex items-center gap-1">
-              <p className="text-2xl font-semibold">{totalRecords}</p>
+              <p className="text-2xl font-semibold">{totalRecordsNum}</p>
               <span className="text-gray-600 text-sm xl:text-base">insured patients</span>
             </div>
             <div className="flex flex-wrap items-center gap-2">
@@ -123,11 +126,11 @@ const InsurancePage = async (props: SearchParamsProps) => {
 
           <div className="mt-4">
             <Table columns={patientColumns} data={data as any[]} renderRow={renderRow} />
-            {totalPages > 1 && (
+            {totalPagesNum > 1 && (
               <Pagination
-                totalPages={totalPages}
-                currentPage={currentPage}
-                totalRecords={totalRecords}
+                totalPages={totalPagesNum}
+                currentPage={currentPageNum}
+                totalRecords={totalRecordsNum}
                 limit={DATA_LIMIT}
               />
             )}
@@ -162,6 +165,9 @@ const InsurancePage = async (props: SearchParamsProps) => {
       to: to || undefined,
       provider: provider || undefined,
     });
+    const totalPagesNum = Math.max(1, Number(totalPages ?? 1));
+    const currentPageNum = Math.max(1, Number(currentPage ?? 1));
+    const totalRecordsNum = Number(totalRecords ?? 0);
 
     const renderRow = (p: any) => {
       const patientName = `${p.patient?.first_name ?? ""} ${p.patient?.last_name ?? ""}`.trim();
@@ -244,11 +250,11 @@ const InsurancePage = async (props: SearchParamsProps) => {
 
           <div className="mt-4">
             <Table columns={claimColumns} data={data as any[]} renderRow={renderRow} />
-            {totalPages > 1 && (
+            {totalPagesNum > 1 && (
               <Pagination
-                totalPages={totalPages}
-                currentPage={currentPage}
-                totalRecords={totalRecords}
+                totalPages={totalPagesNum}
+                currentPage={currentPageNum}
+                totalRecords={totalRecordsNum}
                 limit={DATA_LIMIT}
               />
             )}
@@ -334,23 +340,23 @@ const InsurancePage = async (props: SearchParamsProps) => {
     };
   });
 
-  const daily = rows.reduce((acc: Record<string, number>, r) => {
+  const daily = rows.reduce((acc: Record<string, number>, r: { payment_date: string; amount_paid: number }) => {
     acc[r.payment_date] = (acc[r.payment_date] ?? 0) + r.amount_paid;
     return acc;
   }, {} as Record<string, number>);
 
-  const dailyData = Object.entries(daily)
+  const dailyData = (Object.entries(daily) as [string, number][])
     .sort(([a], [b]) => (a < b ? -1 : 1))
     .slice(0, 30)
     .map(([date, amount]) => ({ date, amount: Number(amount.toFixed(2)) }));
 
-  const coverageAgg = rows.reduce((acc: Record<string, number>, r) => {
+  const coverageAgg = rows.reduce((acc: Record<string, number>, r: { coverage_type?: string | null; amount_paid: number }) => {
     const k = r.coverage_type ?? "NONE";
     acc[k] = (acc[k] ?? 0) + r.amount_paid;
     return acc;
   }, {} as Record<string, number>);
 
-  const coverageData = Object.entries(coverageAgg).map(([name, value]) => ({
+  const coverageData = (Object.entries(coverageAgg) as [string, number][]).map(([name, value]) => ({
     name,
     value: Number(value.toFixed(2)),
   }));

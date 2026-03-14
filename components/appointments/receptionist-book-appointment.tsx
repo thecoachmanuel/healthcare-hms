@@ -40,6 +40,17 @@ export function ReceptionistBookAppointment({
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const [timeOptions, setTimeOptions] = useState(generateTimes(8, 17, 30));
+  const form = useForm<z.infer<typeof ReceptionistBookingSchema>>({
+    resolver: zodResolver(ReceptionistBookingSchema),
+    defaultValues: {
+      patient_id: "",
+      doctor_id: "",
+      appointment_date: "",
+      time: "",
+      type: "",
+      note: "",
+    },
+  });
   const watchDoctor = form.watch("doctor_id");
   const watchDate = form.watch("appointment_date");
 
@@ -61,17 +72,7 @@ export function ReceptionistBookAppointment({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [watchDoctor, watchDate]);
 
-  const form = useForm<z.infer<typeof ReceptionistBookingSchema>>({
-    resolver: zodResolver(ReceptionistBookingSchema),
-    defaultValues: {
-      patient_id: "",
-      doctor_id: "",
-      appointment_date: "",
-      time: "",
-      type: "",
-      note: "",
-    },
-  });
+  
 
   const onSubmit = async (values: z.infer<typeof ReceptionistBookingSchema>) => {
     try {

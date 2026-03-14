@@ -42,7 +42,7 @@ export function DoctorAvailabilityForm({ schedule }: { schedule: Day[] }) {
   return (
     <div className="bg-white rounded-md p-4">
       <div className="font-medium mb-2">My Availability</div>
-      <Form>
+      <div>
         <div className="mt-2">
           <SwitchInput data={DAYS} setWorkSchedule={setWorkSchedule} schedule={schedule} />
         </div>
@@ -51,8 +51,7 @@ export function DoctorAvailabilityForm({ schedule }: { schedule: Day[] }) {
             {loading ? "Saving..." : "Save Availability"}
           </Button>
         </div>
-      </Form>
+      </div>
     </div>
   );
 }
-

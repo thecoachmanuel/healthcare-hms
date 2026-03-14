@@ -45,7 +45,7 @@ export const UpdateLabTest = ({
     resolver: zodResolver(LabTestUpdateSchema),
     defaultValues: {
       id: String(id),
-      status: currentStatus ?? "REQUESTED",
+      status: (currentStatus ?? "REQUESTED") as z.infer<typeof LabTestUpdateSchema>["status"],
       result: currentResult ?? "",
       notes: currentNotes ?? "",
     },
