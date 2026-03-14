@@ -54,9 +54,21 @@ interface AllAppointmentsProps {
   search?: string;
   id?: string;
   department?: string;
+  from?: string;
+  to?: string;
+  status?: string;
+  type?: string;
 }
 
-const buildQuery = (id?: string, search?: string, department?: string) => {
+const buildQuery = (
+  id?: string,
+  search?: string,
+  department?: string,
+  from?: string,
+  to?: string,
+  status?: string,
+  type?: string
+) => {
   // Base conditions for search if it exists
   const searchConditions: Prisma.AppointmentWhereInput = search
     ? {
@@ -96,9 +108,26 @@ const buildQuery = (id?: string, search?: string, department?: string) => {
       }
     : {};
 
-  // Combine both conditions with AND if both exist
+  const dateRange: Prisma.AppointmentWhereInput =
+    from || to
+      ? ({
+          appointment_date: {
+            ...(from ? { gte: new Date(from) } : {}),
+            ...(to ? { lte: new Date(`${to}T23:59:59`) } : {}),
+          },
+        } as any)
+      : {};
+
+  const statusFilter: Prisma.AppointmentWhereInput = status
+    ? ({ status: status as any } as any)
+    : {};
+
+  const typeFilter: Prisma.AppointmentWhereInput = type
+    ? ({ type: { equals: type, mode: "insensitive" } } as any)
+    : {};
+
   const combinedQuery: Prisma.AppointmentWhereInput =
-    id || search || dept
+    id || search || dept || from || to || status || type
       ? {
           AND: [
             ...(Object.keys(searchConditions).length > 0
@@ -108,6 +137,9 @@ const buildQuery = (id?: string, search?: string, department?: string) => {
             ...(Object.keys(departmentConditions).length > 0
               ? [departmentConditions]
               : []),
+            ...(Object.keys(dateRange).length > 0 ? [dateRange] : []),
+            ...(Object.keys(statusFilter).length > 0 ? [statusFilter] : []),
+            ...(Object.keys(typeFilter).length > 0 ? [typeFilter] : []),
           ],
         }
       : {};
@@ -121,6 +153,10 @@ export async function getPatientAppointments({
   search,
   id,
   department,
+  from,
+  to,
+  status,
+  type,
 }: AllAppointmentsProps) {
   try {
     const PAGE_NUMBER = Number(page) <= 0 ? 1 : Number(page);
@@ -130,7 +166,7 @@ export async function getPatientAppointments({
 
     const [data, totalRecord] = await Promise.all([
       db.appointment.findMany({
-        where: buildQuery(id, search, department),
+        where: buildQuery(id, search, department, from, to, status, type),
         skip: SKIP,
         take: LIMIT,
         select: {
@@ -166,7 +202,7 @@ export async function getPatientAppointments({
         orderBy: { appointment_date: "desc" },
       }),
       db.appointment.count({
-        where: buildQuery(id, search, department),
+        where: buildQuery(id, search, department, from, to, status, type),
       }),
     ]);
 

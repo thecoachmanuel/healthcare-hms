@@ -3,6 +3,8 @@ import { AppointmentStatusIndicator } from "@/components/appointment-status-indi
 import { ProfileImage } from "@/components/profile-image";
 import SearchInput from "@/components/search-input";
 import { DepartmentFilter } from "@/components/filters/department-filter";
+import { DateRangeFilter } from "@/components/filters/date-range-filter";
+import { SelectFilter } from "@/components/filters/select-filter";
 import { Table } from "@/components/tables/table";
 import { ViewAppointment } from "@/components/view-appointment";
 import { checkRole, getRole } from "@/utils/roles";
@@ -65,6 +67,23 @@ const Appointments = async (props: {
   const searchQuery = searchParams?.q || "";
   const id = searchParams?.id || undefined;
   const department = (searchParams?.department || "") as string;
+  const from = (searchParams?.from || "") as string;
+  const to = (searchParams?.to || "") as string;
+  const status = (searchParams?.status || "") as string;
+  const type = (searchParams?.atype || "") as string;
+
+  const typeRows = await db.appointment.findMany({
+    distinct: ["type"],
+    select: { type: true },
+    orderBy: { type: "asc" },
+  });
+  const typeOptions = [
+    { label: "All Types", value: "" },
+    ...typeRows
+      .map((t: any) => String(t.type || "").trim())
+      .filter((t) => t.length > 0)
+      .map((t) => ({ label: t, value: t })),
+  ];
 
   let queryId = undefined;
 
@@ -94,6 +113,10 @@ const Appointments = async (props: {
       search: searchQuery,
       id: queryId!,
       department: deptFilter,
+      from: from || undefined,
+      to: to || undefined,
+      status: status || undefined,
+      type: type || undefined,
     });
 
   if (!data) return null;
@@ -175,6 +198,23 @@ const Appointments = async (props: {
 
         <div className="w-full lg:w-fit flex items-center justify-between lg:justify-start gap-2">
           <SearchInput />
+          <DateRangeFilter />
+          <SelectFilter
+            param="status"
+            label="Status"
+            options={[
+              { label: "All", value: "" },
+              { label: "Pending", value: "PENDING" },
+              { label: "Scheduled", value: "SCHEDULED" },
+              { label: "Completed", value: "COMPLETED" },
+              { label: "Cancelled", value: "CANCELLED" },
+            ]}
+          />
+          <SelectFilter
+            param="atype"
+            label="Type"
+            options={typeOptions}
+          />
 
           {(userRole === "nurse" || userRole === "receptionist") && (
             <DepartmentFilter placeholder="e.g. OPD" />
