@@ -189,12 +189,14 @@ const LabTestsPage = async ({
           >
             Open
           </Link>
-          <Link
-            className="text-emerald-700 hover:underline text-sm"
-            href={`/lab/print/${item.id}`}
-          >
-            Print
-          </Link>
+          {item.status === "APPROVED" && (
+            <Link
+              className="text-emerald-700 hover:underline text-sm"
+              href={`/lab/print/${item.id}`}
+            >
+              Print
+            </Link>
+          )}
           {(isLabScientist || isLabTechnician) && (
             <UpdateLabTest
               id={item.id}

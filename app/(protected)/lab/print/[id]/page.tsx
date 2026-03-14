@@ -13,8 +13,12 @@ const PrintLabResultPage = async (props: ParamsProps) => {
   const params = await props.params;
   const id = Number(params.id);
 
-  const [isStaff, isPatient] = await Promise.all([
-    (await checkRole("LAB_SCIENTIST")) || (await checkRole("LAB_TECHNICIAN")) || (await checkRole("ADMIN")) || (await checkRole("DOCTOR")) || (await checkRole("NURSE")),
+  const [isLabScientist, isLabTechnician, isDoctor, isNurse, isAdmin, isPatient] = await Promise.all([
+    checkRole("LAB_SCIENTIST"),
+    checkRole("LAB_TECHNICIAN"),
+    checkRole("DOCTOR"),
+    checkRole("NURSE"),
+    checkRole("ADMIN"),
     checkRole("PATIENT"),
   ]);
 
@@ -40,23 +44,39 @@ const PrintLabResultPage = async (props: ParamsProps) => {
   });
 
   if (!test) return null;
+  const isStaff = isLabScientist || isLabTechnician || isDoctor || isNurse || isAdmin;
   if (!isStaff && !isPatient) return null;
   if (isPatient && test.medical_record.patient.id !== userId) return null;
+
+  // Only allow viewing/printing when APPROVED for doctor/nurse/patient
+  if (test.status !== "APPROVED" && (isDoctor || isNurse || isPatient)) return null;
 
   const patient = test.medical_record.patient as any;
   const name = `${patient.first_name} ${patient.last_name}`.trim();
   const sampleId = (test as any).sample_id as string | undefined;
   const approvedAt = (test as any).approved_at as Date | undefined;
-  const approvedBy = (test as any).approved_by_id as string | undefined;
+  const approvedById = (test as any).approved_by_id as string | undefined;
+  const settings = await db.siteSettings.findFirst({ select: { site_name: true, logo_url: true } });
+  const approvedByStaff = approvedById
+    ? await db.staff.findUnique({ where: { id: approvedById }, select: { name: true } })
+    : null;
 
   return (
     <div className="p-6 max-w-3xl mx-auto bg-white">
-      <div className="flex items-center justify-between print:hidden">
-        <div>
-          <h1 className="text-xl font-semibold">Laboratory Result</h1>
-          <p className="text-sm text-gray-600">{test.services?.service_name}</p>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          {settings?.logo_url && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={settings.logo_url} alt="Site Logo" className="h-10 w-auto" />
+          )}
+          <div>
+            <h1 className="text-xl font-semibold">{settings?.site_name || "Hospital"}</h1>
+            <p className="text-sm text-gray-600">Laboratory Result</p>
+          </div>
         </div>
-        <PrintActions />
+        <div className="print:hidden">
+          <PrintActions />
+        </div>
       </div>
 
       <div className="mt-4 border-t pt-4">
@@ -80,6 +100,10 @@ const PrintLabResultPage = async (props: ParamsProps) => {
           <div>
             <div className="text-gray-500">Status</div>
             <div className="font-medium">{test.status}</div>
+          </div>
+          <div>
+            <div className="text-gray-500">Test Name</div>
+            <div className="font-medium">{test.services?.service_name}</div>
           </div>
           {sampleId && (
             <div>
@@ -111,8 +135,8 @@ const PrintLabResultPage = async (props: ParamsProps) => {
           </div>
         )}
 
-        {approvedBy && (
-          <div className="mt-2 text-xs text-gray-500">Approved By: {approvedBy}</div>
+        {approvedByStaff?.name && (
+          <div className="mt-2 text-xs text-gray-700">Approved by: <span className="font-medium">{approvedByStaff.name}</span></div>
         )}
       </div>
     </div>

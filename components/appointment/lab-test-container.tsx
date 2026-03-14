@@ -27,6 +27,8 @@ export const LabTestContainer = async ({
   const isPatient = await checkRole("PATIENT");
   const isLabScientist = await checkRole("LAB_SCIENTIST");
   const isLabTechnician = await checkRole("LAB_TECHNICIAN");
+  const isDoctor = await checkRole("DOCTOR");
+  const isNurse = await checkRole("NURSE");
   const canRequest = (await checkRole("ADMIN")) || (await checkRole("DOCTOR")) || (await checkRole("NURSE"));
 
   const appointment = await db.appointment.findUnique({
@@ -86,7 +88,7 @@ export const LabTestContainer = async ({
         </td>
         <td className="hidden md:table-cell">{item?.status}</td>
         <td className="hidden xl:table-cell">
-          {isPatient && item?.status !== "COMPLETED" && item?.status !== "APPROVED" ? (
+          {(isPatient || isDoctor || isNurse) && item?.status !== "APPROVED" ? (
             <span className="text-gray-400 italic">Pending</span>
           ) : (
             <span className="whitespace-pre-wrap">{item?.result}</span>
@@ -109,7 +111,7 @@ export const LabTestContainer = async ({
             {isLabScientist && item.status !== "APPROVED" && item.status === "COMPLETED" && (
               <ApproveLabTestButton id={item.id} currentResult={item.result} currentSampleId={(item as any).sample_id} />
             )}
-            {(item?.status === "COMPLETED" || item?.status === "APPROVED") && (
+            {item?.status === "APPROVED" && (
               <a href={`/lab/print/${item.id}`} className="text-emerald-700 hover:underline text-sm">Print</a>
             )}
           </div>
