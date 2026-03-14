@@ -20,6 +20,7 @@ const columns = [
   { header: "Result", key: "result", className: "hidden lg:table-cell" },
   { header: "Requested Date", key: "requestedDate", className: "hidden md:table-cell" },
   { header: "Completed Date", key: "completedDate", className: "hidden lg:table-cell" },
+  { header: "Actions", key: "actions" },
 ];
 
 const AdminLabTestsPage = async ({
@@ -45,35 +46,34 @@ const AdminLabTestsPage = async ({
   const patientFilter = q
     ? ({
         OR: [
-          { patient: { first_name: { contains: q, mode: "insensitive" } } },
-          { patient: { last_name: { contains: q, mode: "insensitive" } } },
-          { patient: { hospital_number: { contains: q, mode: "insensitive" } } },
+          { medical_record: { patient: { first_name: { contains: q, mode: "insensitive" } } } },
+          { medical_record: { patient: { last_name: { contains: q, mode: "insensitive" } } } },
+          { medical_record: { patient: { hospital_number: { contains: q, mode: "insensitive" } } } },
         ],
       } as any)
     : {};
 
   // Date range filter
-  const dateFilter = from || to ? {
-    created_at: {
+  const dateFilter = from || to ? ({
+    test_date: {
       ...(from && { gte: new Date(from) }),
       ...(to && { lte: new Date(to + 'T23:59:59') }),
     },
-  } : {};
+  } as any) : {};
 
   const baseWhere: any = { AND: [patientFilter, dateFilter] };
 
   if (status) baseWhere.AND.push({ status: status });
-  if (unit) baseWhere.AND.push({ lab_unit_id: unit });
+  if (unit) baseWhere.AND.push({ services: { lab_unit_id: Number(unit) } });
 
   const [rowsRaw, counts, labStats, units] = await Promise.all([
     db.labTest.findMany({
       include: {
-        patient: { select: { first_name: true, last_name: true, hospital_number: true } },
-        lab_test_type: { select: { name: true } },
-        lab_unit: { select: { name: true } },
+        medical_record: { select: { patient: { select: { first_name: true, last_name: true, hospital_number: true } } } },
+        services: { select: { service_name: true, lab_unit: { select: { name: true, id: true } } } },
       },
       where: baseWhere,
-      orderBy: { created_at: "desc" as any },
+      orderBy: { test_date: "desc" as any },
       skip,
       take: limit,
     }),
@@ -83,12 +83,11 @@ const AdminLabTestsPage = async ({
       db.labTest.count({ where: { status: "IN_PROGRESS" as any } }),
       db.labTest.count({ where: { status: "COMPLETED" as any } }),
     ]),
-    // Get lab test statistics for charts
     db.labTest.groupBy({
       by: ["status"],
       _count: { status: true },
     }),
-    db.lab_unit.findMany({
+    db.labUnit.findMany({
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     }),
@@ -108,29 +107,30 @@ const AdminLabTestsPage = async ({
   }));
 
   // Prepare lab volume by unit data
-  const labVolumeData = await db.labTest.groupBy({
-    by: ["lab_unit_id"],
-    _count: { lab_unit_id: true },
+  const labTestsForVolume = await db.labTest.findMany({
+    include: { services: { select: { lab_unit: { select: { id: true, name: true } } } } },
+    where: { ...(from || to ? dateFilter : {}), ...(unit ? { services: { lab_unit_id: Number(unit) } } : {}) },
   });
 
-  const labVolumeChartData = labVolumeData.map(stat => {
-    const unit = units.find(u => u.id === stat.lab_unit_id);
-    return {
-      unit: unit?.name || "Unknown Unit",
-      count: stat._count.lab_unit_id,
-    };
-  }).sort((a, b) => b.count - a.count);
+  const unitCounts: Record<number, { name: string; count: number }> = {};
+  for (const t of labTestsForVolume as any[]) {
+    const u = t.services?.lab_unit;
+    if (!u) continue;
+    if (!unitCounts[u.id]) unitCounts[u.id] = { name: u.name, count: 0 };
+    unitCounts[u.id].count += 1;
+  }
+  const labVolumeChartData = Object.values(unitCounts).map(u => ({ unit: u.name, count: u.count })).sort((a, b) => b.count - a.count);
 
   // Prepare CSV data
-  const csvData = rows.map(t => ({
-    "Patient Name": `${t.patient.first_name} ${t.patient.last_name}`.trim(),
-    "Hospital Number": t.patient.hospital_number || "-",
-    "Test Type": t.lab_test_type.name,
-    "Lab Unit": t.lab_unit.name,
+  const csvData = rows.map((t: any) => ({
+    "Patient Name": `${t.medical_record.patient.first_name} ${t.medical_record.patient.last_name}`.trim(),
+    "Hospital Number": t.medical_record.patient.hospital_number || "-",
+    "Test Name": t.services?.service_name || "-",
+    "Lab Unit": t.services?.lab_unit?.name || "-",
     "Status": t.status,
     "Result": t.result || "-",
-    "Requested Date": format(t.created_at, "yyyy-MM-dd"),
-    "Completed Date": t.completed_at ? format(t.completed_at, "yyyy-MM-dd") : "-",
+    "Test Date": format(t.test_date, "yyyy-MM-dd"),
+    "Approved Date": t.approved_at ? format(t.approved_at, "yyyy-MM-dd") : (t.analysis_completed_at ? format(t.analysis_completed_at, "yyyy-MM-dd") : "-"),
   }));
 
   const handleExportCSV = () => {
@@ -139,7 +139,7 @@ const AdminLabTestsPage = async ({
   };
 
   const renderRow = (t: any) => {
-    const patient = t.patient;
+    const patient = t.medical_record.patient;
     const name = `${patient.first_name} ${patient.last_name}`.trim();
 
     return (
@@ -150,8 +150,8 @@ const AdminLabTestsPage = async ({
             <div className="text-xs text-gray-500">{patient.hospital_number ?? "-"}</div>
           </div>
         </td>
-        <td>{t.lab_test_type.name}</td>
-        <td>{t.lab_unit.name}</td>
+        <td>{t.services?.service_name}</td>
+        <td>{t.services?.lab_unit?.name ?? '-'}</td>
         <td>
           <span className={`px-2 py-0.5 rounded text-xs border ${
             t.status === "PENDING" ? "bg-yellow-100 text-yellow-800 border-yellow-200" :
@@ -169,9 +169,19 @@ const AdminLabTestsPage = async ({
             <span className="text-xs text-gray-500">-</span>
           )}
         </td>
-        <td className="hidden md:table-cell">{format(t.created_at, "yyyy-MM-dd")}</td>
+        <td className="hidden md:table-cell">{format(t.test_date, "yyyy-MM-dd")}</td>
         <td className="hidden lg:table-cell">
-          {t.completed_at ? format(t.completed_at, "yyyy-MM-dd") : "-"}
+          {t.approved_at ? format(t.approved_at, "yyyy-MM-dd") : (t.analysis_completed_at ? format(t.analysis_completed_at, "yyyy-MM-dd") : "-")}
+        </td>
+        <td>
+          <a
+            href={`/lab/print/${t.id}`}
+            className="text-xs px-3 py-1.5 rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
+            target="_blank"
+            rel="noreferrer"
+          >
+            View / Print
+          </a>
         </td>
       </tr>
     );
@@ -242,7 +252,7 @@ const AdminLabTestsPage = async ({
               label="Lab Unit"
               options={[
                 { label: "All Units", value: "" },
-                ...units.map(unit => ({ label: unit.name, value: unit.id })),
+                ...units.map(unit => ({ label: unit.name, value: String(unit.id) })),
               ]}
             />
           </div>
