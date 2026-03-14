@@ -66,14 +66,14 @@ const PrintLabResultPage = async (props: ParamsProps) => {
     <div className="p-6 max-w-3xl mx-auto bg-white">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          {settings?.logo_url && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={settings.logo_url} alt="Site Logo" className="h-10 w-auto" />
-          )}
           <div>
-            <h1 className="text-xl font-semibold">{settings?.site_name || "Hospital"}</h1>
+            <h1 className="text-xl font-semibold">{settings?.site_name ?? ""}</h1>
             <p className="text-sm text-gray-600">Laboratory Result</p>
           </div>
+          {settings?.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={settings.logo_url} alt={settings?.site_name ?? "Site Logo"} className="h-10 w-auto" />
+          ) : null}
         </div>
         <div className="print:hidden">
           <PrintActions />
