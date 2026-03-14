@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { getDepartmentDaySlots } from "@/app/actions/appointment";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
-export function DepartmentSchedule({ initialDepartment, initialDate }: { initialDepartment: string; initialDate?: string }) {
+export function DepartmentSchedule({ initialDepartment, initialDate, options }: { initialDepartment: string; initialDate?: string; options?: { label: string; value: string }[] }) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -65,13 +65,27 @@ export function DepartmentSchedule({ initialDepartment, initialDate }: { initial
       </CardHeader>
       <CardContent>
         <div className="flex flex-col md:flex-row gap-3 mb-4">
-          <input
-            type="text"
-            className="border rounded-md px-3 py-2 text-sm w-full md:w-72"
-            placeholder="Enter department"
-            value={department}
-            onChange={(e) => setDepartment(e.target.value)}
-          />
+          {options && options.length > 0 ? (
+            <select
+              className="border rounded-md px-3 py-2 text-sm w-full md:w-72 bg-white"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+            >
+              {options.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <input
+              type="text"
+              className="border rounded-md px-3 py-2 text-sm w-full md:w-72"
+              placeholder="Enter department"
+              value={department}
+              onChange={(e) => setDepartment(e.target.value)}
+            />
+          )}
           <input
             type="date"
             className="border rounded-md px-3 py-2 text-sm w-full md:w-48"
