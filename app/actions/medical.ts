@@ -222,22 +222,55 @@ export async function requestLabTest(data: any) {
 
 export async function updateLabTestResult(data: any) {
   try {
-    await requireAuthUserId();
-    const isAllowed = await checkRole("LAB_SCIENTIST");
+    const userId = await requireAuthUserId();
+    const isAllowed = (await checkRole("LAB_SCIENTIST")) || (await checkRole("LAB_TECHNICIAN")) || (await checkRole("ADMIN"));
     if (!isAllowed) {
       return { success: false, message: "Unauthorized", status: 403 };
     }
 
     const validated = LabTestUpdateSchema.parse(data);
 
+    const isScientist = await checkRole("LAB_SCIENTIST");
+    if (validated.status === "APPROVED" && !isScientist) {
+      return { success: false, message: "Only lab scientist can approve results", status: 403 };
+    }
+
+    const existing = await db.labTest.findUnique({
+      where: { id: Number(validated.id) },
+      select: { status: true, notes: true, collected_at: true, received_at: true, analysis_started_at: true, analysis_completed_at: true, approved_at: true },
+    });
+
+    if (existing?.status === "APPROVED" && !(await checkRole("LAB_SCIENTIST"))) {
+      return { success: false, message: "Approved results can only be modified by a lab scientist", status: 403 };
+    }
+
+    let notesToSave = validated.notes ?? "";
+    if (existing && validated.status === "APPROVED" && existing.status !== "APPROVED") {
+      const alreadyTagged = /Approved By:/m.test(notesToSave ?? existing.notes ?? "");
+      if (!alreadyTagged) {
+        const approvalTag = `Approved By: SYSTEM at ${new Date().toISOString()}`;
+        notesToSave = [notesToSave || existing.notes || "", approvalTag].filter(Boolean).join("\n");
+      }
+    }
+
+    const tsUpdate: any = {};
+    if (validated.status === "SAMPLE_COLLECTED" && !existing?.collected_at) tsUpdate.collected_at = new Date();
+    if (validated.status === "RECEIVED" && !existing?.received_at) tsUpdate.received_at = new Date();
+    if (validated.status === "IN_PROGRESS" && !existing?.analysis_started_at) tsUpdate.analysis_started_at = new Date();
+    if (validated.status === "COMPLETED" && !existing?.analysis_completed_at) tsUpdate.analysis_completed_at = new Date();
+    if (validated.status === "APPROVED" && !existing?.approved_at) tsUpdate.approved_at = new Date();
+
     await db.labTest.update({
       where: { id: Number(validated.id) },
       data: {
         status: validated.status,
         result: validated.result,
-        notes: validated.notes ?? "",
+        notes: notesToSave,
+        sample_id: validated.sample_id ?? undefined,
+        approved_by_id: validated.status === "APPROVED" && isScientist ? userId : undefined,
+        ...tsUpdate,
         updated_at: new Date(),
-      },
+      } as any,
     });
 
     return { success: true, message: "Lab test updated", status: 200 };

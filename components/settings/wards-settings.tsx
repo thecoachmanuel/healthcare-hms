@@ -6,6 +6,7 @@ import { ConfirmDelete } from "../dialogs/confirm-delete";
 import { AddWard, EditWard } from "../dialogs/ward-dialog";
 import { deleteWard } from "@/app/actions/ward";
 import { ensureDefaultDepartments, ensureDefaultWards } from "@/utils/services/catalog-seed";
+import Link from "next/link";
 
 const columns = [
   { header: "ID", key: "id", className: "hidden md:table-cell" },
@@ -43,6 +44,7 @@ export const WardsSettings = async ({ q }: { q?: string }) => {
         <div className="flex items-center gap-2">
           <EditWard id={w.id} name={w.name} department={w.department} capacity={w.capacity} active={w.active} departments={departmentOptions} />
           <ConfirmDelete onConfirm={async () => deleteWard(w.id) as any} />
+          <Link className="text-blue-600 text-xs hover:underline" href={`/record/admissions?ward=${w.id}`}>View Admissions</Link>
         </div>
       </td>
     </tr>

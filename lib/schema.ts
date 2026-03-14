@@ -235,8 +235,17 @@ export const LabTestRequestSchema = z.object({
 
 export const LabTestUpdateSchema = z.object({
   id: z.string(),
-  status: z.string(),
+  status: z.enum([
+    "REQUESTED",
+    "SAMPLE_COLLECTED",
+    "RECEIVED",
+    "IN_PROGRESS",
+    "COMPLETED",
+    "APPROVED",
+    "CANCELLED",
+  ]),
   result: z.string(),
+  sample_id: z.string().optional(),
   notes: z.string().optional(),
 });
 

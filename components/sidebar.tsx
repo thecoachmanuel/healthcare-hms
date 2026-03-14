@@ -84,6 +84,12 @@ export const Sidebar = async () => {
           icon: Stethoscope,
         },
         {
+          name: "HMO Providers",
+          href: "/admin/hmo-providers",
+          access: ["admin"],
+          icon: FolderOpen,
+        },
+        {
           name: "Staffs",
           href: "/record/staffs",
           access: ["admin", "doctor"],
@@ -99,6 +105,18 @@ export const Sidebar = async () => {
           name: "Appointments",
           href: "/record/appointments",
           access: ["admin", "doctor", "nurse", "lab_scientist", "lab_technician", "lab_receptionist", "cashier", "pharmacist", "receptionist"],
+          icon: CalendarDays,
+        },
+        {
+          name: "Doctor Availability",
+          href: "/schedule/doctor-availability",
+          access: ["admin", "receptionist"],
+          icon: CalendarDays,
+        },
+        {
+          name: "Department Schedule",
+          href: "/schedule/department",
+          access: ["admin", "receptionist"],
           icon: CalendarDays,
         },
         {
@@ -124,6 +142,12 @@ export const Sidebar = async () => {
           href: "/record/payments",
           access: ["admin", "cashier"],
           icon: HandCoins,
+        },
+        {
+          name: "HMO / Insurance",
+          href: "/record/insurance",
+          access: ["admin", "cashier"],
+          icon: CreditCard,
         },
         {
           name: "Prescriptions",
@@ -159,6 +183,12 @@ export const Sidebar = async () => {
           name: "Appointments",
           href: "/record/appointments",
           access: ["patient"],
+          icon: CalendarDays,
+        },
+        {
+          name: "My Availability",
+          href: "/doctor/availability",
+          access: ["doctor"],
           icon: CalendarDays,
         },
         {

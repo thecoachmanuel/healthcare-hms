@@ -1,7 +1,7 @@
 "use client";
 
 import { z } from "zod";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useForm } from "react-hook-form";
 import { CustomInput } from "@/components/custom-input";
 import { toast } from "sonner";
-import { createNewAppointment } from "@/app/actions/appointment";
+import { createNewAppointment, getDoctorAvailableTimes } from "@/app/actions/appointment";
 import { generateTimes } from "@/utils";
 
 const ReceptionistBookingSchema = z.object({
@@ -39,7 +39,27 @@ export function ReceptionistBookAppointment({
 }) {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const times = generateTimes(8, 17, 30);
+  const [timeOptions, setTimeOptions] = useState(generateTimes(8, 17, 30));
+  const watchDoctor = form.watch("doctor_id");
+  const watchDate = form.watch("appointment_date");
+
+  useEffect(() => {
+    const loadTimes = async () => {
+      if (!watchDoctor || !watchDate) {
+        setTimeOptions(generateTimes(8, 17, 30));
+        return;
+      }
+      try {
+        const times = await getDoctorAvailableTimes(watchDoctor, watchDate);
+        setTimeOptions(times && times.length > 0 ? times : []);
+        form.setValue("time", "");
+      } catch {
+        setTimeOptions([]);
+      }
+    };
+    loadTimes();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [watchDoctor, watchDate]);
 
   const form = useForm<z.infer<typeof ReceptionistBookingSchema>>({
     resolver: zodResolver(ReceptionistBookingSchema),
@@ -108,7 +128,7 @@ export function ReceptionistBookAppointment({
             />
             <div className="flex items-center gap-2">
               <CustomInput type="input" control={form.control} name="appointment_date" label="Date" inputType="date" placeholder="" />
-              <CustomInput type="select" control={form.control} name="time" label="Time" placeholder="Select time" selectList={times} />
+              <CustomInput type="select" control={form.control} name="time" label="Time" placeholder="Select time" selectList={timeOptions} />
             </div>
             <CustomInput type="textarea" control={form.control} name="note" label="Notes" placeholder="Optional notes" />
             <Button type="submit" disabled={loading} className="bg-blue-600 w-full">{loading ? "Saving..." : "Save"}</Button>
@@ -118,4 +138,3 @@ export function ReceptionistBookAppointment({
     </Dialog>
   );
 }
-

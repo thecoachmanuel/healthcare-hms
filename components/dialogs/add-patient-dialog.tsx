@@ -22,6 +22,8 @@ export function AddPatientDialog() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [profileFile, setProfileFile] = useState<File | null>(null);
+  const [providerOptions, setProviderOptions] = useState<{ label: string; value: string }[]>([]);
+  const [manualProvider, setManualProvider] = useState("");
   const router = useRouter();
 
   const form = useForm<z.infer<typeof PatientFormSchema>>({
@@ -55,6 +57,9 @@ export function AddPatientDialog() {
   const onSubmit = async (values: z.infer<typeof PatientFormSchema>) => {
     try {
       setLoading(true);
+      if (values.insurance_provider === "_OTHER" && manualProvider.trim()) {
+        values.insurance_provider = manualProvider.trim();
+      }
 
       let img = values.img;
       if (profileFile) {
@@ -84,6 +89,18 @@ export function AddPatientDialog() {
       setLoading(false);
     }
   };
+
+  React.useEffect(() => {
+    fetch("/api/hmo-providers")
+      .then((r) => r.json())
+      .then((j) => {
+        const options: { label: string; value: string }[] = Array.isArray(j?.data)
+          ? j.data.map((p: any) => ({ label: p.name, value: p.name }))
+          : [];
+        setProviderOptions([...options, { label: "Other (type manually)", value: "_OTHER" }]);
+      })
+      .catch(() => setProviderOptions([{ label: "Other (type manually)", value: "_OTHER" }]));
+  }, []);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -185,9 +202,15 @@ export function AddPatientDialog() {
             <CustomInput type="textarea" control={form.control} name="medical_history" placeholder="" label="Medical History" />
 
             <div className="flex flex-col lg:flex-row gap-y-6 items-center gap-2 md:gap-x-4">
-              <CustomInput type="input" control={form.control} name="insurance_provider" placeholder="" label="Insurance Provider" />
+              <CustomInput type="select" control={form.control} name="insurance_provider" placeholder="Select provider" label="Insurance Provider" selectList={providerOptions} />
               <CustomInput type="input" control={form.control} name="insurance_number" placeholder="" label="Insurance Number" />
             </div>
+            {form.watch("insurance_provider") === "_OTHER" && (
+              <div>
+                <Label>Custom provider</Label>
+                <Input value={manualProvider} onChange={(e) => setManualProvider(e.target.value)} placeholder="Enter provider name" />
+              </div>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <CustomInput type="checkbox" control={form.control} name="privacy_consent" label="Privacy consent" placeholder="" />
@@ -204,4 +227,3 @@ export function AddPatientDialog() {
     </Dialog>
   );
 }
-

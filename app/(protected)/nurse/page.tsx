@@ -8,34 +8,63 @@ import React from "react";
 
 const NurseDashboardPage = async () => {
   const userId = await requireAuthUserId();
-  const staff = await db.staff.findUnique({ where: { id: userId }, select: { department: true } });
-  const dept = staff?.department?.trim() ?? "";
+  const staff = await db.staff.findUnique({
+    where: { id: userId },
+    select: {
+      department: true,
+      ward_id: true,
+      ward: { select: { id: true, name: true, department: true } },
+    },
+  });
+  const wardId = staff?.ward_id ?? null;
+  const dept = (staff?.department ?? staff?.ward?.department ?? "").trim();
 
   const startOfDay = new Date();
   startOfDay.setHours(0, 0, 0, 0);
 
-  const [patientsCount, todaysAppointments, admittedCount] = await Promise.all(
+  const [patientsCount, todaysAppointments, admittedCount] = await Promise.all([
+    db.patient.count(),
     dept.length > 0
-      ? [
-          db.appointment
-            .findMany({ where: { doctor: { department: { contains: dept, mode: "insensitive" } } }, distinct: ["patient_id"], select: { patient_id: true } })
-            .then((rows) => rows.length),
-          db.appointment.count({ where: { appointment_date: { gte: startOfDay }, doctor: { department: { contains: dept, mode: "insensitive" } } } }),
-          db.inpatientAdmission.count({ where: { status: "ADMITTED", ward: { department: { contains: dept, mode: "insensitive" } } } }),
-        ]
-      : [
-          (db as any).patient.count(),
-          (db as any).appointment.count({ where: { appointment_date: { gte: startOfDay } } }),
-          (db as any).inpatientAdmission.count({ where: { status: "ADMITTED" } }),
-        ]
-  );
+      ? db.appointment.count({
+          where: {
+            appointment_date: { gte: startOfDay },
+            doctor: { department: { contains: dept, mode: "insensitive" } },
+          },
+        })
+      : db.appointment.count({ where: { appointment_date: { gte: startOfDay } } }),
+    wardId
+      ? db.inpatientAdmission.count({ where: { status: "ADMITTED", ward_id: wardId } })
+      : dept.length > 0
+      ? db.inpatientAdmission.count({
+          where: { status: "ADMITTED", ward: { department: { contains: dept, mode: "insensitive" } } },
+        })
+      : db.inpatientAdmission.count({ where: { status: "ADMITTED" } }),
+  ]);
 
   return (
     <div className="p-6">
       <div className="flex flex-wrap gap-3 mb-6">
-        <StatCard title="Patients" icon={Users} note={dept.length > 0 ? `Patients in ${dept}` : "Total patients"} value={patientsCount} link="/record/patients" />
-        <StatCard title="Appointments Today" icon={CalendarClock} note={dept.length > 0 ? `Today's in ${dept}` : "All departments"} value={todaysAppointments} link={dept.length > 0 ? `/record/appointments?department=${encodeURIComponent(dept)}` : "/record/appointments"} />
-        <StatCard title="Inpatients" icon={BedDouble} note={dept.length > 0 ? `Admitted in ${dept}` : "Total admitted"} value={admittedCount} link="/record/appointments" />
+        <StatCard title="Patients" icon={Users} note={"Total patients"} value={patientsCount} link="/record/patients" />
+        <StatCard
+          title="Appointments Today"
+          icon={CalendarClock}
+          note={dept.length > 0 ? `Today's in ${dept}` : "All departments"}
+          value={todaysAppointments}
+          link={dept.length > 0 ? `/record/appointments?department=${encodeURIComponent(dept)}` : "/record/appointments"}
+        />
+        <StatCard
+          title="Inpatients"
+          icon={BedDouble}
+          note={
+            wardId
+              ? `Admitted in ward ${staff?.ward?.name ?? ""}`
+              : dept.length > 0
+              ? `Admitted in ${dept}`
+              : "Total admitted"
+          }
+          value={admittedCount}
+          link="/record/appointments"
+        />
       </div>
 
       <Card className="border-none shadow-none bg-white">

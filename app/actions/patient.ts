@@ -6,6 +6,7 @@ import { requireAuthUserId } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { checkRole } from "@/utils/roles";
+import { Prisma } from "@prisma/client";
 
 function digitsOnly(value: unknown) {
   if (typeof value !== "string") return value;
@@ -33,7 +34,7 @@ function normalizePatientPayload(input: any) {
       : relationRaw;
   const hospital_number =
     typeof input?.hospital_number === "string"
-      ? input.hospital_number.trim()
+      ? input.hospital_number.trim().toUpperCase()
       : input?.hospital_number;
 
   return {
@@ -45,6 +46,16 @@ function normalizePatientPayload(input: any) {
     emergency_contact_number: digitsOnly(input?.emergency_contact_number),
     hospital_number,
   };
+}
+
+async function generateHospitalNumber(): Promise<string> {
+  const now = new Date();
+  const y = now.getFullYear().toString();
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  const datePart = `${y}${m}${d}`;
+  const rand = () => Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `HN-${datePart}-${rand()}`;
 }
 
 export async function updatePatient(data: any, pid: string) {
@@ -139,16 +150,40 @@ export async function createNewPatient(data: any, pid: string) {
       }
     }
 
-    const created = await db.patient.create({
-      data: {
-        ...patientData,
-        id: patient_id,
-        hospital_number:
-          patientData.hospital_number && patientData.hospital_number.trim().length > 0
-            ? patientData.hospital_number.trim()
-            : `HN-${Math.random().toString(36).slice(2, 9).toUpperCase()}`,
-      },
-    });
+    const email = typeof patientData.email === "string" ? patientData.email.toLowerCase() : patientData.email;
+
+    let hospitalNumber = patientData.hospital_number && patientData.hospital_number.length > 0
+      ? patientData.hospital_number.toUpperCase()
+      : await generateHospitalNumber();
+
+    let created;
+    for (let attempt = 0; attempt < 5; attempt++) {
+      try {
+        created = await db.patient.create({
+          data: {
+            ...patientData,
+            email,
+            id: patient_id,
+            hospital_number: hospitalNumber,
+          },
+        });
+        break;
+      } catch (e: any) {
+        if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+          if ((e.meta as any)?.target?.includes("hospital_number")) {
+            hospitalNumber = await generateHospitalNumber();
+            continue;
+          }
+          if ((e.meta as any)?.target?.includes("email")) {
+            return { success: false, error: true, msg: "Email already exists. Use a different email." };
+          }
+        }
+        throw e;
+      }
+    }
+    if (!created) {
+      return { success: false, error: true, msg: "Failed to create patient. Please try again." };
+    }
 
     await db.auditLog.create({
       data: {
@@ -163,7 +198,7 @@ export async function createNewPatient(data: any, pid: string) {
     return { success: true, error: false, msg: "Patient created successfully" };
   } catch (error: any) {
     console.error(error);
-    return { success: false, error: true, msg: error?.message };
+    return { success: false, error: true, msg: error?.message ?? "An unexpected error occurred" };
   }
 }
 

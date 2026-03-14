@@ -3,12 +3,14 @@ import { PatientRatingContainer } from "@/components/patient-rating-container";
 import { ProfileImage } from "@/components/profile-image";
 import { PaymentsContainer } from "@/components/appointment/payment-container";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import db from "@/lib/db";
 import { getPatientFullDataById } from "@/utils/services/patient";
 import { requireAuthUserId } from "@/lib/auth";
 import { format } from "date-fns";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import React from "react";
+import { AdmissionDetailsSheet } from "@/components/admissions/admission-details-sheet";
 
 interface ParamsProps {
   params: Promise<{ patientId: string }>;
@@ -22,6 +24,8 @@ const PatientProfile = async (props: ParamsProps) => {
   let id = params.patientId;
   let patientId = params.patientId;
   const cat = (searchParams?.cat as string) || "medical-history";
+  const pageParamRaw = searchParams?.page as string | undefined;
+  const pageParam = pageParamRaw ? Number(pageParamRaw) : 1;
 
   if (patientId === "self") {
     id = await requireAuthUserId();
@@ -76,6 +80,10 @@ const PatientProfile = async (props: ParamsProps) => {
                 <p className="text-xl font-medium">{data?.totalAppointments}</p>
                 <span className="text-xs text-gray-500">Appointments</span>
               </div>
+          <div className="w-1/2 space-y-1 text-center">
+            <p className="text-xs font-medium break-all">{(data as any)?.hospital_number ?? "N/A"}</p>
+            <span className="text-xs text-gray-500">Hospital No.</span>
+          </div>
             </div>
           </Card>
 
@@ -107,6 +115,7 @@ const PatientProfile = async (props: ParamsProps) => {
                 label="Emergency Contact"
                 value={data?.emergency_contact_number!}
               />
+              <SmallCard label="Hospital Number" value={(data as any)?.hospital_number ?? "N/A"} />
               <SmallCard
                 label="Last Visit"
                 value={
@@ -121,19 +130,12 @@ const PatientProfile = async (props: ParamsProps) => {
 
         <div className="mt-10">
           {cat === "medical-history" && (
-            <MedicalHistoryContainer patientId={id} />
+            <MedicalHistoryContainer patientId={id} page={pageParam} />
           )}
 
           {cat === "payments" && <PaymentsContainer patientId={id} />}
-          {cat === "lab-tests" && (
-            <Card className="border-none shadow-none">
-              <CardHeader>
-                <CardTitle>Lab Tests & Results</CardTitle>
-                <CardDescription>View lab investigations and results.</CardDescription>
-              </CardHeader>
-              <CardContent className="text-sm text-gray-500">Coming soon.</CardContent>
-            </Card>
-          )}
+          {cat === "lab-tests" && <PatientLabTestsCard patientId={id} />}
+          {cat === "admissions" && <PatientAdmissionsCard patientId={id} />}
         </div>
       </div>
 
@@ -167,6 +169,9 @@ const PatientProfile = async (props: ParamsProps) => {
             <Link className="p-3 rounded-md bg-rose-100" href={`?cat=lab-tests`}>
               Lab Test & Result
             </Link>
+            <Link className="p-3 rounded-md bg-sky-100" href={`?cat=admissions`}>
+              Admissions
+            </Link>
             {patientId === "self" && (
               <Link
                 className="p-3 rounded-md bg-black/10"
@@ -185,3 +190,131 @@ const PatientProfile = async (props: ParamsProps) => {
 };
 
 export default PatientProfile;
+
+async function PatientLabTestsCard({ patientId }: { patientId: string }) {
+  const tests = await db.labTest.findMany({
+    where: { medical_record: { patient_id: patientId } },
+    include: { services: { select: { service_name: true } } },
+    orderBy: { created_at: "desc" },
+  });
+
+  return (
+    <Card className="border-none shadow-none">
+      <CardHeader>
+        <CardTitle>Lab Tests & Results</CardTitle>
+        <CardDescription>View and download your lab results.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {tests.length === 0 ? (
+          <div className="text-sm text-gray-500">No lab tests found.</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left border-b">
+                <th className="py-2">Test</th>
+                <th className="py-2 hidden md:table-cell">Date</th>
+                <th className="py-2">Status</th>
+                <th className="py-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tests.map((t: any) => (
+                <tr key={t.id} className="border-b">
+                  <td className="py-2">{t.services?.service_name}</td>
+                  <td className="py-2 hidden md:table-cell">{format(t.test_date, "yyyy-MM-dd")}</td>
+                  <td className="py-2">{t.status}</td>
+                  <td className="py-2">
+                    {(t.status === "COMPLETED" || t.status === "APPROVED") ? (
+                      <a href={`/lab/print/${t.id}`} className="text-blue-600 hover:underline">View / Print</a>
+                    ) : (
+                      <span className="text-gray-400 italic">Pending</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+async function PatientAdmissionsCard({ patientId }: { patientId: string }) {
+  const admissions = await db.inpatientAdmission.findMany({
+    where: { patient_id: patientId },
+    include: {
+      ward: { select: { name: true } },
+      attending_doctor: { select: { name: true } },
+    },
+    orderBy: { admitted_at: "desc" },
+  });
+
+  const admissionIds = admissions.map((a: any) => a.id);
+  const logs = admissionIds.length
+    ? await db.auditLog.findMany({
+        where: { model: "InpatientAdmission", record_id: { in: admissionIds.map((id: number) => String(id)) } },
+        orderBy: { created_at: "asc" },
+        select: { id: true, record_id: true, action: true, details: true, created_at: true },
+      })
+    : [];
+  const logsByRecord: Record<string, typeof logs> = logs.reduce((acc: any, l: any) => {
+    (acc[l.record_id] ||= []).push(l);
+    return acc;
+  }, {});
+
+  return (
+    <Card className="border-none shadow-none">
+      <CardHeader>
+        <CardTitle>Admissions History</CardTitle>
+        <CardDescription>Past admissions, discharge and attending details.</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {admissions.length === 0 ? (
+          <div className="text-sm text-gray-500">No admissions found.</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left border-b">
+                <th className="py-2">Ward</th>
+                <th className="py-2 hidden md:table-cell">Attending</th>
+                <th className="py-2">Admitted</th>
+                <th className="py-2 hidden md:table-cell">Discharged</th>
+                <th className="py-2">Status</th>
+                <th className="py-2 hidden md:table-cell">Discharged By</th>
+                <th className="py-2">Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {admissions.map((a: any) => (
+                <tr key={a.id} className="border-b">
+                  <td className="py-2">{a.ward?.name ?? "—"}</td>
+                  <td className="py-2 hidden md:table-cell">{a.attending_doctor?.name ?? "—"}</td>
+                  <td className="py-2">{a.admitted_at ? format(a.admitted_at, "yyyy-MM-dd") : "—"}</td>
+                  <td className="py-2 hidden md:table-cell">{a.discharged_at ? format(a.discharged_at, "yyyy-MM-dd") : "—"}</td>
+                  <td className="py-2">{a.status}</td>
+                  <td className="py-2 hidden md:table-cell">{a.discharged_by_name ?? "—"}</td>
+                  <td className="py-2">
+                    <AdmissionDetailsSheet
+                      admission={{
+                        id: a.id,
+                        status: a.status,
+                        wardName: a.ward?.name ?? null,
+                        attendingName: a.attending_doctor?.name ?? null,
+                        admitted_at: a.admitted_at,
+                        discharged_at: a.discharged_at,
+                        discharge_notes: a.discharge_notes ?? null,
+                        discharged_by_name: a.discharged_by_name ?? null,
+                      }}
+                      logs={(logsByRecord[String(a.id)] ?? []) as any}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </CardContent>
+    </Card>
+  );
+}

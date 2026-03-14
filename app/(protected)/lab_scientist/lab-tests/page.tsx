@@ -1,7 +1,7 @@
 import { Pagination } from "@/components/pagination";
 import { Table } from "@/components/tables/table";
 import { ProfileImage } from "@/components/profile-image";
-import { UpdateLabTest } from "@/components/dialogs/update-lab-test";
+import { UpdateLabTest, ApproveLabTestButton } from "@/components/dialogs/update-lab-test";
 import SearchInput from "@/components/search-input";
 import { requireAuthUserId } from "@/lib/auth";
 import db from "@/lib/db";
@@ -188,13 +188,24 @@ const LabTestsPage = async ({
           >
             Open
           </Link>
-          {isLabScientist && (
+          <Link
+            className="text-emerald-700 hover:underline text-sm"
+            href={`/lab/print/${item.id}`}
+          >
+            Print
+          </Link>
+          {(isLabScientist || isLabTechnician) && (
             <UpdateLabTest
               id={item.id}
               currentStatus={item.status}
               currentResult={item.result}
               currentNotes={item.notes}
+              currentSampleId={(item as any).sample_id}
+              canApprove={isLabScientist}
             />
+          )}
+          {isLabScientist && item.status !== "APPROVED" && item.status === "COMPLETED" && (
+            <ApproveLabTestButton id={item.id} currentResult={item.result} currentSampleId={(item as any).sample_id} />
           )}
         </td>
       </tr>
@@ -215,8 +226,12 @@ const LabTestsPage = async ({
             label="Status"
             options={[
               { label: "All", value: "" },
-              { label: "Pending", value: "PENDING" },
+              { label: "Requested", value: "REQUESTED" },
+              { label: "Sample Collected", value: "SAMPLE_COLLECTED" },
+              { label: "Received", value: "RECEIVED" },
+              { label: "In Progress", value: "IN_PROGRESS" },
               { label: "Completed", value: "COMPLETED" },
+              { label: "Approved", value: "APPROVED" },
               { label: "Cancelled", value: "CANCELLED" },
             ]}
           />

@@ -166,6 +166,7 @@ model Staff {
   lab_unit      LabUnit? @relation(fields: [lab_unit_id], references: [id])
   ward          Ward? @relation(fields: [ward_id], references: [id])
   medication_administrations MedicationAdministration[]
+  approved_lab_tests   LabTest[] @relation(name: "LabTestApprovedBy")
 
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
@@ -205,6 +206,7 @@ model InpatientAdmission {
   discharge_notes     String?
   discharged_by_id    String?
   discharged_by_role  Role?
+  discharged_by_name  String?
 
   patient             Patient          @relation(fields: [patient_id], references: [id], onDelete: Cascade)
   ward                Ward             @relation(fields: [ward_id], references: [id], onDelete: Cascade)
@@ -296,22 +298,42 @@ model PatientBills {
   updated_at      DateTime @updatedAt
 }
 
+enum LabTestStatus {
+  REQUESTED
+  SAMPLE_COLLECTED
+  RECEIVED
+  IN_PROGRESS
+  COMPLETED
+  APPROVED
+  CANCELLED
+}
+
 model LabTest {
-  id            Int   @id @default(autoincrement())
-  record_id     Int
-  test_date     DateTime
-  result        String
-  status        String
-  notes         String?
-  service_id    Int
-  services      Services @relation(fields: [service_id], references: [id])
+  id                     Int           @id @default(autoincrement())
+  record_id              Int
+  test_date              DateTime
+  result                 String
+  status                 LabTestStatus
+  notes                  String?
+  sample_id              String?
+  collected_at           DateTime?
+  received_at            DateTime?
+  analysis_started_at    DateTime?
+  analysis_completed_at  DateTime?
+  approved_at            DateTime?
+  approved_by_id         String?
+  approved_by            Staff?        @relation(name: "LabTestApprovedBy", fields: [approved_by_id], references: [id])
+  service_id             Int
+  services               Services       @relation(fields: [service_id], references: [id])
 
-  medical_record MedicalRecords  @relation(fields: [record_id], references: [id], onDelete: Cascade)
+  medical_record         MedicalRecords @relation(fields: [record_id], references: [id], onDelete: Cascade)
 
-  created_at    DateTime @default(now())
-  updated_at    DateTime @updatedAt
+  created_at             DateTime       @default(now())
+  updated_at             DateTime       @updatedAt
 
   @@unique([record_id, service_id])
+  @@index([status])
+  @@index([sample_id])
 }
 
 model LabUnit {
@@ -506,6 +528,16 @@ model PrescriptionItem {
 
   @@index([prescription_id])
   @@index([medication_id])
+}
+
+model HmoProvider {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique
+  code       String?  @unique
+  active     Boolean  @default(true)
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
 }
 
 model MedicationAdministration {

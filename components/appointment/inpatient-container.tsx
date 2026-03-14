@@ -1,9 +1,10 @@
 import db from "@/lib/db";
+import { checkRole } from "@/utils/roles";
 import { AdmitPatient } from "../dialogs/admit-patient";
 import { DischargePatient } from "../dialogs/discharge-patient";
 
 export async function InpatientContainer({ patientId }: { patientId: string }) {
-  const [admission, wards, doctors] = await Promise.all([
+  const [admission, wards, doctors, canDischarge] = await Promise.all([
     db.inpatientAdmission.findFirst({
       where: { patient_id: patientId, status: "ADMITTED" },
       select: {
@@ -17,6 +18,7 @@ export async function InpatientContainer({ patientId }: { patientId: string }) {
     }),
     db.ward.findMany({ where: { active: true }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     db.doctor.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } }),
+    (async () => (await checkRole("ADMIN")) || (await checkRole("DOCTOR")))(),
   ]);
 
   const wardOptions = wards.map((w: any) => ({ label: w.name, value: String(w.id) }));
@@ -47,7 +49,7 @@ export async function InpatientContainer({ patientId }: { patientId: string }) {
                 <span className="font-medium">Admitted at:</span> {admission.admitted_at?.toISOString().slice(0, 10)}
               </div>
             </div>
-            <DischargePatient admissionId={admission.id} />
+            {canDischarge && <DischargePatient admissionId={admission.id} />}
           </div>
         )}
       </div>

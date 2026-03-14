@@ -105,7 +105,7 @@ export async function admitPatient(data: { patient_id: string; ward_id: number; 
 
 export async function dischargePatient(data: { admission_id: number; notes?: string | null }) {
   const userId = await requireAuthUserId();
-  const allowed = (await checkRole("ADMIN")) || (await checkRole("NURSE")) || (await checkRole("DOCTOR"));
+  const allowed = (await checkRole("ADMIN")) || (await checkRole("DOCTOR"));
   if (!allowed) return { success: false, msg: "Unauthorized" };
 
   const admission = await db.inpatientAdmission.findUnique({ where: { id: data.admission_id }, select: { id: true, patient_id: true, status: true } });
@@ -113,21 +113,23 @@ export async function dischargePatient(data: { admission_id: number; notes?: str
   if (admission.status !== "ADMITTED") return { success: false, msg: "Not currently admitted" };
 
   const [staff, doctor] = await Promise.all([
-    db.staff.findUnique({ where: { id: userId }, select: { role: true } }),
-    db.doctor.findUnique({ where: { id: userId }, select: { id: true } }),
+    db.staff.findUnique({ where: { id: userId }, select: { role: true, name: true } }),
+    db.doctor.findUnique({ where: { id: userId }, select: { id: true, name: true } }),
   ]);
-  const actorRole = staff?.role ?? (doctor ? "DOCTOR" : "ADMIN");
+  const isDoctor = !!doctor;
+  const actorRole = isDoctor ? "DOCTOR" : "ADMIN";
+  const actorName = isDoctor ? (doctor?.name || "Doctor") : (staff?.name || "Admin");
 
   await db.inpatientAdmission.update({
     where: { id: admission.id },
-    data: { status: "DISCHARGED", discharged_at: new Date(), discharge_notes: data.notes?.trim() || null, discharged_by_id: userId, discharged_by_role: actorRole },
+    data: { status: "DISCHARGED", discharged_at: new Date(), discharge_notes: data.notes?.trim() || null, discharged_by_id: userId, discharged_by_role: actorRole, discharged_by_name: actorName },
   });
 
-  await db.auditLog.create({ data: { user_id: userId, record_id: String(admission.id), action: "UPDATE", model: "InpatientAdmission", details: `status=DISCHARGED` } });
+  await db.auditLog.create({ data: { user_id: userId, record_id: String(admission.id), action: "UPDATE", model: "InpatientAdmission", details: `status=DISCHARGED; by=${actorName}` } });
 
   await db.notification.createMany({
     data: [
-      { user_id: admission.patient_id, title: "Discharge", body: "You have been discharged." },
+      { user_id: admission.patient_id, title: "Discharge", body: `You have been discharged by ${actorName}.` },
     ],
   });
 

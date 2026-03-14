@@ -30,6 +30,8 @@ interface InputProps {
   inputType?: "text" | "email" | "password" | "date" | "tel";
   selectList?: { label: string; value: string }[];
   defaultValue?: string;
+  readOnly?: boolean;
+  disabled?: boolean;
 }
 
 const RenderInput = ({ field, props }: { field: any; props: InputProps }) => {
@@ -48,6 +50,8 @@ const RenderInput = ({ field, props }: { field: any; props: InputProps }) => {
             inputMode={isPhoneField ? "numeric" : undefined}
             pattern={isPhoneField ? "[0-9]*" : undefined}
             maxLength={isPhoneField ? 12 : undefined}
+            readOnly={props.readOnly}
+            disabled={props.disabled}
             {...field}
           />
         </FormControl>
@@ -57,7 +61,7 @@ const RenderInput = ({ field, props }: { field: any; props: InputProps }) => {
       return (
         <Select onValueChange={field.onChange} value={field?.value}>
           <FormControl>
-            <SelectTrigger>
+            <SelectTrigger disabled={props.disabled}>
               <SelectValue placeholder={props.placeholder} />
             </SelectTrigger>
           </FormControl>
@@ -163,9 +167,10 @@ type Day = {
 interface SwitchProps {
   data: { label: string; value: string }[];
   setWorkSchedule: React.Dispatch<React.SetStateAction<Day[]>>;
+  schedule?: Day[];
 }
 
-export const SwitchInput = ({ data, setWorkSchedule }: SwitchProps) => {
+export const SwitchInput = ({ data, setWorkSchedule, schedule }: SwitchProps) => {
   const handleChange = (day: string, field: any, value: string) => {
     setWorkSchedule((prevDays) => {
       const dayExist = prevDays.find((d) => d.day === day);
@@ -197,6 +202,7 @@ export const SwitchInput = ({ data, setWorkSchedule }: SwitchProps) => {
           <Switch
             id={el.value}
             className="data-[state=checked]:bg-blue-600 peer"
+            defaultChecked={Boolean(schedule?.find((d) => d.day === el.value))}
             onCheckedChange={() => handleChange(el.value, true, "09:00")}
           />
           <Label htmlFor={el.value} className="w-20 capitalize">
@@ -211,7 +217,7 @@ export const SwitchInput = ({ data, setWorkSchedule }: SwitchProps) => {
             <Input
               name={`${el.label}.start_time`}
               type="time"
-              defaultValue="09:00"
+              defaultValue={schedule?.find((d) => d.day === el.value)?.start_time ?? "09:00"}
               onChange={(e) =>
                 handleChange(el.value, "start_time", e.target.value)
               }
@@ -219,7 +225,7 @@ export const SwitchInput = ({ data, setWorkSchedule }: SwitchProps) => {
             <Input
               name={`${el.label}.close_time`}
               type="time"
-              defaultValue="17:00"
+              defaultValue={schedule?.find((d) => d.day === el.value)?.close_time ?? "17:00"}
               onChange={(e) =>
                 handleChange(el.value, "close_time", e.target.value)
               }

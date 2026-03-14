@@ -33,6 +33,8 @@ export const NewPatient = ({ data, type }: DataProps) => {
   const [loading, setLoading] = useState(false);
   const [profileFile, setProfileFile] = useState<File | null>(null);
   const router = useRouter();
+  const [providerOptions, setProviderOptions] = useState<{ label: string; value: string }[]>([]);
+  const [manualProvider, setManualProvider] = useState<string>("");
   const [authUser, setAuthUser] = useState<{
     id: string;
     email: string;
@@ -54,6 +56,18 @@ export const NewPatient = ({ data, type }: DataProps) => {
         last_name: meta.last_name,
       });
     });
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/hmo-providers")
+      .then((r) => r.json())
+      .then((j) => {
+        const options: { label: string; value: string }[] = Array.isArray(j?.data)
+          ? j.data.map((p: any) => ({ label: p.name, value: p.name }))
+          : [];
+        setProviderOptions([...options, { label: "Other (type manually)", value: "_OTHER" }]);
+      })
+      .catch(() => setProviderOptions([{ label: "Other (type manually)", value: "_OTHER" }]));
   }, []);
 
   const userData = useMemo(
@@ -92,6 +106,10 @@ export const NewPatient = ({ data, type }: DataProps) => {
     values
   ) => {
     setLoading(true);
+
+    if (values.insurance_provider === "_OTHER" && manualProvider.trim()) {
+      values.insurance_provider = manualProvider.trim();
+    }
 
     let img = values.img;
     if (profileFile) {
@@ -156,6 +174,7 @@ export const NewPatient = ({ data, type }: DataProps) => {
           medical_history: data?.medical_history! || "",
           insurance_number: data.insurance_number! || "",
           insurance_provider: data.insurance_provider! || "",
+          hospital_number: data.hospital_number ?? "",
           medical_consent: data.medical_consent,
           privacy_consent: data.privacy_consent,
           service_consent: data.service_consent,
@@ -316,12 +335,19 @@ export const NewPatient = ({ data, type }: DataProps) => {
               />
               <div className="flex flex-col lg:flex-row  gap-y-6 items-center gap-2 md:gap-4">
                 <CustomInput
-                  type="input"
+                  type="select"
                   control={form.control}
                   name="insurance_provider"
-                  placeholder="Insurance provider"
+                  placeholder="Select provider"
                   label="Insurance provider"
-                />{" "}
+                  selectList={providerOptions}
+                />
+                {form.watch("insurance_provider") === "_OTHER" && (
+                  <div className="w-full">
+                    <Label>Custom provider</Label>
+                    <Input value={manualProvider} onChange={(e) => setManualProvider(e.target.value)} placeholder="Enter provider name" />
+                  </div>
+                )}
                 <CustomInput
                   type="input"
                   control={form.control}
@@ -335,6 +361,8 @@ export const NewPatient = ({ data, type }: DataProps) => {
                   name="hospital_number"
                   placeholder="Leave blank to auto-assign"
                   label="Hospital number"
+                  readOnly={type === "update"}
+                  disabled={type === "update"}
                 />
               </div>
             </div>

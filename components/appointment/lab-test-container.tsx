@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Table } from "../tables/table";
 import { format } from "date-fns";
 import { RequestLabTest } from "../dialogs/request-lab-test";
-import { UpdateLabTest } from "../dialogs/update-lab-test";
+import { UpdateLabTest, ApproveLabTestButton } from "../dialogs/update-lab-test";
 import { ensureDefaultLabUnits } from "@/utils/services/catalog-seed";
 
 const columns = [
@@ -26,6 +26,7 @@ export const LabTestContainer = async ({
   await ensureDefaultLabUnits();
   const isPatient = await checkRole("PATIENT");
   const isLabScientist = await checkRole("LAB_SCIENTIST");
+  const isLabTechnician = await checkRole("LAB_TECHNICIAN");
   const canRequest = (await checkRole("ADMIN")) || (await checkRole("DOCTOR")) || (await checkRole("NURSE"));
 
   const appointment = await db.appointment.findUnique({
@@ -85,23 +86,33 @@ export const LabTestContainer = async ({
         </td>
         <td className="hidden md:table-cell">{item?.status}</td>
         <td className="hidden xl:table-cell">
-          {isPatient && item?.status !== "COMPLETED" ? (
+          {isPatient && item?.status !== "COMPLETED" && item?.status !== "APPROVED" ? (
             <span className="text-gray-400 italic">Pending</span>
           ) : (
             <span className="whitespace-pre-wrap">{item?.result}</span>
           )}
         </td>
         <td>
-          {isLabScientist ? (
-            <UpdateLabTest
-              id={item.id}
-              currentStatus={item.status}
-              currentResult={item.result}
-              currentNotes={item.notes}
-            />
-          ) : (
-            <span className="text-gray-400 italic">—</span>
-          )}
+          <div className="flex items-center gap-2">
+            {(isLabScientist || isLabTechnician) ? (
+              <UpdateLabTest
+                id={item.id}
+                currentStatus={item.status}
+                currentResult={item.result}
+                currentNotes={item.notes}
+                currentSampleId={(item as any).sample_id}
+                canApprove={isLabScientist}
+              />
+            ) : (
+              <span className="text-gray-400 italic">—</span>
+            )}
+            {isLabScientist && item.status !== "APPROVED" && item.status === "COMPLETED" && (
+              <ApproveLabTestButton id={item.id} currentResult={item.result} currentSampleId={(item as any).sample_id} />
+            )}
+            {(item?.status === "COMPLETED" || item?.status === "APPROVED") && (
+              <a href={`/lab/print/${item.id}`} className="text-emerald-700 hover:underline text-sm">Print</a>
+            )}
+          </div>
         </td>
       </tr>
     );
