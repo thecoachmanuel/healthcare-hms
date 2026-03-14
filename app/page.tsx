@@ -4,69 +4,30 @@ import { getAuthUserId } from "@/lib/auth";
 import db from "@/lib/db";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import Image from "next/image";
-import { headers } from "next/headers";
-import AgencyLandingPage from "./agency/page";
 
-function normalizeHost(raw: string | null): string {
-  return String(raw ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/:\d+$/, "");
-}
-
-function getBaseDomain(): string {
-  const fromEnv =
-    process.env.NEXT_PUBLIC_BASE_DOMAIN?.trim() ||
-    process.env.BASE_DOMAIN?.trim() ||
-    process.env.VERCEL_URL?.trim() ||
-    "";
-  return fromEnv.toLowerCase();
-}
-
-function parseHospitalSlugFromHost(host: string, baseDomain: string): string | null {
-  if (!host) return null;
-  if (!baseDomain) return null;
-  if (host === baseDomain) return null;
-  const suffix = `.${baseDomain}`;
-  if (!host.endsWith(suffix)) return null;
-  const subdomain = host.slice(0, -suffix.length);
-  if (!subdomain) return null;
-  if (subdomain.includes(".")) return null;
-  return subdomain;
-}
-
-export default async function Home() {
-  const headerStore = await headers();
-  const host = normalizeHost(headerStore.get("x-tenant-host") ?? headerStore.get("host"));
-  const baseDomain = getBaseDomain();
-  const tenantSlug = parseHospitalSlugFromHost(host, baseDomain);
-  const isAgencyHost =
-    host === "" ||
-    host === baseDomain ||
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    (host === "localhost" && !tenantSlug);
-
-  const userId = await getAuthUserId();
-
-  if (userId) {
-    const role = await getRole();
-    if (role === "master_admin") redirect("/saas");
-    if (!isAgencyHost) redirect(role === "sign-in" ? "/sign-in" : `/${role}`);
-  }
-
-  if (isAgencyHost) {
-    return <AgencyLandingPage />;
-  }
-
-  const settings = await (async () => {
+const getSiteSettings = unstable_cache(
+  async () => {
     try {
       return await db.siteSettings.findFirst({ orderBy: { id: "asc" } });
     } catch {
       return null;
     }
-  })();
+  },
+  ["site-settings:primary"],
+  { tags: ["site-settings"], revalidate: 60 * 60 }
+);
+
+export default async function Home() {
+  const userId = await getAuthUserId();
+
+  if (userId) {
+    const role = await getRole();
+    redirect(role === "sign-in" ? "/sign-in" : `/${role}`);
+  }
+
+  const settings = await getSiteSettings();
   const homepageTitle = settings?.homepage_title?.trim() || "Modern Hospital Management, Simplified";
   const homepageSubtitle = settings?.homepage_subtitle?.trim() || "";
   const homepageText =

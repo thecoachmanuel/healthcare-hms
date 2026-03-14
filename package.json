@@ -8,7 +8,6 @@
     "start": "next start",
     "lint": "next lint",
     "seed:logins": "node scripts/seed-initial-logins.js",
-    "seed:hospital": "node scripts/seed-hospital-tenant.js",
     "postinstall": "prisma generate"
   },
   "prisma": {

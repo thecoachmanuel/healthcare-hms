@@ -1,6 +1,6 @@
 "use server";
 
-import db, { resolveHospitalIdFromRequest } from "@/lib/db";
+import db from "@/lib/db";
 import { revalidatePath, revalidateTag } from "next/cache";
 import {
   DoctorSchema,
@@ -12,26 +12,6 @@ import { generateRandomColor } from "@/utils";
 import { checkRole } from "@/utils/roles";
 import { requireAuthUserId } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-
-function normalizeHospitalSlug(input: string) {
-  const raw = String(input ?? "").trim().toLowerCase();
-  return raw.replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-/, "").replace(/-$/, "");
-}
-
-const RESERVED_HOSPITAL_SLUGS = new Set([
-  "www",
-  "api",
-  "admin",
-  "agency",
-  "saas",
-  "login",
-  "sign-in",
-  "sign-up",
-  "hospital-signup",
-  "payment",
-  "subscription",
-  "_next",
-]);
 
 function mapRoleToRoute(role: string) {
   if (role === "LAB_SCIENTIST") return "lab_scientist";
@@ -354,35 +334,6 @@ export async function setSiteSettings(data: {
     revalidatePath("/admin/system-settings");
 
     return { success: true, msg: "Settings updated" };
-  } catch (error: any) {
-    return { success: false, msg: error?.message ?? "Internal Server Error" };
-  }
-}
-
-export async function setHospitalSubdomain(data: { slug: string }) {
-  try {
-    await requireAuthUserId();
-    const isAdmin = await checkRole("ADMIN");
-    if (!isAdmin) return { success: false, msg: "Unauthorized" };
-
-    const hospitalId = await resolveHospitalIdFromRequest();
-    const desired = normalizeHospitalSlug(data.slug);
-    if (!desired || desired.length < 2) return { success: false, msg: "Invalid subdomain" };
-    if (RESERVED_HOSPITAL_SLUGS.has(desired)) {
-      return { success: false, msg: "Subdomain is reserved" };
-    }
-
-    const existing = await db.hospital.findFirst({ where: { slug: desired }, select: { id: true } });
-    if (existing && existing.id !== hospitalId) {
-      return { success: false, msg: "Subdomain is already in use" };
-    }
-
-    await db.hospital.update({ where: { id: hospitalId }, data: { slug: desired } });
-
-    revalidatePath("/");
-    revalidatePath("/admin/system-settings");
-
-    return { success: true, msg: "Subdomain updated" };
   } catch (error: any) {
     return { success: false, msg: error?.message ?? "Internal Server Error" };
   }

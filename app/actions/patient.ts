@@ -1,7 +1,6 @@
 "use server";
 
-import db, { resolveHospitalIdFromRequest } from "@/lib/db";
-import { SubscriptionStatus } from "@prisma/client";
+import db from "@/lib/db";
 import { PatientFormSchema, PatientUpdateSchema } from "@/lib/schema";
 import { requireAuthUserId } from "@/lib/auth";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -137,31 +136,6 @@ export async function createNewPatient(data: any, pid: string) {
       const userId = await requireAuthUserId();
       if (pid !== userId) {
         return { success: false, error: true, msg: "Unauthorized" };
-      }
-    }
-
-    const hospitalId = await resolveHospitalIdFromRequest();
-
-    const now = new Date();
-    const activeSub = await db.subscription.findFirst({
-      where: { hospital_id: hospitalId, status: SubscriptionStatus.ACTIVE, current_period_end: { gt: now } },
-      include: { plan: true },
-    });
-    const hospital = await db.hospital.findFirst({ where: { id: hospitalId }, select: { trial_ends_at: true } });
-    const trialActive = hospital?.trial_ends_at ? hospital.trial_ends_at.getTime() > now.getTime() : false;
-
-    let maxPatients: number | null = null;
-    if (activeSub?.plan?.max_patients != null) {
-      maxPatients = activeSub.plan.max_patients;
-    } else if (trialActive) {
-      const limits = await db.plan.findMany({ where: { active: true }, select: { max_patients: true } });
-      if (limits.length > 0) maxPatients = Math.min(...limits.map((x) => x.max_patients));
-    }
-
-    if (typeof maxPatients === "number") {
-      const currentCount = await db.patient.count({ where: { hospital_id: hospitalId } });
-      if (currentCount >= maxPatients) {
-        return { success: false, error: true, msg: "Patient limit reached for current plan" };
       }
     }
 

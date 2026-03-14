@@ -1,6 +1,4 @@
 import { getRole } from "@/utils/roles";
-import db, { resolveHospitalIdFromRequest } from "@/lib/db";
-import { SubscriptionStatus } from "@prisma/client";
 import {
   Bell,
   CalendarDays,
@@ -51,17 +49,6 @@ const SidebarIcon = ({ icon: Icon }: { icon: LucideIcon }) => {
 
 export const Sidebar = async () => {
   const role = await getRole();
-  const hospitalId = await resolveHospitalIdFromRequest();
-  const now = new Date();
-  const [activeSub, hospital] = await Promise.all([
-    db.subscription.findFirst({
-      where: { hospital_id: hospitalId, status: SubscriptionStatus.ACTIVE, current_period_end: { gt: now } },
-      select: { id: true },
-    }),
-    db.hospital.findFirst({ where: { id: hospitalId }, select: { trial_ends_at: true } }),
-  ]);
-  const trialActive = hospital?.trial_ends_at ? hospital.trial_ends_at.getTime() > now.getTime() : false;
-  const locked = !activeSub && !trialActive;
 
   const SIDEBAR_LINKS = [
     {
@@ -240,38 +227,30 @@ export const Sidebar = async () => {
           </Link>
         </div>
 
-        {locked ? (
-          <div className="mt-4 text-xs">
-            <div className="rounded-md border p-3 text-center bg-amber-50 text-amber-800">
-              Subscription inactive. <Link className="underline" href="/subscription">Subscribe</Link>
-            </div>
-          </div>
-        ) : (
-          <div className="mt-4 text-sm">
-            {SIDEBAR_LINKS.map((el) => (
-              <div key={el.label} className="flex flex-col gap-2">
-                <span className="hidden uppercase lg:block text-gray-400 font-bold my-4">
-                  {el.label}
-                </span>
+        <div className="mt-4 text-sm">
+          {SIDEBAR_LINKS.map((el) => (
+            <div key={el.label} className="flex flex-col gap-2">
+              <span className="hidden uppercase lg:block text-gray-400 font-bold my-4">
+                {el.label}
+              </span>
 
-                {el.links.map((link) => {
-                  if (link.access.includes(role.toLowerCase())) {
-                    return (
-                      <Link
-                        href={link.href}
-                        className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-blue-600/10"
-                        key={link.name}
-                      >
-                        <SidebarIcon icon={link.icon} />
-                        <span className="hidden lg:block">{link.name}</span>
-                      </Link>
-                    );
-                  }
-                })}
-              </div>
-            ))}
-          </div>
-        )}
+              {el.links.map((link) => {
+                if (link.access.includes(role.toLowerCase())) {
+                  return (
+                    <Link
+                      href={link.href}
+                      className="flex items-center justify-center lg:justify-start gap-4 text-gray-500 py-2 md:px-2 rounded-md hover:bg-blue-600/10"
+                      key={link.name}
+                    >
+                      <SidebarIcon icon={link.icon} />
+                      <span className="hidden lg:block">{link.name}</span>
+                    </Link>
+                  );
+                }
+              })}
+            </div>
+          ))}
+        </div>
       </div>
 
       <LogoutButton />

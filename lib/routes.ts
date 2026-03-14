@@ -3,21 +3,6 @@ type RouteAccessProps = {
 };
 
 export const routeAccess: RouteAccessProps = {
-  "/saas/login(.*)": ["sign-in", "master_admin"],
-  "/saas(.*)": ["master_admin"],
-  "/subscription(.*)": [
-    "admin",
-    "patient",
-    "doctor",
-    "nurse",
-    "record_officer",
-    "receptionist",
-    "lab_scientist",
-    "lab_technician",
-    "lab_receptionist",
-    "pharmacist",
-    "cashier",
-  ],
   "/admin(.*)": ["admin"],
   "/patient(.*)": ["patient", "admin", "doctor", "nurse", "record_officer"],
   "/doctor(.*)": ["doctor"],
