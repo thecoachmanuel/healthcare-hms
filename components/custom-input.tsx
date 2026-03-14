@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useMemo, useState } from "react";
 import { Control } from "react-hook-form";
 import {
   FormControl,
@@ -8,18 +10,14 @@ import {
   FormMessage,
 } from "./ui/form";
 import { Input } from "./ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "./ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Checkbox } from "./ui/checkbox";
 import { Textarea } from "./ui/textarea";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
+import { Input as TextInput } from "./ui/input";
+import { ProfileImage } from "./profile-image";
 
 interface InputProps {
   type: "input" | "select" | "checkbox" | "switch" | "radio" | "textarea";
@@ -28,13 +26,30 @@ interface InputProps {
   label?: string;
   placeholder?: string;
   inputType?: "text" | "email" | "password" | "date" | "tel";
-  selectList?: { label: string; value: string }[];
+  selectList?: Array<{ label: string; value: string; img?: string; hospital_number?: string; colorCode?: string }>;
   defaultValue?: string;
   readOnly?: boolean;
   disabled?: boolean;
+  searchable?: boolean;
 }
 
 const RenderInput = ({ field, props }: { field: any; props: InputProps }) => {
+  const isSelect = props.type === "select";
+  const [query, setQuery] = useState("");
+  const enableSearch = props.searchable !== false;
+  const options = props.selectList ?? [];
+  const filtered = useMemo(() => {
+    if (!isSelect) return options;
+    if (!enableSearch || query.trim().length === 0) return options.filter((o) => o.value !== "");
+    const q = query.toLowerCase();
+    return options.filter((o) => {
+      const labelHit = (o.label || "").toLowerCase().includes(q);
+      const hn = (o as any).hospital_number || "";
+      const hnHit = String(hn).toLowerCase().includes(q);
+      return o.value !== "" && (labelHit || hnHit);
+    });
+  }, [options, query, enableSearch, isSelect]);
+
   switch (props.type) {
     case "input":
       const isPhoneField =
@@ -57,7 +72,7 @@ const RenderInput = ({ field, props }: { field: any; props: InputProps }) => {
         </FormControl>
       );
 
-    case "select":
+    case "select": {
       return (
         <Select onValueChange={field.onChange} value={field?.value}>
           <FormControl>
@@ -66,16 +81,39 @@ const RenderInput = ({ field, props }: { field: any; props: InputProps }) => {
             </SelectTrigger>
           </FormControl>
           <SelectContent>
-            {props.selectList
-              ?.filter((i) => i.value !== "")
-              .map((i, id) => (
-                <SelectItem key={id} value={i.value}>
-                  {i.label}
+            {enableSearch ? (
+              <div className="p-2">
+                <TextInput
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Type to search..."
+                  className="h-8"
+                />
+              </div>
+            ) : null}
+            <div className="max-h-64 overflow-y-auto">
+              {filtered.map((i, id) => (
+                <SelectItem key={id} value={i.value} className="py-2">
+                  {(i.img || i.hospital_number) ? (
+                    <div className="flex items-center gap-2">
+                      <ProfileImage url={(i as any).img} name={i.label} bgColor={(i as any).colorCode} textClassName="text-black" />
+                      <div className="flex flex-col">
+                        <span className="text-sm">{i.label}</span>
+                        {i.hospital_number ? (
+                          <span className="text-xs text-gray-500">HN: {i.hospital_number}</span>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : (
+                    i.label
+                  )}
                 </SelectItem>
               ))}
+            </div>
           </SelectContent>
         </Select>
       );
+    }
 
     case "checkbox":
       return (

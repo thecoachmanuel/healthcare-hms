@@ -6,9 +6,9 @@ import React from "react";
 import { LabUnitSelector } from "@/components/forms/lab-unit-selector";
 import { ensureDefaultLabUnits } from "@/utils/services/catalog-seed";
 
-const LabTechnicianUnitPage = async () => {
+const LabReceptionistUnitPage = async () => {
   const userId = await requireAuthUserId();
-  const isAllowed = (await checkRole("LAB_TECHNICIAN")) || (await checkRole("LAB_RECEPTIONIST"));
+  const isAllowed = await checkRole("LAB_RECEPTIONIST");
   if (!isAllowed) return null;
 
   await ensureDefaultLabUnits();
@@ -50,4 +50,5 @@ const LabTechnicianUnitPage = async () => {
   );
 };
 
-export default LabTechnicianUnitPage;
+export default LabReceptionistUnitPage;
+

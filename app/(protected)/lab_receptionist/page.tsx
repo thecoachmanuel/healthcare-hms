@@ -20,9 +20,11 @@ const LabReceptionistDashboardPage = async () => {
         </CardHeader>
         <CardContent className="text-sm">
           <div className="flex flex-wrap gap-4">
-            <Link href="/lab_scientist/unit" className="text-blue-600 hover:underline">
-              Set My Unit
-            </Link>
+            {!staff?.lab_unit_id && (
+              <Link href="/lab_receptionist/unit" className="text-blue-600 hover:underline">
+                Set My Unit
+              </Link>
+            )}
             <Link href="/lab_scientist/lab-tests" className="text-blue-600 hover:underline">
               View Lab Requests
             </Link>

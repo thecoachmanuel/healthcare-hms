@@ -271,13 +271,17 @@ export async function updateMyLabUnit(labUnitId: number) {
   try {
     const userId = await requireAuthUserId();
     const isAllowed =
-      (await checkRole("LAB_SCIENTIST" as any)) || (await checkRole("LAB_TECHNICIAN" as any));
+      (await checkRole("LAB_SCIENTIST" as any)) ||
+      (await checkRole("LAB_TECHNICIAN" as any)) ||
+      (await checkRole("LAB_RECEPTIONIST" as any));
     if (!isAllowed) return { success: false, msg: "Unauthorized" };
 
-    await db.staff.update({
-      where: { id: userId },
-      data: { lab_unit_id: labUnitId },
-    });
+    const me = await db.staff.findUnique({ where: { id: userId }, select: { lab_unit_id: true } });
+    if (me?.lab_unit_id) {
+      return { success: false, msg: "Lab unit already set. Contact admin to change." };
+    }
+
+    await db.staff.update({ where: { id: userId }, data: { lab_unit_id: labUnitId } });
 
     await db.auditLog.create({
       data: {
@@ -289,7 +293,7 @@ export async function updateMyLabUnit(labUnitId: number) {
       },
     });
 
-    return { success: true, msg: "Lab unit updated" };
+    return { success: true, msg: "Lab unit set successfully" };
   } catch (error: any) {
     return { success: false, msg: error?.message ?? "Internal Server Error" };
   }

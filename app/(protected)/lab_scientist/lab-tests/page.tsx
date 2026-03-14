@@ -42,11 +42,11 @@ const LabTestsPage = async ({
 
   const staff = await db.staff.findUnique({
     where: { id: userId },
-    select: { lab_unit_id: true },
+    select: { lab_unit_id: true, department: true },
   });
 
   const allowedUnitId = staff?.lab_unit_id ? String(staff.lab_unit_id) : "";
-  const unitFilter = allowedUnitId || (isLabScientist ? unit : "");
+  const departmentFilter = !allowedUnitId && staff?.department ? staff.department : "";
 
   const units = await db.labUnit.findMany({
     where: { active: true },
@@ -78,7 +78,14 @@ const LabTestsPage = async ({
       orderBy: { created_at: "desc" },
       where: {
         AND: [
-          unitFilter ? ({ services: { lab_unit_id: Number(unitFilter) } } as any) : {},
+          allowedUnitId ? ({ services: { lab_unit_id: Number(allowedUnitId) } } as any) : {},
+          !allowedUnitId && departmentFilter
+            ? ({
+                medical_record: {
+                  appointment: { doctor: { department: { equals: departmentFilter, mode: "insensitive" } } },
+                },
+              } as any)
+            : {},
           status ? ({ status: status as any } as any) : {},
           q
             ? ({
@@ -115,7 +122,14 @@ const LabTestsPage = async ({
     db.labTest.count({
       where: {
         AND: [
-          unitFilter ? ({ services: { lab_unit_id: Number(unitFilter) } } as any) : {},
+          allowedUnitId ? ({ services: { lab_unit_id: Number(allowedUnitId) } } as any) : {},
+          !allowedUnitId && departmentFilter
+            ? ({
+                medical_record: {
+                  appointment: { doctor: { department: { equals: departmentFilter, mode: "insensitive" } } },
+                },
+              } as any)
+            : {},
           status ? ({ status: status as any } as any) : {},
           q
             ? ({
@@ -238,21 +252,11 @@ const LabTestsPage = async ({
               { label: "Cancelled", value: "CANCELLED" },
             ]}
           />
-          {isLabScientist && !allowedUnitId && (
-            <SelectFilter
-              param="unit"
-              label="Unit"
-              options={[
-                { label: "All", value: "" },
-                ...units.map((u: any) => ({ label: u.name, value: String(u.id) })),
-              ]}
-            />
-          )}
-          {isLabScientist && allowedUnitId && (
-            <div className="text-xs px-2 py-1 border rounded-md bg-slate-50">
-              Unit: {allowedUnitName}
-            </div>
-          )}
+          {allowedUnitId ? (
+            <div className="text-xs px-2 py-1 border rounded-md bg-slate-50">Unit: {allowedUnitName}</div>
+          ) : departmentFilter ? (
+            <div className="text-xs px-2 py-1 border rounded-md bg-slate-50">Dept: {departmentFilter}</div>
+          ) : null}
           {(isLabScientist || isLabReceptionist) && (
             <AddService
               category="LAB_TEST"

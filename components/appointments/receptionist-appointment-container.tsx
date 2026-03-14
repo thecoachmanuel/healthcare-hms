@@ -8,7 +8,7 @@ export async function ReceptionistAppointmentContainer() {
   const dept = staff?.department?.trim() ?? "";
 
   const [patients, doctors] = await Promise.all([
-    db.patient.findMany({ select: { id: true, first_name: true, last_name: true }, orderBy: { last_name: "asc" }, take: 200 }),
+    db.patient.findMany({ select: { id: true, first_name: true, last_name: true, img: true, hospital_number: true, colorCode: true }, orderBy: { last_name: "asc" }, take: 200 }),
     db.doctor.findMany({
       select: { id: true, name: true },
       where: dept.length > 0 ? ({ department: { contains: dept, mode: "insensitive" } } as any) : {},
@@ -16,7 +16,7 @@ export async function ReceptionistAppointmentContainer() {
     }),
   ]);
 
-  const patientOptions = patients.map((p: any) => ({ label: `${p.last_name} ${p.first_name}`.trim(), value: p.id }));
+  const patientOptions = patients.map((p: any) => ({ label: `${p.last_name} ${p.first_name}`.trim(), value: p.id, img: p.img, hospital_number: p.hospital_number, colorCode: p.colorCode }));
   const doctorOptions = doctors.map((d: any) => ({ label: d.name, value: d.id }));
 
   return <ReceptionistBookAppointment patients={patientOptions} doctors={doctorOptions} />;

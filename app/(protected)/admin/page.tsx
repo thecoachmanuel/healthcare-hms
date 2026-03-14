@@ -57,6 +57,24 @@ const AdminDashboard = async () => {
       note: "Total consultation",
       link: "/record/appointments",
     },
+    {
+      title: "Lab Tests",
+      value: appointmentCounts?.COMPLETED,
+      icon: BriefcaseMedical,
+      className: "bg-indigo-600/15",
+      iconClassName: "bg-indigo-600/25 text-indigo-600",
+      note: "Track lab requests",
+      link: "/admin/lab-tests",
+    },
+    {
+      title: "Payments",
+      value: 0,
+      icon: BriefcaseBusiness,
+      className: "bg-emerald-600/15",
+      iconClassName: "bg-emerald-600/25 text-emerald-600",
+      note: "Paid • Part • Owing",
+      link: "/admin/finance/payments",
+    },
   ];
 
   return (

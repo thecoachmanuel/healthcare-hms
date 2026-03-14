@@ -5,7 +5,7 @@ import { generateTimes } from "@/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Doctor, Patient } from "@prisma/client";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { SubmitHandler, useForm } from "react-hook-form";
 import {
   Sheet,
@@ -27,13 +27,8 @@ import {
 } from "../ui/form";
 import { ProfileImage } from "../profile-image";
 import { CustomInput } from "../custom-input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../ui/select";
+import { Input } from "../ui/input";
 import { toast } from "sonner";
 import { createNewAppointment } from "@/app/actions/appointment";
 
@@ -57,6 +52,12 @@ export const BookAppointment = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
   const physicians = doctors;
+  const [doctorQuery, setDoctorQuery] = useState("");
+  const filteredPhysicians = useMemo(() => {
+    if (!doctorQuery.trim()) return physicians;
+    const q = doctorQuery.toLowerCase();
+    return physicians.filter((d) => (d.name || "").toLowerCase().includes(q));
+  }, [physicians, doctorQuery]);
 
   const appointmentTimes = generateTimes(8, 17, 30);
 
@@ -163,8 +164,17 @@ export const BookAppointment = ({
                             <SelectValue placeholder="Select a physician" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent className="">
-                          {physicians?.map((i, id) => (
+                        <SelectContent>
+                          <div className="p-2">
+                            <Input
+                              value={doctorQuery}
+                              onChange={(e) => setDoctorQuery(e.target.value)}
+                              placeholder="Type to search..."
+                              className="h-8"
+                            />
+                          </div>
+                          <div className="max-h-64 overflow-y-auto">
+                          {filteredPhysicians?.map((i, id) => (
                             <SelectItem key={id} value={i.id} className="p-2">
                               <div className="flex flex-row gap-2 p-2">
                                 <ProfileImage
@@ -184,6 +194,7 @@ export const BookAppointment = ({
                               </div>
                             </SelectItem>
                           ))}
+                          </div>
                         </SelectContent>
                       </Select>
                       <FormMessage />

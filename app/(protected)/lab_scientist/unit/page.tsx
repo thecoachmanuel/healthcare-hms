@@ -24,16 +24,27 @@ const LabScientistUnitPage = async () => {
   return (
     <div className="p-6">
       <Card className="shadow-none rounded-xl">
-        <CardHeader>
-          <CardTitle>Lab Unit</CardTitle>
-          <CardDescription>Select the unit you currently work in.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <LabUnitSelector
-            currentUnitId={staff?.lab_unit_id ? String(staff.lab_unit_id) : ""}
-            units={units.map((u: any) => ({ label: u.name, value: String(u.id) }))}
-          />
-        </CardContent>
+        {staff?.lab_unit_id ? (
+          <>
+            <CardHeader>
+              <CardTitle>Lab Unit</CardTitle>
+              <CardDescription>You have already set your lab unit. Contact admin to change.</CardDescription>
+            </CardHeader>
+          </>
+        ) : (
+          <>
+            <CardHeader>
+              <CardTitle>Lab Unit</CardTitle>
+              <CardDescription>Select the unit you currently work in.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <LabUnitSelector
+                currentUnitId={""}
+                units={units.map((u: any) => ({ label: u.name, value: String(u.id) }))}
+              />
+            </CardContent>
+          </>
+        )}
       </Card>
     </div>
   );

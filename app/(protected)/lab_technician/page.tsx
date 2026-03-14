@@ -23,9 +23,11 @@ const LabTechnicianDashboardPage = async () => {
             <Link href="/lab_scientist/lab-tests" className="text-blue-600 hover:underline">
               View Lab Requests
             </Link>
-            <Link href="/lab_technician/unit" className="text-blue-600 hover:underline">
-              Set My Unit
-            </Link>
+            {!staff?.lab_unit_id && (
+              <Link href="/lab_technician/unit" className="text-blue-600 hover:underline">
+                Set My Unit
+              </Link>
+            )}
           </div>
         </CardContent>
         <CardContent className="text-xs text-gray-600 pt-0">
