@@ -71,6 +71,7 @@ const Appointments = async (props: {
   const to = (searchParams?.to || "") as string;
   const status = (searchParams?.status || "") as string;
   const type = (searchParams?.atype || "") as string;
+  const doctorId = (searchParams?.doc || "") as string;
 
   const typeRows = await db.appointment.findMany({
     distinct: ["type"],
@@ -84,6 +85,21 @@ const Appointments = async (props: {
       .filter((t) => t.length > 0)
       .map((t) => ({ label: t, value: t })),
   ];
+
+  let doctorOptions: { label: string; value: string }[] = [];
+  if (userRole === "admin") {
+    const selDept = (department || "").trim();
+    const doctors = await db.doctor.findMany({
+      where: selDept ? ({ department: { equals: selDept, mode: "insensitive" } } as any) : ({} as any),
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+      take: 200,
+    });
+    doctorOptions = [
+      { label: "All Doctors", value: "" },
+      ...doctors.map((d: any) => ({ label: d.name, value: d.id })),
+    ];
+  }
 
   let queryId = undefined;
 
@@ -117,6 +133,7 @@ const Appointments = async (props: {
       to: to || undefined,
       status: status || undefined,
       type: type || undefined,
+      doctorId: userRole === "admin" && doctorId ? doctorId : undefined,
     });
 
   if (!data) return null;
@@ -215,6 +232,14 @@ const Appointments = async (props: {
             label="Type"
             options={typeOptions}
           />
+          {userRole === "admin" && (
+            <>
+              <DepartmentFilter label="Doctor Dept" placeholder="e.g. OPD" />
+              {doctorOptions.length > 0 && (
+                <SelectFilter param="doc" label="Doctor" options={doctorOptions} />
+              )}
+            </>
+          )}
 
           {(userRole === "nurse" || userRole === "receptionist") && (
             <DepartmentFilter placeholder="e.g. OPD" />

@@ -58,6 +58,7 @@ interface AllAppointmentsProps {
   to?: string;
   status?: string;
   type?: string;
+  doctorId?: string;
 }
 
 const buildQuery = (
@@ -67,7 +68,8 @@ const buildQuery = (
   from?: string,
   to?: string,
   status?: string,
-  type?: string
+  type?: string,
+  doctorId?: string
 ) => {
   // Base conditions for search if it exists
   const searchConditions: Prisma.AppointmentWhereInput = search
@@ -127,7 +129,7 @@ const buildQuery = (
     : {};
 
   const combinedQuery: Prisma.AppointmentWhereInput =
-    id || search || dept || from || to || status || type
+    id || search || dept || from || to || status || type || doctorId
       ? {
           AND: [
             ...(Object.keys(searchConditions).length > 0
@@ -140,6 +142,7 @@ const buildQuery = (
             ...(Object.keys(dateRange).length > 0 ? [dateRange] : []),
             ...(Object.keys(statusFilter).length > 0 ? [statusFilter] : []),
             ...(Object.keys(typeFilter).length > 0 ? [typeFilter] : []),
+            ...(doctorId ? ([{ doctor_id: doctorId }] as any) : []),
           ],
         }
       : {};
@@ -157,6 +160,7 @@ export async function getPatientAppointments({
   to,
   status,
   type,
+  doctorId,
 }: AllAppointmentsProps) {
   try {
     const PAGE_NUMBER = Number(page) <= 0 ? 1 : Number(page);
@@ -166,7 +170,7 @@ export async function getPatientAppointments({
 
     const [data, totalRecord] = await Promise.all([
       db.appointment.findMany({
-        where: buildQuery(id, search, department, from, to, status, type),
+        where: buildQuery(id, search, department, from, to, status, type, doctorId),
         skip: SKIP,
         take: LIMIT,
         select: {
@@ -202,7 +206,7 @@ export async function getPatientAppointments({
         orderBy: { appointment_date: "desc" },
       }),
       db.appointment.count({
-        where: buildQuery(id, search, department, from, to, status, type),
+        where: buildQuery(id, search, department, from, to, status, type, doctorId),
       }),
     ]);
 
