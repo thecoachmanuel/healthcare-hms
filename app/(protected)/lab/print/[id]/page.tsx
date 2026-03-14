@@ -13,9 +13,10 @@ const PrintLabResultPage = async (props: ParamsProps) => {
   const params = await props.params;
   const id = Number(params.id);
 
-  const [isLabScientist, isLabTechnician, isDoctor, isNurse, isAdmin, isPatient] = await Promise.all([
+  const [isLabScientist, isLabTechnician, isLabReceptionist, isDoctor, isNurse, isAdmin, isPatient] = await Promise.all([
     checkRole("LAB_SCIENTIST"),
     checkRole("LAB_TECHNICIAN"),
+    checkRole("LAB_RECEPTIONIST"),
     checkRole("DOCTOR"),
     checkRole("NURSE"),
     checkRole("ADMIN"),
@@ -44,12 +45,12 @@ const PrintLabResultPage = async (props: ParamsProps) => {
   });
 
   if (!test) return null;
-  const isStaff = isLabScientist || isLabTechnician || isDoctor || isNurse || isAdmin;
+  const isStaff = isLabScientist || isLabTechnician || isLabReceptionist || isDoctor || isNurse || isAdmin;
   if (!isStaff && !isPatient) return null;
   if (isPatient && test.medical_record.patient.id !== userId) return null;
 
-  // Only allow viewing/printing when APPROVED for doctor/nurse/patient
-  if (test.status !== "APPROVED" && (isDoctor || isNurse || isPatient)) return null;
+  // Only allow viewing/printing when APPROVED for lab receptionist, technician, doctor, nurse, and patient
+  if (test.status !== "APPROVED" && (isLabReceptionist || isLabTechnician || isDoctor || isNurse || isPatient)) return null;
 
   const patient = test.medical_record.patient as any;
   const name = `${patient.first_name} ${patient.last_name}`.trim();
