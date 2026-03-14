@@ -17,6 +17,7 @@ const accounts: { role: string; email: string; password: string; description: st
   { role: "Record Officer", email: "record1@lasuth.org.ng", password: "lasuth2026", description: "Register patients, manage records and charts." },
   { role: "Receptionist", email: "reception1@lasuth.org.ng", password: "lasuth2026", description: "Schedule appointments and route patients." },
   { role: "Lab Receptionist", email: "labreception1@lasuth.org.ng", password: "lasuth2026", description: "Receive samples and route to lab units." },
+  { role: "Patient", email: "patient1@lasuth.org.ng", password: "lasuth2026", description: "Access personal records, prescriptions, and appointments." },
 ];
 
 export default function DemoPage() {
@@ -31,6 +32,44 @@ export default function DemoPage() {
     }
     router.replace("/");
     router.refresh();
+  };
+
+  const flowReceptionistBook = async () => {
+    const email = "reception1@lasuth.org.ng";
+    const password = "lasuth2026";
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    const res = await fetch("/api/demo/book-appointment", { method: "POST" });
+    const out = await res.json();
+    if (!out.success) {
+      toast.error(out.message ?? "Failed to book demo appointment");
+      return;
+    }
+    toast.success("Appointment booked");
+    router.replace(`/record/appointments/${out.appointmentId}`);
+  };
+
+  const flowCashierPay = async () => {
+    const email = "cashier1@lasuth.org.ng";
+    const password = "lasuth2026";
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      toast.error(error.message);
+      return;
+    }
+    const res = await fetch("/api/demo/complete-billing", { method: "POST" });
+    const out = await res.json();
+    if (!out.success) {
+      toast.error(out.message ?? "Failed to complete billing");
+      return;
+    }
+    toast.success("Payment completed");
+    router.replace(`/record/billing`);
   };
 
   return (
@@ -100,6 +139,19 @@ export default function DemoPage() {
                 <Link className="text-blue-600 hover:underline" href="/record/patients">Patients</Link>
                 <Link className="text-blue-600 hover:underline" href="/record/doctors">Doctors</Link>
               </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Scripted Flows</CardTitle>
+              <CardDescription>One‑click demos that perform typical tasks</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button className="w-full bg-emerald-600" onClick={flowReceptionistBook}>Book Appointment (Receptionist)</Button>
+              <Button className="w-full bg-emerald-600" onClick={flowCashierPay}>Complete Billing (Cashier)</Button>
             </CardContent>
           </Card>
         </div>

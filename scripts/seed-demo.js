@@ -104,6 +104,7 @@ async function main() {
     { role: "record_officer", email: "record1@lasuth.org.ng", password: "lasuth2026", name: "Record Officer" },
     { role: "receptionist", email: "reception1@lasuth.org.ng", password: "lasuth2026", name: "Receptionist One" },
     { role: "lab_receptionist", email: "labreception1@lasuth.org.ng", password: "lasuth2026", name: "Lab Reception" },
+    { role: "patient", email: "patient1@lasuth.org.ng", password: "lasuth2026", name: "Patient One" },
   ];
 
   const ids = {};
@@ -339,6 +340,38 @@ async function main() {
     );
   }
 
+  // Ensure a Patient profile linked to auth user
+  if (ids.patient) {
+    const patientEmail = USERS.find((u) => u.role === "patient").email;
+    const exists = await prisma.patient.findUnique({ where: { email: patientEmail } });
+    if (!exists) {
+      await prisma.patient.create({
+        data: {
+          id: ids.patient,
+          hospital_number: "HOSP-9999",
+          first_name: "Patient",
+          last_name: "One",
+          date_of_birth: new Date("1990-01-01"),
+          gender: "MALE",
+          phone: faker.phone.number(),
+          email: patientEmail,
+          marital_status: "Single",
+          address: faker.location.streetAddress(),
+          emergency_contact_name: faker.person.fullName(),
+          emergency_contact_number: faker.phone.number(),
+          relation: "Sibling",
+          blood_group: "O+",
+          allergies: "",
+          medical_conditions: "",
+          privacy_consent: true,
+          service_consent: true,
+          medical_consent: true,
+          colorCode: randColor(),
+        },
+      });
+    }
+  }
+
   // Appointments + Payments + Medical Records + Prescriptions + Lab Tests
   const services = await prisma.services.findMany();
   const consult = services.find((s) => s.service_name === "Consultation");
@@ -535,4 +568,3 @@ main().catch(async (e) => {
   console.error(e);
   process.exit(1);
 });
-
