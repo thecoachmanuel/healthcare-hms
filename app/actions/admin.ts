@@ -170,9 +170,20 @@ export async function createNewDoctor(data: any) {
     const wardId = (validatedValues as any).ward_id ? Number((validatedValues as any).ward_id) : null;
     delete (validatedValues as any).ward_id;
 
+    const specName = (validatedValues.specialization ?? "").trim();
+    const spec = specName
+      ? await db.doctorSpecialization.findFirst({
+          where: { name: { equals: specName, mode: "insensitive" }, active: true },
+          select: { department: true },
+        })
+      : null;
+
+    const computedDepartment = (spec?.department ?? validatedValues.department ?? "").trim() || null;
+
     const doctor = await db.doctor.create({
       data: {
         ...validatedValues,
+        department: computedDepartment as any,
         ward_id: wardId,
         id: created.user.id,
       },
@@ -450,6 +461,15 @@ export async function updateDoctor(data: any, doctorId: string) {
       return { success: false, msg: error.message };
     }
 
+    const specName = (validatedValues.specialization ?? "").trim();
+    const spec = specName
+      ? await db.doctorSpecialization.findFirst({
+          where: { name: { equals: specName, mode: "insensitive" }, active: true },
+          select: { department: true },
+        })
+      : null;
+    const computedDepartment = (spec?.department ?? validatedValues.department ?? "").trim() || null;
+
     await db.doctor.update({
       where: { id: doctorId },
       data: {
@@ -459,7 +479,7 @@ export async function updateDoctor(data: any, doctorId: string) {
         specialization: validatedValues.specialization,
         address: validatedValues.address,
         type: validatedValues.type,
-        department: validatedValues.department,
+        department: computedDepartment as any,
         ward_id: validatedValues.ward_id ? Number(validatedValues.ward_id) : null,
         img: validatedValues.img,
         license_number: validatedValues.license_number,
