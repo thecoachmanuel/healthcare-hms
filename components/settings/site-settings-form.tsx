@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 
 export function SiteSettingsForm({ initial }: { initial: any }) {
   const [loading, setLoading] = useState(false);
@@ -88,16 +89,29 @@ export function SiteSettingsForm({ initial }: { initial: any }) {
 
             <div className="rounded-lg border p-4 bg-gray-50">
               <p className="text-sm text-gray-600 mb-2">Homepage Preview</p>
-              <div className="text-3xl md:text-4xl font-bold leading-tight">
-                <span className="block">{form.watch("homepage_title") || "Modern Hospital Management,"}</span>
-                {(form.watch("homepage_title_highlight") || "Simplified").trim() ? (
-                  <span className="block text-blue-600">{(form.watch("homepage_title_highlight") || "Simplified").trim()}</span>
-                ) : null}
+              <div className="flex flex-col items-center gap-3 mb-4">
+                {Boolean((form.watch("logo_url") || "").trim()) && (
+                  <Image
+                    src={(form.watch("logo_url") || "").trim()}
+                    alt={(form.watch("site_name") || "Healthcare HMS").trim()}
+                    width={220}
+                    height={48}
+                    unoptimized
+                    loader={({ src }) => src}
+                    className="h-12 w-auto"
+                  />
+                )}
+                <div className="text-3xl md:text-4xl font-bold leading-tight text-center">
+                  <span className="block">{form.watch("homepage_title") || "Modern Hospital Management,"}</span>
+                  {(form.watch("homepage_title_highlight") || "Simplified").trim() ? (
+                    <span className="block text-blue-600">{(form.watch("homepage_title_highlight") || "Simplified").trim()}</span>
+                  ) : null}
+                </div>
+                {Boolean((form.watch("homepage_subtitle") || "").trim()) && (
+                  <p className="text-center text-gray-600">{(form.watch("homepage_subtitle") || "").trim()}</p>
+                )}
               </div>
-              {Boolean((form.watch("homepage_subtitle") || "").trim()) && (
-                <p className="mt-2 text-gray-600">{(form.watch("homepage_subtitle") || "").trim()}</p>
-              )}
-              <p className="mt-3 text-sm text-gray-700 max-w-2xl">
+              <p className="mt-1 text-sm text-gray-700 max-w-2xl mx-auto text-center">
                 {(form.watch("homepage_text") ||
                   "Streamline appointments, clinical documentation, lab workflows, billing, and inpatient care in one secure system.") as string}
               </p>

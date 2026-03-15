@@ -438,3 +438,155 @@ export async function approveLabTestService(id: number) {
     return { success: false, msg: error?.message ?? "Internal Server Error" };
   }
 }
+
+export async function approveLabTestServicesBulk(ids: number[]) {
+  try {
+    const userId = await requireAuthUserId();
+    const isAdmin = await checkRole("ADMIN" as any);
+    const isLabScientist = await checkRole("LAB_SCIENTIST" as any);
+
+    if (!isAdmin && !isLabScientist) return { success: false, msg: "Unauthorized" };
+
+    const services = await db.services.findMany({
+      where: { id: { in: ids }, category: "LAB_TEST" as any, approved: false },
+      select: { id: true, lab_unit_id: true, created_by_role: true },
+    });
+
+    if (services.length === 0) return { success: true, msg: "No pending items" };
+
+    if (isLabScientist && !isAdmin) {
+      const me = await db.staff.findUnique({ where: { id: userId }, select: { lab_unit_id: true } });
+      const allowedIds = new Set(
+        services
+          .filter(
+            (s: any) =>
+              s.lab_unit_id && me?.lab_unit_id === s.lab_unit_id &&
+              (s.created_by_role === ("LAB_RECEPTIONIST" as any) || s.created_by_role === ("LAB_TECHNICIAN" as any))
+          )
+          .map((s: any) => s.id)
+      );
+      ids = ids.filter((id) => allowedIds.has(id));
+      if (ids.length === 0) return { success: false, msg: "No permitted items to approve" };
+    }
+
+    await db.services.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        approved: true,
+        approved_by_id: userId,
+        approved_by_role: isAdmin ? ("ADMIN" as any) : ("LAB_SCIENTIST" as any),
+        approved_at: new Date(),
+      },
+    });
+
+    return { success: true, msg: "Approved selected" };
+  } catch (error: any) {
+    return { success: false, msg: error?.message ?? "Internal Server Error" };
+  }
+}
+
+export async function bulkApproveLabTests(formData: FormData) {
+  "use server";
+  const raw = formData.get("ids");
+  const ids = Array.isArray(raw)
+    ? (raw as any[]).map((v) => Number(v))
+    : JSON.parse(String(raw || "[]"));
+  return approveLabTestServicesBulk(ids as number[]);
+}
+
+export async function deletePendingLabTest(id: number) {
+  try {
+    const userId = await requireAuthUserId();
+    const isAdmin = await checkRole("ADMIN" as any);
+    const isLabScientist = await checkRole("LAB_SCIENTIST" as any);
+
+    const service = await db.services.findUnique({
+      where: { id },
+      select: { id: true, approved: true, category: true, lab_unit_id: true },
+    });
+    if (!service || service.category !== ("LAB_TEST" as any)) return { success: false, msg: "Item not found" };
+    if (service.approved) return { success: false, msg: "Cannot delete an approved item" };
+
+    if (!isAdmin && !isLabScientist) return { success: false, msg: "Unauthorized" };
+    if (isLabScientist && !isAdmin) {
+      const me = await db.staff.findUnique({ where: { id: userId }, select: { lab_unit_id: true } });
+      if (!me?.lab_unit_id || me.lab_unit_id !== service.lab_unit_id) {
+        return { success: false, msg: "Not permitted to delete this item" };
+      }
+    }
+
+    await db.services.delete({ where: { id } });
+    return { success: true, msg: "Deleted" };
+  } catch (error: any) {
+    return { success: false, msg: error?.message ?? "Internal Server Error" };
+  }
+}
+
+export async function bulkDeletePendingLabTests(formData: FormData) {
+  "use server";
+  const ids = JSON.parse(String(formData.get("ids") || "[]")) as number[];
+  const results = [] as any[];
+  for (const id of ids) {
+    // eslint-disable-next-line no-await-in-loop
+    results.push(await deletePendingLabTest(id));
+  }
+  const ok = results.filter((r) => r.success).length;
+  return { success: ok > 0, msg: ok > 0 ? "Deleted selected" : (results[0]?.msg || "Failed") };
+}
+
+export async function updateLabTestCatalogItem(data: {
+  id: number;
+  service_name: string;
+  price: number;
+  description: string;
+  lab_unit_id: number;
+}) {
+  try {
+    const userId = await requireAuthUserId();
+    const isAdmin = await checkRole("ADMIN" as any);
+    const isLabScientist = await checkRole("LAB_SCIENTIST" as any);
+
+    const service = await db.services.findUnique({
+      where: { id: data.id },
+      select: { id: true, category: true, approved: true, lab_unit_id: true },
+    });
+    if (!service || service.category !== ("LAB_TEST" as any)) return { success: false, msg: "Item not found" };
+
+    if (!isAdmin && !isLabScientist) return { success: false, msg: "Unauthorized" };
+    if (isLabScientist && !isAdmin) {
+      if (service.approved) return { success: false, msg: "Cannot edit approved item" };
+      const me = await db.staff.findUnique({ where: { id: userId }, select: { lab_unit_id: true } });
+      if (!me?.lab_unit_id || me.lab_unit_id !== service.lab_unit_id) {
+        return { success: false, msg: "Not permitted to edit this item" };
+      }
+    }
+
+    const name = data.service_name.trim();
+    if (!name) return { success: false, msg: "Name is required" };
+
+    const dup = await db.services.findFirst({
+      where: {
+        id: { not: data.id },
+        category: "LAB_TEST" as any,
+        lab_unit_id: Number(data.lab_unit_id),
+        service_name: { equals: name, mode: "insensitive" },
+      } as any,
+      select: { id: true },
+    });
+    if (dup) return { success: false, msg: "Duplicate test exists for this unit" };
+
+    await db.services.update({
+      where: { id: data.id },
+      data: {
+        service_name: name,
+        price: Number(data.price),
+        description: data.description,
+        lab_unit_id: Number(data.lab_unit_id),
+      },
+    });
+
+    return { success: true, msg: "Updated" };
+  } catch (error: any) {
+    return { success: false, msg: error?.message ?? "Internal Server Error" };
+  }
+}

@@ -14,6 +14,7 @@ import { SelectFilter } from "@/components/filters/select-filter";
 import { AddService } from "@/components/dialogs/add-service";
 
 const columns = [
+  { header: "S/N", key: "sn" },
   { header: "Patient", key: "patient" },
   { header: "Test", key: "test" },
   { header: "Requested", key: "requested", className: "hidden md:table-cell" },
@@ -174,6 +175,7 @@ const LabTestsPage = async ({
         key={item.id}
         className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-slate-50"
       >
+        <td className="py-4 px-2">{(item as any).index + 1}</td>
         <td className="flex items-center gap-4 p-4">
           <ProfileImage
             url={patient.img!}
@@ -273,7 +275,7 @@ const LabTestsPage = async ({
         </div>
       </div>
 
-      <div className="mt-4">
+      <div className="mt-4 max-h-[65vh] overflow-y-auto">
         <Table columns={columns} data={tests as any[]} renderRow={renderRow} />
         <Pagination
           totalPages={totalPages}

@@ -255,6 +255,21 @@ export async function addNewService(data: any) {
       return { success: false, msg: "Please select a lab unit" };
     }
 
+    // Prevent duplicate lab tests by name within the same unit (case-insensitive)
+    if (category === "LAB_TEST") {
+      const exists = await db.services.findFirst({
+        where: {
+          category: "LAB_TEST" as any,
+          lab_unit_id: validatedData.lab_unit_id ? Number(validatedData.lab_unit_id) : null,
+          service_name: { equals: validatedData.service_name.trim(), mode: "insensitive" },
+        } as any,
+        select: { id: true },
+      });
+      if (exists) {
+        return { success: false, msg: "Duplicate test exists for this unit", error: true };
+      }
+    }
+
     const createdService = await db.services.create({
       data: {
         ...validatedData!,
