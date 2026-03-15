@@ -58,12 +58,12 @@ const AuthLayout = async ({ children }: { children: React.ReactNode }) => {
           className="w-full h-full object-cover"
         />
         <div className="absolute top-0 w-full h-full bg-black bg-opacity-40 z-10 flex flex-col items-center justify-center">
+          <p className="text-blue-300 text-lg md:text-xl font-semibold tracking-wide mb-2">You're welcome to</p>
           <Link href="/" aria-label="Go to homepage" className="focus:outline-none focus:ring-2 focus:ring-white/70 rounded">
             <h1 className="text-3xl 2xl:text-5xl font-bold text-white">
               {displaySiteName}
             </h1>
           </Link>
-          <p className="text-blue-500 text-base">You're welcome</p>
         </div>
       </div>
     </div>

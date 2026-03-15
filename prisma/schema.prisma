@@ -433,6 +433,7 @@ model SiteSettings {
   site_title  String?
   logo_url    String?
   auth_image_url String?
+  homepage_title_highlight String?
   homepage_title String?
   homepage_subtitle String?
   homepage_text  String?

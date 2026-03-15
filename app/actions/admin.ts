@@ -313,6 +313,7 @@ export async function setSiteSettings(data: {
   logo_url?: string;
   auth_image_url?: string;
   homepage_title?: string;
+  homepage_title_highlight?: string;
   homepage_subtitle?: string;
   homepage_text?: string;
 }) {
@@ -327,6 +328,7 @@ export async function setSiteSettings(data: {
       logo_url: data.logo_url?.trim() || null,
       auth_image_url: data.auth_image_url?.trim() || null,
       homepage_title: data.homepage_title?.trim() || null,
+      homepage_title_highlight: data.homepage_title_highlight?.trim() || null,
       homepage_subtitle: data.homepage_subtitle?.trim() || null,
       homepage_text: data.homepage_text?.trim() || null,
     };
@@ -337,15 +339,36 @@ export async function setSiteSettings(data: {
 
     const existing = await db.siteSettings.findFirst({ orderBy: { id: "asc" } });
     let saved: any;
-    if (existing) {
-      saved = await db.siteSettings.update({
-        where: { id: existing.id },
-        data: { ...payload, updated_by_id: userId },
-      });
-    } else {
-      saved = await db.siteSettings.create({
-        data: { ...payload, updated_by_id: userId },
-      });
+    try {
+      if (existing) {
+        saved = await db.siteSettings.update({
+          where: { id: existing.id },
+          data: { ...payload, updated_by_id: userId },
+        });
+      } else {
+        saved = await db.siteSettings.create({
+          data: { ...payload, updated_by_id: userId },
+        });
+      }
+    } catch (e) {
+      const fallbackPayload = {
+        site_name: payload.site_name,
+        site_title: payload.site_title,
+        logo_url: payload.logo_url,
+        homepage_title: payload.homepage_title,
+        homepage_subtitle: payload.homepage_subtitle,
+        homepage_text: payload.homepage_text,
+      } as any;
+      if (existing) {
+        saved = await db.siteSettings.update({
+          where: { id: existing.id },
+          data: { ...fallbackPayload, updated_by_id: userId },
+        });
+      } else {
+        saved = await db.siteSettings.create({
+          data: { ...fallbackPayload, updated_by_id: userId },
+        });
+      }
     }
 
     await db.auditLog.create({

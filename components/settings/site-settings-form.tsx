@@ -23,6 +23,7 @@ export function SiteSettingsForm({ initial }: { initial: any }) {
       site_name: initial?.site_name ?? "Healthcare HMS",
       site_title: initial?.site_title ?? "",
       logo_url: initial?.logo_url ?? "",
+      homepage_title_highlight: initial?.homepage_title_highlight ?? "",
       auth_image_url: initial?.auth_image_url ?? "",
       homepage_title: initial?.homepage_title ?? "Modern Hospital Management, Simplified",
       homepage_subtitle: initial?.homepage_subtitle ?? "",
@@ -49,6 +50,7 @@ export function SiteSettingsForm({ initial }: { initial: any }) {
         site_name: values.site_name,
         site_title: values.site_title,
         logo_url,
+        homepage_title_highlight: values.homepage_title_highlight,
         auth_image_url,
         homepage_title: values.homepage_title,
         homepage_subtitle: values.homepage_subtitle,
@@ -79,6 +81,27 @@ export function SiteSettingsForm({ initial }: { initial: any }) {
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <CustomInput type="input" control={form.control} name="site_name" label="Site Name" placeholder="" />
             <CustomInput type="input" control={form.control} name="site_title" label="Site Title" placeholder="" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CustomInput type="input" control={form.control} name="homepage_title" label="Homepage Title (Top)" placeholder="" />
+              <CustomInput type="input" control={form.control} name="homepage_title_highlight" label="Homepage Title Highlight (Blue)" placeholder="" />
+            </div>
+
+            <div className="rounded-lg border p-4 bg-gray-50">
+              <p className="text-sm text-gray-600 mb-2">Homepage Preview</p>
+              <div className="text-3xl md:text-4xl font-bold leading-tight">
+                <span className="block">{form.watch("homepage_title") || "Modern Hospital Management,"}</span>
+                {(form.watch("homepage_title_highlight") || "Simplified").trim() ? (
+                  <span className="block text-blue-600">{(form.watch("homepage_title_highlight") || "Simplified").trim()}</span>
+                ) : null}
+              </div>
+              {Boolean((form.watch("homepage_subtitle") || "").trim()) && (
+                <p className="mt-2 text-gray-600">{(form.watch("homepage_subtitle") || "").trim()}</p>
+              )}
+              <p className="mt-3 text-sm text-gray-700 max-w-2xl">
+                {(form.watch("homepage_text") ||
+                  "Streamline appointments, clinical documentation, lab workflows, billing, and inpatient care in one secure system.") as string}
+              </p>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="site-logo">Site logo</Label>
@@ -101,7 +124,6 @@ export function SiteSettingsForm({ initial }: { initial: any }) {
               />
             </div>
             <CustomInput type="input" control={form.control} name="auth_image_url" label="Auth Image URL" placeholder="" />
-            <CustomInput type="input" control={form.control} name="homepage_title" label="Homepage Title" placeholder="" />
             <CustomInput type="input" control={form.control} name="homepage_subtitle" label="Homepage Subtitle" placeholder="" />
             <CustomInput type="textarea" control={form.control} name="homepage_text" label="Homepage Text" placeholder="" />
             <Button type="submit" disabled={loading} className="bg-blue-600">

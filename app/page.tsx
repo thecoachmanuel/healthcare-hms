@@ -29,12 +29,33 @@ export default async function Home() {
 
   const settings = await getSiteSettings();
   const homepageTitle = settings?.homepage_title?.trim() || "Modern Hospital Management, Simplified";
+  const homepageTitleHighlight = settings?.homepage_title_highlight?.trim?.() || "";
   const homepageSubtitle = settings?.homepage_subtitle?.trim() || "";
   const homepageText =
     settings?.homepage_text?.trim() ||
     "Streamline appointments, clinical documentation, lab workflows, billing, and inpatient care in one secure system. Built for frontline teams and administrators to work faster, reduce errors, and deliver better patient outcomes.";
   const siteName = settings?.site_name?.trim() || "Healthcare HMS";
   const logoUrl = settings?.logo_url?.trim() || "";
+
+  const [titleTop, titleBottom] = (() => {
+    if (homepageTitleHighlight) {
+      return [homepageTitle, homepageTitleHighlight];
+    }
+    const s = homepageTitle;
+    const idx = s.lastIndexOf(",");
+    if (idx !== -1) {
+      const top = s.slice(0, idx).trim();
+      const bottom = s.slice(idx + 1).trim();
+      return [top, bottom];
+    }
+    const parts = s.trim().split(/\s+/);
+    if (parts.length > 1) {
+      const bottom = parts.pop() as string;
+      const top = parts.join(" ");
+      return [top, bottom];
+    }
+    return [s, ""];
+  })();
 
   return (
     <div className="flex flex-col items-center justify-center h-screen p-6">
@@ -53,8 +74,9 @@ export default async function Home() {
                 className="h-12 w-auto"
               />
             ) : null}
-            <h1 className="text-4xl md:text-5xl font-bold text-center">
-              {homepageTitle}
+            <h1 className="text-4xl md:text-5xl font-bold text-center leading-tight">
+              <span className="block">{titleTop}</span>
+              {titleBottom ? <span className="block text-blue-600">{titleBottom}</span> : null}
             </h1>
             {homepageSubtitle ? (
               <p className="text-center text-gray-600 max-w-2xl">{homepageSubtitle}</p>
@@ -71,7 +93,7 @@ export default async function Home() {
             </Link>
 
             <Link href="/sign-in">
-              <Button variant="outline" className="md:text-base underline hover:text-nlue-600">
+              <Button variant="outline" className="md:text-base underline hover:text-blue-600">
                 Login to account
               </Button>
             </Link>
