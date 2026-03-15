@@ -141,6 +141,12 @@ const NurseLabTestsPage = async ({
 
   const totalPages = Math.ceil(totalRecords / limit);
 
+  const appointmentIds = Array.from(new Set((tests as any[]).map((t) => t.medical_record.appointment_id).filter(Boolean)));
+  const payments = appointmentIds.length
+    ? await db.payment.findMany({ where: { appointment_id: { in: appointmentIds } }, select: { appointment_id: true, status: true } })
+    : [];
+  const payMap = new Map(payments.map((p: any) => [p.appointment_id, p.status]));
+
   const renderRow = (item: any) => {
     const patient = item.medical_record.patient;
     const name = `${patient.first_name} ${patient.last_name}`.trim();
@@ -167,7 +173,27 @@ const NurseLabTestsPage = async ({
             </div>
           </div>
         </td>
-        <td>{item.services?.service_name}</td>
+        <td>
+          <div className="flex items-center gap-2">
+            <span>{item.services?.service_name}</span>
+            {(() => {
+              const st = payMap.get(item.medical_record.appointment_id);
+              const cls = st === "PAID" ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                : st === "PART" ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                : "bg-rose-100 text-rose-700 border-rose-200";
+              return (
+                <span title={`Payment: ${st || "UNPAID"}`}
+                  className={`text-[10px] px-2 py-0.5 rounded border ${cls}`}>
+                  {st || "UNPAID"}
+                </span>
+              );
+            })()}
+          </div>
+          <div className="mt-1 text-[11px] text-gray-500">
+            <span title="Requested at" className="mr-3">Req: {format(item.test_date, "yyyy-MM-dd HH:mm")}</span>
+            <span title="Approved at">Appr: {item.approved_at ? format(item.approved_at, "yyyy-MM-dd HH:mm") : "-"}</span>
+          </div>
+        </td>
         <td className="hidden md:table-cell">{format(item.test_date, "yyyy-MM-dd")}</td>
         <td className="hidden md:table-cell">{item.status}</td>
         <td>
@@ -221,4 +247,3 @@ const NurseLabTestsPage = async ({
 };
 
 export default NurseLabTestsPage;
-

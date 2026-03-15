@@ -216,7 +216,6 @@ const LabTestsPage = async ({
           </div>
           <div className="mt-1 text-[11px] text-gray-500">
             <span title="Requested at" className="mr-3">Req: {format(item.test_date, "yyyy-MM-dd HH:mm")}</span>
-            <span title="Sample collected at" className="mr-3">Samp: {item.collected_at ? format(item.collected_at, "yyyy-MM-dd HH:mm") : "-"}</span>
             <span title="Approved at">Appr: {item.approved_at ? format(item.approved_at, "yyyy-MM-dd HH:mm") : "-"}</span>
           </div>
         </td>

@@ -194,9 +194,15 @@ export default PatientProfile;
 async function PatientLabTestsCard({ patientId }: { patientId: string }) {
   const tests = await db.labTest.findMany({
     where: { medical_record: { patient_id: patientId } },
-    include: { services: { select: { service_name: true } } },
+    include: { services: { select: { service_name: true } }, medical_record: { select: { appointment_id: true } } },
     orderBy: { created_at: "desc" },
   });
+
+  const appointmentIds = Array.from(new Set(tests.map((t: any) => t.medical_record?.appointment_id).filter(Boolean)));
+  const payments = appointmentIds.length
+    ? await db.payment.findMany({ where: { appointment_id: { in: appointmentIds } }, select: { appointment_id: true, status: true } })
+    : [];
+  const payMap = new Map(payments.map((p: any) => [p.appointment_id, p.status]));
 
   return (
     <Card className="border-none shadow-none">
@@ -220,7 +226,27 @@ async function PatientLabTestsCard({ patientId }: { patientId: string }) {
             <tbody>
               {tests.map((t: any) => (
                 <tr key={t.id} className="border-b">
-                  <td className="py-2">{t.services?.service_name}</td>
+                  <td className="py-2">
+                    <div className="flex items-center gap-2">
+                      <span>{t.services?.service_name}</span>
+                      {(() => {
+                        const st = payMap.get(t.medical_record?.appointment_id);
+                        const cls = st === "PAID" ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                          : st === "PART" ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                          : "bg-rose-100 text-rose-700 border-rose-200";
+                        return (
+                          <span title={`Payment: ${st || "UNPAID"}`}
+                            className={`text-[10px] px-2 py-0.5 rounded border ${cls}`}>
+                            {st || "UNPAID"}
+                          </span>
+                        );
+                      })()}
+                    </div>
+                    <div className="mt-1 text-[11px] text-gray-500">
+                      <span title="Requested at" className="mr-3">Req: {format(t.test_date, "yyyy-MM-dd HH:mm")}</span>
+                      <span title="Approved at">Appr: {t.approved_at ? format(t.approved_at, "yyyy-MM-dd HH:mm") : "-"}</span>
+                    </div>
+                  </td>
                   <td className="py-2 hidden md:table-cell">{format(t.test_date, "yyyy-MM-dd")}</td>
                   <td className="py-2">{t.status}</td>
                   <td className="py-2">
