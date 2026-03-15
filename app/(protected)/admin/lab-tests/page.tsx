@@ -4,7 +4,7 @@ import SearchInput from "@/components/search-input";
 import { SelectFilter } from "@/components/filters/select-filter";
 import { DateRangeFilter } from "@/components/filters/date-range-filter";
 import { LabVolumeByUnitChart, LabTestStatusChart } from "@/components/charts/admin-reports";
-import { downloadCSV } from "@/lib/csv-export";
+import { ExportCsvButton } from "@/components/export-csv-button";
 import { requireAuthUserId } from "@/lib/auth";
 import db from "@/lib/db";
 import { DATA_LIMIT } from "@/utils/seetings";
@@ -139,10 +139,7 @@ const AdminLabTestsPage = async ({
     "Approved Date": t.approved_at ? format(t.approved_at, "yyyy-MM-dd") : (t.analysis_completed_at ? format(t.analysis_completed_at, "yyyy-MM-dd") : "-"),
   }));
 
-  const handleExportCSV = () => {
-    const timestamp = format(new Date(), "yyyy-MM-dd_HH-mm-ss");
-    downloadCSV(csvData, `lab_tests_report_${timestamp}.csv`);
-  };
+  // CSV export handled in client component
 
   const renderRow = (t: any) => {
     const patient = t.medical_record.patient;
@@ -240,12 +237,11 @@ const AdminLabTestsPage = async ({
             <div className="text-xs px-2 py-1 border rounded-md bg-slate-50">Completed: {completedCount}</div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleExportCSV}
+            <ExportCsvButton
+              data={csvData as any[]}
+              filenamePrefix="lab_tests_report"
               className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Export CSV
-            </button>
+            />
             <SearchInput />
             <DateRangeFilter />
             <SelectFilter
