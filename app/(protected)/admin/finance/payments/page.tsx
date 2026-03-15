@@ -1,4 +1,3 @@
-import { Pagination } from "@/components/pagination";
 import { Table } from "@/components/tables/table";
 import SearchInput from "@/components/search-input";
 import { SelectFilter } from "@/components/filters/select-filter";
@@ -8,7 +7,6 @@ import { ExportCsvButton } from "@/components/export-csv-button";
 import { formatCurrency } from "@/lib/csv-export";
 import { requireAuthUserId } from "@/lib/auth";
 import db from "@/lib/db";
-import { DATA_LIMIT } from "@/utils/seetings";
 import { checkRole } from "@/utils/roles";
 import { format } from "date-fns";
 import React from "react";
@@ -41,13 +39,10 @@ const AdminPaymentsPage = async ({
   if (!isAdmin) return null;
 
   const sp = await searchParams;
-  const page = Number((sp?.p || "1") as string) || 1;
   const q = (sp?.q as string) || "";
   const status = (sp?.status as string) || "";
   const from = (sp?.from as string) || "";
   const to = (sp?.to as string) || "";
-  const limit = DATA_LIMIT;
-  const skip = (page - 1) * limit;
 
   // Base filter by patient name or hospital number
   const patientFilter = q
@@ -74,7 +69,7 @@ const AdminPaymentsPage = async ({
   else if (status === "PART") baseWhere.AND.push({ status: "PART" });
   else if (status === "UNPAID") baseWhere.AND.push({ status: "UNPAID" });
 
-  const [rowsRaw, counts, paymentStats] = await Promise.all([
+  const [rowsRaw, paymentStats] = await Promise.all([
     db.payment.findMany({
       include: {
         patient: { select: { first_name: true, last_name: true, hospital_number: true } },
@@ -82,15 +77,7 @@ const AdminPaymentsPage = async ({
       },
       where: baseWhere,
       orderBy: { created_at: "desc" as any },
-      skip,
-      take: limit,
     }),
-    Promise.all([
-      db.payment.count({ where: {} }),
-      db.payment.count({ where: { status: "PAID" as any } }),
-      db.payment.count({ where: { status: "PART" as any } }),
-      db.payment.count({ where: { status: "UNPAID" as any } }),
-    ]),
     // Get payment statistics for charts
     db.payment.groupBy({
       by: ["status"],
@@ -104,7 +91,7 @@ const AdminPaymentsPage = async ({
     rows = rowsRaw.filter((p: any) => p.status === "UNPAID" || computeOutstanding(p) > 0);
   }
 
-  const [totalCount, paidCount, partCount, unpaidCount] = counts as number[];
+  const totalCount = rowsRaw.length;
 
   // Prepare chart data
   const chartData = paymentStats.map(stat => ({
@@ -159,8 +146,6 @@ const AdminPaymentsPage = async ({
     );
   };
 
-  const totalPages = Math.ceil(totalCount / limit);
-
   // Calculate summary statistics
   const totalAmount = rows.reduce((sum, p) => sum + Number(p.total_amount || 0), 0);
   const totalPaid = rows.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0);
@@ -206,12 +191,6 @@ const AdminPaymentsPage = async ({
       {/* Data Table */}
       <div className="bg-white rounded-xl py-6 px-3 2xl:px-6">
         <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="text-sm px-2 py-1 border rounded-md bg-slate-50">Total: {totalCount}</div>
-            <div className="text-xs px-2 py-1 border rounded-md bg-slate-50">Paid: {paidCount}</div>
-            <div className="text-xs px-2 py-1 border rounded-md bg-slate-50">Part: {partCount}</div>
-            <div className="text-xs px-2 py-1 border rounded-md bg-slate-50">Unpaid: {unpaidCount}</div>
-          </div>
           <div className="flex items-center gap-2">
             <ExportCsvButton
               data={csvData as any[]}
@@ -234,9 +213,8 @@ const AdminPaymentsPage = async ({
           </div>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-4 max-h-[560px] overflow-y-auto">
           <Table columns={columns} data={rows as any[]} renderRow={renderRow} />
-          <Pagination totalPages={totalPages} currentPage={page} totalRecords={totalCount} limit={DATA_LIMIT} />
         </div>
       </div>
     </div>
