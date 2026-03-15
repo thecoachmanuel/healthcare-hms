@@ -70,7 +70,6 @@ export default async function Home() {
                 height={48}
                 priority
                 unoptimized
-                loader={({ src }) => src}
                 className="h-12 w-auto"
               />
             ) : null}

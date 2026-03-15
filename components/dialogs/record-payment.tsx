@@ -78,7 +78,7 @@ export function RecordPayment({
         .then((r) => r.json())
         .then((res) => {
           const list = Array.isArray(res?.data)
-            ? res.data.map((p: any) => ({ label: p.name, value: String(p.id) }))
+            ? res.data.map((p: any) => ({ label: p.name, value: String(p.name) }))
             : [];
           setProviders(list);
         })

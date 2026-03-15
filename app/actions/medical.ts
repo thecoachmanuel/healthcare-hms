@@ -451,7 +451,10 @@ export async function markPatientBillPaid(data: any) {
     }
 
     const billId = Number(validated.data.patient_bill_id);
-    const amountPaid = Number(validated.data.amount_paid);
+    const amountPaid = Number(String(validated.data.amount_paid ?? "").replace(/,/g, "").trim());
+    if (!Number.isFinite(amountPaid) || amountPaid < 0) {
+      return { success: false, msg: "Invalid amount paid" };
+    }
 
     const bill = await db.patientBills.findUnique({
       where: { id: billId },
@@ -459,17 +462,17 @@ export async function markPatientBillPaid(data: any) {
     });
     if (!bill) return { success: false, msg: "Bill not found" };
 
-  const covered = validated.data.coverage_type && validated.data.coverage_type !== "NONE";
-  const hasRef = (validated.data.coverage_reference ?? "").trim().length > 0;
-  const fullCovered = covered && hasRef && amountPaid === 0;
-  const status =
-    fullCovered
-      ? "PAID"
-      : amountPaid <= 0
-      ? "UNPAID"
-      : amountPaid >= bill.total_cost
-      ? "PAID"
-      : "PART";
+    const covered = validated.data.coverage_type && validated.data.coverage_type !== "NONE";
+    const hasRef = (validated.data.coverage_reference ?? "").trim().length > 0;
+    const fullCovered = covered && hasRef && amountPaid === 0;
+    const status =
+      fullCovered
+        ? "PAID"
+        : amountPaid <= 0
+        ? "UNPAID"
+        : amountPaid >= bill.total_cost
+        ? "PAID"
+        : "PART";
 
     await db.patientBills.update({
       where: { id: billId },
@@ -503,7 +506,11 @@ export async function markPatientBillPaid(data: any) {
     });
 
     return { success: true, msg: "Payment updated" };
-  } catch (error) {
+  } catch (error: any) {
+    const message = typeof error?.message === "string" ? error.message : "";
+    if (message.includes("PaymentMethod") && message.includes("INSURANCE")) {
+      return { success: false, msg: "Database is missing INSURANCE payment method. Apply latest migrations." };
+    }
     console.log(error);
     return { success: false, msg: "Internal Server Error" };
   }

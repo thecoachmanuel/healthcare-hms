@@ -3,24 +3,23 @@ import { Table } from "@/components/tables/table";
 import SearchInput from "@/components/search-input";
 import { SelectFilter } from "@/components/filters/select-filter";
 import { DateRangeFilter } from "@/components/filters/date-range-filter";
-import { LabVolumeByUnitChart, LabTestStatusChart } from "@/components/charts/admin-reports";
-import { ExportCsvButton } from "@/components/export-csv-button";
 import { requireAuthUserId } from "@/lib/auth";
 import db from "@/lib/db";
 import { DATA_LIMIT } from "@/utils/seetings";
 import { checkRole } from "@/utils/roles";
 import { format } from "date-fns";
 import React from "react";
+import { ProfileImage } from "@/components/profile-image";
+import Link from "next/link";
+import { UpdateLabTest, ApproveLabTestButton } from "@/components/dialogs/update-lab-test";
 
 const columns = [
+  { header: "S/N", key: "sn" },
   { header: "Patient", key: "patient" },
   { header: "Test", key: "test" },
-  { header: "Unit", key: "unit" },
-  { header: "Status", key: "status" },
-  { header: "Result", key: "result", className: "hidden lg:table-cell" },
-  { header: "Requested Date", key: "requestedDate", className: "hidden md:table-cell" },
-  { header: "Completed Date", key: "completedDate", className: "hidden lg:table-cell" },
-  { header: "Actions", key: "actions" },
+  { header: "Requested", key: "requested", className: "hidden md:table-cell" },
+  { header: "Status", key: "status", className: "hidden md:table-cell" },
+  { header: "Action", key: "action" },
 ];
 
 const AdminLabTestsPage = async ({
@@ -73,199 +72,151 @@ const AdminLabTestsPage = async ({
           ] } as any)
     : {};
 
-  const baseWhere: any = { AND: [patientFilter, dateFilter, payFilter] };
+  const statusFilter: any = status ? ({ status: status as any } as any) : {};
+  const unitFilter: any = unit ? ({ services: { lab_unit_id: Number(unit) } } as any) : {};
 
-  if (status) {
-    if (status === "PENDING") {
-      baseWhere.AND.push({ status: { in: ["REQUESTED", "SAMPLE_COLLECTED", "RECEIVED"] } as any });
-    } else {
-      baseWhere.AND.push({ status: status as any });
-    }
-  }
-  if (unit) baseWhere.AND.push({ services: { lab_unit_id: Number(unit) } });
+  const where: any = {
+    AND: [patientFilter, dateFilter, payFilter, statusFilter, unitFilter],
+  };
 
-  const [rowsRaw, counts, labStats, units] = await Promise.all([
+  const units = await db.labUnit.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+
+  const selectedUnitName = unit
+    ? units.find((u: any) => String(u.id) === String(unit))?.name ?? ""
+    : "";
+
+  const [tests, totalRecords] = await Promise.all([
     db.labTest.findMany({
       include: {
-        medical_record: { select: { patient: { select: { first_name: true, last_name: true, hospital_number: true } } } },
-        services: { select: { service_name: true, lab_unit: { select: { name: true, id: true } } } },
+        services: { select: { id: true, service_name: true } },
+        medical_record: {
+          select: {
+            appointment_id: true,
+            patient: {
+              select: {
+                first_name: true,
+                last_name: true,
+                hospital_number: true,
+                img: true,
+                colorCode: true,
+                gender: true,
+              },
+            },
+          },
+        },
       },
-      where: baseWhere,
-      orderBy: { test_date: "desc" as any },
+      orderBy: { created_at: "desc" },
+      where,
       skip,
       take: limit,
     }),
-    Promise.all([
-      db.labTest.count({ where: {} }),
-      db.labTest.count({ where: { status: { in: ["REQUESTED", "SAMPLE_COLLECTED", "RECEIVED"] } as any } }),
-      db.labTest.count({ where: { status: "IN_PROGRESS" as any } }),
-      db.labTest.count({ where: { status: "COMPLETED" as any } }),
-    ]),
-    db.labTest.groupBy({
-      by: ["status"],
-      _count: { status: true },
-    }),
-    db.labUnit.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    }),
+    db.labTest.count({ where }),
   ]);
 
-  let rows = rowsRaw;
-  if (status === "PENDING") rows = rowsRaw.filter((t: any) => ["REQUESTED", "SAMPLE_COLLECTED", "RECEIVED"].includes(t.status));
-  else if (status === "IN_PROGRESS") rows = rowsRaw.filter((t: any) => t.status === "IN_PROGRESS");
-  else if (status === "COMPLETED") rows = rowsRaw.filter((t: any) => t.status === "COMPLETED");
+  const totalPages = Math.ceil(totalRecords / limit);
 
-  const [totalCount, pendingCount, inProgressCount, completedCount] = counts as number[];
+  const appointmentIds = Array.from(new Set((tests as any[]).map((t) => t.medical_record.appointment_id).filter(Boolean)));
+  const payments = appointmentIds.length
+    ? await db.payment.findMany({ where: { appointment_id: { in: appointmentIds } }, select: { appointment_id: true, status: true } })
+    : [];
+  const payMap = new Map(payments.map((p: any) => [p.appointment_id, p.status]));
 
-  // Prepare chart data for lab test status
-  const statusChartData = labStats.map(stat => ({
-    status: stat.status,
-    count: stat._count.status,
-  }));
-
-  // Prepare lab volume by unit data
-  const labTestsForVolume = await db.labTest.findMany({
-    include: { services: { select: { lab_unit: { select: { id: true, name: true } } } } },
-    where: { ...(from || to ? dateFilter : {}), ...(unit ? { services: { lab_unit_id: Number(unit) } } : {}) },
-  });
-
-  const unitCounts: Record<number, { name: string; count: number }> = {};
-  for (const t of labTestsForVolume as any[]) {
-    const u = t.services?.lab_unit;
-    if (!u) continue;
-    if (!unitCounts[u.id]) unitCounts[u.id] = { name: u.name, count: 0 };
-    unitCounts[u.id].count += 1;
-  }
-  const labVolumeChartData = Object.values(unitCounts).map(u => ({ unit: u.name, count: u.count })).sort((a, b) => b.count - a.count);
-
-  // Prepare CSV data
-  const csvData = rows.map((t: any) => ({
-    "Patient Name": `${t.medical_record.patient.first_name} ${t.medical_record.patient.last_name}`.trim(),
-    "Hospital Number": t.medical_record.patient.hospital_number || "-",
-    "Test Name": t.services?.service_name || "-",
-    "Lab Unit": t.services?.lab_unit?.name || "-",
-    "Status": t.status,
-    "Result": t.result || "-",
-    "Test Date": format(t.test_date, "yyyy-MM-dd"),
-    "Approved Date": t.approved_at ? format(t.approved_at, "yyyy-MM-dd") : (t.analysis_completed_at ? format(t.analysis_completed_at, "yyyy-MM-dd") : "-"),
-  }));
-
-  // CSV export handled in client component
-
-  const renderRow = (t: any) => {
-    const patient = t.medical_record.patient;
+  const renderRow = (item: any) => {
+    const patient = item.medical_record.patient;
     const name = `${patient.first_name} ${patient.last_name}`.trim();
 
     return (
-      <tr key={t.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-slate-50">
-        <td>
-          <div className="flex flex-col">
-            <div className="font-medium">{name}</div>
-            <div className="text-xs text-gray-500">{patient.hospital_number ?? "-"}</div>
+      <tr key={item.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-slate-50">
+        <td className="py-4 px-2">{(item as any).index + 1}</td>
+        <td className="flex items-center gap-4 p-4">
+          <ProfileImage url={patient.img!} name={name} bgColor={patient.colorCode!} textClassName="text-black" />
+          <div>
+            <h3 className="uppercase">{name}</h3>
+            <div className="flex flex-wrap gap-x-2 gap-y-1">
+              <span className="text-sm capitalize">{patient.gender}</span>
+              {patient.hospital_number && <span className="text-xs text-gray-500">{patient.hospital_number}</span>}
+            </div>
           </div>
         </td>
-        <td>{t.services?.service_name}</td>
-        <td>{t.services?.lab_unit?.name ?? '-'}</td>
         <td>
-          <span
-            className={`px-2 py-0.5 rounded text-xs border ${
-              ["REQUESTED", "SAMPLE_COLLECTED", "RECEIVED"].includes(t.status)
-                ? "bg-yellow-100 text-yellow-800 border-yellow-200"
-                : t.status === "IN_PROGRESS"
-                ? "bg-blue-100 text-blue-800 border-blue-200"
-                : t.status === "COMPLETED"
-                ? "bg-green-100 text-green-800 border-green-200"
-                : "bg-gray-100 text-gray-800 border-gray-200"
-            }`}
-          >
-            {(["REQUESTED", "SAMPLE_COLLECTED", "RECEIVED"].includes(t.status) ? "PENDING" : t.status)}
-          </span>
+          <div className="flex items-center gap-2">
+            <span>{item.services?.service_name}</span>
+            {(() => {
+              const st = payMap.get(item.medical_record.appointment_id);
+              const cls =
+                st === "PAID"
+                  ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                  : st === "PART"
+                  ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                  : "bg-rose-100 text-rose-700 border-rose-200";
+              return (
+                <span title={`Payment: ${st || "UNPAID"}`} className={`text-[10px] px-2 py-0.5 rounded border ${cls}`}>
+                  {st || "UNPAID"}
+                </span>
+              );
+            })()}
+          </div>
+          <div className="mt-1 text-[11px] text-gray-500">
+            <span title="Requested at" className="mr-3">
+              Req: {format(item.test_date, "yyyy-MM-dd HH:mm")}
+            </span>
+            <span title="Approved at">Appr: {item.approved_at ? format(item.approved_at, "yyyy-MM-dd HH:mm") : "-"}</span>
+          </div>
         </td>
-        <td className="hidden lg:table-cell">
-          {t.result ? (
-            <span className="text-sm text-gray-700">{t.result}</span>
-          ) : (
-            <span className="text-xs text-gray-500">-</span>
+        <td className="hidden md:table-cell">{format(item.test_date, "yyyy-MM-dd")}</td>
+        <td className="hidden md:table-cell">{item.status}</td>
+        <td className="flex items-center gap-2">
+          <Link className="text-blue-600 hover:underline text-sm" href={`/record/appointments/${item.medical_record.appointment_id}?cat=lab-test`}>
+            Open
+          </Link>
+          <UpdateLabTest
+            id={item.id}
+            currentStatus={item.status}
+            currentResult={item.result}
+            currentNotes={item.notes}
+            currentSampleId={(item as any).sample_id}
+            canApprove
+          />
+          {item.status === "APPROVED" && (
+            <Link className="text-emerald-700 hover:underline text-sm" href={`/lab/print/${item.id}`}>
+              Print
+            </Link>
           )}
-        </td>
-        <td className="hidden md:table-cell">{format(t.test_date, "yyyy-MM-dd")}</td>
-        <td className="hidden lg:table-cell">
-          {t.approved_at ? format(t.approved_at, "yyyy-MM-dd") : (t.analysis_completed_at ? format(t.analysis_completed_at, "yyyy-MM-dd") : "-")}
-        </td>
-        <td>
-          <a
-            href={`/lab/print/${t.id}`}
-            className="text-xs px-3 py-1.5 rounded-md bg-indigo-600 text-white hover:bg-indigo-700"
-            target="_blank"
-            rel="noreferrer"
-          >
-            View / Print
-          </a>
+          {item.status !== "APPROVED" && item.status === "COMPLETED" && (
+            <ApproveLabTestButton id={item.id} currentResult={item.result} currentSampleId={(item as any).sample_id} />
+          )}
         </td>
       </tr>
     );
   };
 
-  const totalPages = Math.ceil(totalCount / limit);
-
-  // Calculate summary statistics
-
   return (
-    <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h3 className="text-sm font-medium text-gray-500">Total Tests</h3>
-          <p className="text-2xl font-bold text-gray-900">{totalCount}</p>
+    <div className="bg-white rounded-xl py-6 px-3 2xl:px-6">
+      <div className="flex items-center justify-between">
+        <div className="hidden lg:flex items-center gap-1">
+          <p className="text-2xl font-semibold">{totalRecords}</p>
+          <span className="text-gray-600 text-sm xl:text-base">total tests</span>
         </div>
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h3 className="text-sm font-medium text-gray-500">Completed</h3>
-          <p className="text-2xl font-bold text-green-600">{completedCount}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h3 className="text-sm font-medium text-gray-500">In Progress</h3>
-          <p className="text-2xl font-bold text-blue-600">{inProgressCount}</p>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow-sm border">
-          <h3 className="text-sm font-medium text-gray-500">Pending</h3>
-          <p className="text-2xl font-bold text-yellow-600">{pendingCount}</p>
-        </div>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <LabTestStatusChart data={statusChartData} />
-        <LabVolumeByUnitChart data={labVolumeChartData} />
-      </div>
-
-      {/* Data Table */}
-      <div className="bg-white rounded-xl py-6 px-3 2xl:px-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="text-sm px-2 py-1 border rounded-md bg-slate-50">Total: {totalCount}</div>
-            <div className="text-xs px-2 py-1 border rounded-md bg-slate-50">Pending: {pendingCount}</div>
-            <div className="text-xs px-2 py-1 border rounded-md bg-slate-50">In Progress: {inProgressCount}</div>
-            <div className="text-xs px-2 py-1 border rounded-md bg-slate-50">Completed: {completedCount}</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <ExportCsvButton
-              data={csvData as any[]}
-              filenamePrefix="lab_tests_report"
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-            <SearchInput />
-            <DateRangeFilter />
-            <SelectFilter
-              param="status"
-              label="Status"
-              options={[
-                { label: "All", value: "" },
-                { label: "Pending", value: "PENDING" },
-                { label: "In Progress", value: "IN_PROGRESS" },
-                { label: "Completed", value: "COMPLETED" },
-              ]}
-            />
+        <div className="flex items-center gap-2">
+          <SearchInput />
+          <DateRangeFilter />
+          <SelectFilter
+            param="status"
+            label="Status"
+            options={[
+              { label: "All", value: "" },
+              { label: "Requested", value: "REQUESTED" },
+              { label: "Sample Collected", value: "SAMPLE_COLLECTED" },
+              { label: "Received", value: "RECEIVED" },
+              { label: "In Progress", value: "IN_PROGRESS" },
+              { label: "Completed", value: "COMPLETED" },
+              { label: "Approved", value: "APPROVED" },
+              { label: "Cancelled", value: "CANCELLED" },
+            ]}
+          />
           <SelectFilter
             param="pay"
             label="Payment"
@@ -276,21 +227,15 @@ const AdminLabTestsPage = async ({
               { label: "Unpaid", value: "UNPAID" },
             ]}
           />
-            <SelectFilter
-              param="unit"
-              label="Lab Unit"
-              options={[
-                { label: "All Units", value: "" },
-                ...units.map(unit => ({ label: unit.name, value: String(unit.id) })),
-              ]}
-            />
-          </div>
+          {selectedUnitName ? (
+            <div className="text-xs px-2 py-1 border rounded-md bg-slate-50">Unit: {selectedUnitName}</div>
+          ) : null}
         </div>
+      </div>
 
-        <div className="mt-4">
-          <Table columns={columns} data={rows as any[]} renderRow={renderRow} />
-          <Pagination totalPages={totalPages} currentPage={page} totalRecords={totalCount} limit={DATA_LIMIT} />
-        </div>
+      <div className="mt-4 max-h-[65vh] overflow-y-auto">
+        <Table columns={columns} data={tests as any[]} renderRow={renderRow} />
+        <Pagination totalPages={totalPages} currentPage={page} totalRecords={totalRecords} limit={DATA_LIMIT} />
       </div>
     </div>
   );
