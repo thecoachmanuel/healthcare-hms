@@ -249,11 +249,13 @@ const Appointments = async (props: {
               { label: "Cancelled", value: "CANCELLED" },
             ]}
           />
-          <SelectFilter
-            param="atype"
-            label="Type"
-            options={typeOptions}
-          />
+          {userRole !== "admin" && (
+            <SelectFilter
+              param="atype"
+              label="Type"
+              options={typeOptions}
+            />
+          )}
           <SelectFilter
             param="pay"
             label="Payment"

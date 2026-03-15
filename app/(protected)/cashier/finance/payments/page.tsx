@@ -18,6 +18,7 @@ const columns = [
   { header: "Total", key: "total", className: "hidden md:table-cell" },
   { header: "Paid", key: "paid", className: "hidden md:table-cell" },
   { header: "Outstanding", key: "outstanding", className: "hidden md:table-cell" },
+  { header: "Coverage", key: "coverage", className: "hidden lg:table-cell" },
   { header: "Status", key: "status" },
   { header: "Date", key: "date", className: "hidden lg:table-cell" },
 ];
@@ -103,6 +104,9 @@ const CashierPaymentsPage = async ({
     "Receipt Number": p.receipt_number,
     "Total Amount": Number(p.total_amount || 0),
     "Amount Paid": Number(p.amount_paid || 0),
+    "Coverage Type": p.coverage_type ?? "NONE",
+    "HMO Provider": p.coverage_type === "INSURANCE" ? (p.coverage_notes || "") : "",
+    "Coverage Ref": p.coverage_type === "INSURANCE" ? (p.coverage_reference || "") : "",
     "Outstanding": computeOutstanding(p),
     "Status": p.status,
     "Payment Date": format(p.payment_date, "yyyy-MM-dd"),
@@ -127,6 +131,14 @@ const CashierPaymentsPage = async ({
         <td className="hidden md:table-cell">{formatCurrency(Number(p.total_amount || 0))}</td>
         <td className="hidden md:table-cell">{formatCurrency(Number(p.amount_paid || 0))}</td>
         <td className="hidden md:table-cell">{formatCurrency(outstanding)}</td>
+        <td className="hidden lg:table-cell">
+          <div className="flex flex-col">
+            <span>{p.coverage_type ?? "NONE"}</span>
+            {p.coverage_type === "INSURANCE" && (
+              <span className="text-xs text-gray-500">{p.coverage_notes ?? ""}{p.coverage_reference ? ` • ${p.coverage_reference}` : ""}</span>
+            )}
+          </div>
+        </td>
         <td>
           <span className={`px-2 py-0.5 rounded text-xs border ${
             statusLabel === "PAID" ? "bg-green-100 text-green-800 border-green-200" :
@@ -215,4 +227,3 @@ const CashierPaymentsPage = async ({
 };
 
 export default CashierPaymentsPage;
-

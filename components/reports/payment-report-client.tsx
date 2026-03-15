@@ -135,7 +135,7 @@ export function PaymentReportClient({
                     <table>
                       <thead>
                         <tr>
-                          <th>Receipt</th><th>Date</th><th>Patient</th><th>HN</th><th>Total</th><th>Paid</th><th>Discount</th><th>Status</th><th>Method</th><th>Coverage</th><th>Ref</th>
+                          <th>Receipt</th><th>Date</th><th>Patient</th><th>HN</th><th>Total</th><th>Paid</th><th>Discount</th><th>Status</th><th>Method</th><th>Coverage</th><th>Provider</th><th>Ref</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -153,6 +153,7 @@ export function PaymentReportClient({
                             <td>${r.status}</td>
                             <td>${r.payment_method}</td>
                             <td>${r.coverage_type}</td>
+                            <td>${r.coverage_notes ?? ""}</td>
                             <td>${r.coverage_reference ?? ""}</td>
                           </tr>
                         `
@@ -178,4 +179,3 @@ export function PaymentReportClient({
     </div>
   );
 }
-
