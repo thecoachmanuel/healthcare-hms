@@ -7,7 +7,7 @@ export async function getAdminDashboardStats() {
     const todayDate = new Date().getDay();
     const today = daysOfWeek[todayDate];
 
-    const [totalPatient, totalDoctors, appointments, doctors, auditLogs] =
+    const [totalPatient, totalDoctors, appointments, doctors, auditLogs, labRequestCount] =
       await Promise.all([
         db.patient.count(),
         db.doctor.count(),
@@ -51,6 +51,7 @@ export async function getAdminDashboardStats() {
           take: 5,
         }),
         db.auditLog.findMany({ orderBy: { created_at: "desc" }, take: 20 }),
+        db.labTest.count({}),
       ]);
 
     const { appointmentCounts, monthlyData } = await processAppointments(
@@ -69,6 +70,7 @@ export async function getAdminDashboardStats() {
       last5Records,
       totalAppointments: appointments.length,
       auditLogs,
+      labRequestCount,
       status: 200,
     };
   } catch (error) {

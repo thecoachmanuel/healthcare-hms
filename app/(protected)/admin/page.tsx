@@ -17,6 +17,7 @@ const AdminDashboard = async () => {
     totalDoctors,
     totalPatient,
     totalAppointments,
+    labRequestCount,
   } = await getAdminDashboardStats();
 
   const cardData = [
@@ -57,8 +58,8 @@ const AdminDashboard = async () => {
       link: "/record/appointments",
     },
     {
-      title: "Lab Tests",
-      value: appointmentCounts?.COMPLETED,
+      title: "Lab Test Requests",
+      value: labRequestCount,
       icon: BriefcaseMedical,
       className: "bg-indigo-600/15",
       iconClassName: "bg-indigo-600/25 text-indigo-600",
