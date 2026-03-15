@@ -138,8 +138,20 @@ const Appointments = async (props: {
 
   if (!data) return null;
 
+  const apptIds = data.map((d: any) => d.id);
+  const payments = apptIds.length
+    ? await db.payment.findMany({ where: { appointment_id: { in: apptIds } }, select: { appointment_id: true, status: true } })
+    : [];
+  const payMap = new Map(payments.map((p: any) => [p.appointment_id, p.status]));
+
   const renderItem = (item: DataProps) => {
     const patient_name = `${item?.patient?.first_name} ${item?.patient?.last_name}`;
+    const st = payMap.get(item.id);
+    const cls = st === "PAID"
+      ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+      : st === "PART"
+        ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+        : "bg-rose-100 text-rose-700 border-rose-200";
 
     return (
       <tr
@@ -153,7 +165,15 @@ const Appointments = async (props: {
             bgColor={item?.patient?.colorCode!}
           />
           <div>
-            <h3 className="font-semibold uppercase">{patient_name}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold uppercase">{patient_name}</h3>
+              <span
+                title={`Payment: ${st || "UNPAID"}`}
+                className={`text-[10px] px-2 py-0.5 rounded border ${cls}`}
+              >
+                {st || "UNPAID"}
+              </span>
+            </div>
             <span className="text-xs md:text-sm capitalize">
               {item?.patient?.gender.toLowerCase()}
             </span>

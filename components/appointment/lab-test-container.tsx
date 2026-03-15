@@ -45,7 +45,7 @@ export const LabTestContainer = async ({
       orderBy: { created_at: "desc" },
     })) ?? null;
 
-  const [tests, services] = await Promise.all([
+  const [tests, services, payment] = await Promise.all([
     medical
       ? db.labTest.findMany({
           where: { record_id: medical.id },
@@ -60,6 +60,7 @@ export const LabTestContainer = async ({
           orderBy: { service_name: "asc" },
         })
       : Promise.resolve([]),
+    db.payment.findFirst({ where: { appointment_id: Number(appointmentId) }, select: { status: true, appointment_id: true } }),
   ]);
 
   const units = canRequest
@@ -76,13 +77,33 @@ export const LabTestContainer = async ({
     unitId: s.lab_unit_id ? String(s.lab_unit_id) : undefined,
   }));
 
+  const payStatus = payment?.status ?? null;
+
   const renderRow = (item: any) => {
     return (
       <tr
         key={item.id}
         className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-slate-50"
       >
-        <td className="py-2 xl:py-6">{item?.services?.service_name}</td>
+        <td className="py-2 xl:py-6">
+          <div className="flex items-center gap-2">
+            <span>{item?.services?.service_name}</span>
+            {(() => {
+              const st = payStatus;
+              const cls = st === "PAID"
+                ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                : st === "PART"
+                  ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                  : "bg-rose-100 text-rose-700 border-rose-200";
+              return (
+                <span title={`Payment: ${st || "UNPAID"}`}
+                  className={`text-[10px] px-2 py-0.5 rounded border ${cls}`}>
+                  {st || "UNPAID"}
+                </span>
+              );
+            })()}
+          </div>
+        </td>
         <td className="hidden md:table-cell">
           {format(item?.test_date, "yyyy-MM-dd")}
         </td>
