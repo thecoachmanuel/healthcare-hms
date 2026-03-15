@@ -113,6 +113,12 @@ const PharmacistPrescriptionsPage = async ({
 
   const totalPages = Math.ceil(totalRecords / limit);
 
+  const appointmentIds = Array.from(new Set((data as any[]).map((p) => p.appointment_id).filter(Boolean)));
+  const payments = appointmentIds.length
+    ? await db.payment.findMany({ where: { appointment_id: { in: appointmentIds } }, select: { appointment_id: true, status: true } })
+    : [];
+  const payMap = new Map(payments.map((p: any) => [p.appointment_id, p.status]));
+
   const renderRow = (item: any) => {
     const patient = item.patient;
     const patientName = `${patient.first_name} ${patient.last_name}`.trim();
@@ -140,7 +146,23 @@ const PharmacistPrescriptionsPage = async ({
           </div>
         </td>
         <td className="hidden md:table-cell">{item.doctor?.name}</td>
-        <td className="hidden md:table-cell">{item.status}</td>
+        <td className="hidden md:table-cell">
+          <div className="flex items-center gap-2">
+            <span>{item.status}</span>
+            {(() => {
+              const st = payMap.get(item.appointment_id);
+              const cls = st === "PAID" ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                : st === "PART" ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                : "bg-rose-100 text-rose-700 border-rose-200";
+              return (
+                <span title={`Payment: ${st || "UNPAID"}`}
+                  className={`text-[10px] px-2 py-0.5 rounded border ${cls}`}>
+                  {st || "UNPAID"}
+                </span>
+              );
+            })()}
+          </div>
+        </td>
         <td className="hidden xl:table-cell">{format(item.created_at, "yyyy-MM-dd")}</td>
         <td>
           <Link
