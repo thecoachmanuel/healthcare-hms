@@ -25,8 +25,10 @@ const columns = [
 
 function computeOutstanding(p: any) {
   const total = Number(p.total_amount || 0);
+  const discount = Number(p.discount || 0);
+  const payable = Math.max(0, total - discount);
   const paid = Number(p.amount_paid || 0);
-  return Math.max(0, Number((total - paid).toFixed(2)));
+  return Math.max(0, Number((payable - paid).toFixed(2)));
 }
 
 const AdminPaymentsPage = async ({

@@ -7,7 +7,18 @@ export async function getAdminDashboardStats() {
     const todayDate = new Date().getDay();
     const today = daysOfWeek[todayDate];
 
-    const [totalPatient, totalDoctors, appointments, doctors, auditLogs, labRequestCount] =
+    const [
+      totalPatient,
+      totalDoctors,
+      appointments,
+      doctors,
+      auditLogs,
+      labRequestCount,
+      paymentAgg,
+      paidCount,
+      partCount,
+      unpaidCount,
+    ] =
       await Promise.all([
         db.patient.count(),
         db.doctor.count(),
@@ -52,6 +63,10 @@ export async function getAdminDashboardStats() {
         }),
         db.auditLog.findMany({ orderBy: { created_at: "desc" }, take: 20 }),
         db.labTest.count({}),
+        db.payment.aggregate({ _sum: { total_amount: true, amount_paid: true, discount: true } }),
+        db.payment.count({ where: { status: "PAID" as any } }),
+        db.payment.count({ where: { status: "PART" as any } }),
+        db.payment.count({ where: { status: "UNPAID" as any } }),
       ]);
 
     const { appointmentCounts, monthlyData } = await processAppointments(
@@ -59,6 +74,12 @@ export async function getAdminDashboardStats() {
     );
 
     const last5Records = appointments.slice(0, 5);
+
+    const totalBilled = Number(paymentAgg._sum.total_amount || 0);
+    const totalDiscount = Number((paymentAgg as any)._sum.discount || 0);
+    const totalPaid = Number(paymentAgg._sum.amount_paid || 0);
+    const totalPayable = Math.max(0, totalBilled - totalDiscount);
+    const outstanding = Math.max(0, totalPayable - totalPaid);
 
     return {
       success: true,
@@ -71,6 +92,16 @@ export async function getAdminDashboardStats() {
       totalAppointments: appointments.length,
       auditLogs,
       labRequestCount,
+      paymentsSummary: {
+        totalBilled,
+        totalDiscount,
+        totalPayable,
+        totalPaid,
+        outstanding,
+        paidCount,
+        partCount,
+        unpaidCount,
+      },
       status: 200,
     };
   } catch (error) {

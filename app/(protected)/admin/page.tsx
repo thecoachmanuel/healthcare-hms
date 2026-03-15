@@ -18,6 +18,7 @@ const AdminDashboard = async () => {
     totalPatient,
     totalAppointments,
     labRequestCount,
+    paymentsSummary,
   } = await getAdminDashboardStats();
 
   const cardData = [
@@ -68,11 +69,11 @@ const AdminDashboard = async () => {
     },
     {
       title: "Payments",
-      value: 0,
+      value: paymentsSummary?.totalPaid ?? 0,
       icon: BriefcaseBusiness,
       className: "bg-emerald-600/15",
       iconClassName: "bg-emerald-600/25 text-emerald-600",
-      note: "Paid • Part • Owing",
+      note: `Paid ₦${(paymentsSummary?.totalPaid ?? 0).toLocaleString()} • Owing ₦${(paymentsSummary?.outstanding ?? 0).toLocaleString()}`,
       link: "/admin/finance/payments",
     },
   ];
