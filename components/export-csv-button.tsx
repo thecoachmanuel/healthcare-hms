@@ -2,6 +2,7 @@
 
 import { downloadCSV } from "@/lib/csv-export";
 import { format } from "date-fns";
+import { Download } from "lucide-react";
 
 export function ExportCsvButton({
   data,
@@ -20,8 +21,10 @@ export function ExportCsvButton({
       }}
       className={className}
     >
-      Export CSV
+      <span className="inline-flex items-center gap-2">
+        <Download className="size-4" />
+        Export CSV
+      </span>
     </button>
   );
 }
-

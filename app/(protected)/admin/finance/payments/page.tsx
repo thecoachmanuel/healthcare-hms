@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import React from "react";
 
 const columns = [
+  { header: "S/N", key: "sn" },
   { header: "Patient", key: "patient" },
   { header: "Receipt", key: "receipt", className: "hidden lg:table-cell" },
   { header: "Total", key: "total", className: "hidden md:table-cell" },
@@ -122,6 +123,7 @@ const AdminPaymentsPage = async ({
 
     return (
       <tr key={p.id} className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-slate-50">
+        <td className="py-3">{(p.index ?? 0) + 1}</td>
         <td>
           <div className="flex flex-col">
             <div className="font-medium">{name}</div>
@@ -192,11 +194,6 @@ const AdminPaymentsPage = async ({
       <div className="bg-white rounded-xl py-6 px-3 2xl:px-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <ExportCsvButton
-              data={csvData as any[]}
-              filenamePrefix="payments_report"
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
             <SearchInput />
             <DateRangeFilter />
             <SelectFilter
@@ -209,6 +206,13 @@ const AdminPaymentsPage = async ({
                 { label: "Unpaid", value: "UNPAID" },
                 { label: "Owing (Derived)", value: "OWING" },
               ]}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <ExportCsvButton
+              data={csvData as any[]}
+              filenamePrefix="payments_report"
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
