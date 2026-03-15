@@ -39,6 +39,7 @@ const AdminLabTestsPage = async ({
   const unit = (sp?.unit as string) || "";
   const from = (sp?.from as string) || "";
   const to = (sp?.to as string) || "";
+  const pay = (sp?.pay as string) || "";
   const limit = DATA_LIMIT;
   const skip = (page - 1) * limit;
 
@@ -61,7 +62,18 @@ const AdminLabTestsPage = async ({
     },
   } as any) : {};
 
-  const baseWhere: any = { AND: [patientFilter, dateFilter] };
+  const payFilter: any = pay
+    ? pay === "PAID"
+      ? ({ medical_record: { appointment: { bills: { some: { status: "PAID" as any } } } } } as any)
+      : pay === "PART"
+      ? ({ medical_record: { appointment: { bills: { some: { status: "PART" as any } } } } } as any)
+      : ({ OR: [
+            { medical_record: { appointment: { bills: { none: {} } } } } as any,
+            { medical_record: { appointment: { bills: { some: { status: "UNPAID" as any } } } } } as any,
+          ] } as any)
+    : {};
+
+  const baseWhere: any = { AND: [patientFilter, dateFilter, payFilter] };
 
   if (status) {
     if (status === "PENDING") {
@@ -254,6 +266,16 @@ const AdminLabTestsPage = async ({
                 { label: "Completed", value: "COMPLETED" },
               ]}
             />
+          <SelectFilter
+            param="pay"
+            label="Payment"
+            options={[
+              { label: "All", value: "" },
+              { label: "Paid", value: "PAID" },
+              { label: "Part", value: "PART" },
+              { label: "Unpaid", value: "UNPAID" },
+            ]}
+          />
             <SelectFilter
               param="unit"
               label="Lab Unit"

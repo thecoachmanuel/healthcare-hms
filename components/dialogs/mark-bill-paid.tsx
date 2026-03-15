@@ -16,6 +16,7 @@ import { z } from "zod";
 const PAYMENT_METHODS = [
   { label: "Cash", value: "CASH" },
   { label: "Card", value: "CARD" },
+  { label: "HMO / Insurance", value: "INSURANCE" },
 ];
 
 export const MarkBillPaid = ({
@@ -27,6 +28,7 @@ export const MarkBillPaid = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [providers, setProviders] = useState<{ label: string; value: string }[]>([]);
   const router = useRouter();
 
   const form = useForm<z.infer<typeof BillPaymentSchema>>({
@@ -41,6 +43,27 @@ export const MarkBillPaid = ({
       payment_reason: "",
     },
   });
+
+  const method = form.watch("payment_method");
+
+  React.useEffect(() => {
+    if (method === "INSURANCE") {
+      fetch("/api/hmo-providers")
+        .then((r) => r.json())
+        .then((res) => {
+          const list = Array.isArray(res?.data)
+            ? res.data.map((p: any) => ({ label: p.name, value: String(p.id) }))
+            : [];
+          setProviders(list);
+        })
+        .catch(() => setProviders([]));
+      form.setValue("coverage_type", "INSURANCE");
+    } else {
+      form.setValue("coverage_type", "NONE");
+      form.setValue("coverage_reference", "");
+      form.setValue("coverage_notes", "");
+    }
+  }, [method, form]);
 
   const handleSubmit = async (values: z.infer<typeof BillPaymentSchema>) => {
     try {
@@ -91,36 +114,25 @@ export const MarkBillPaid = ({
               selectList={PAYMENT_METHODS}
             />
 
-            <CustomInput
-              type="select"
-              control={form.control}
-              name="coverage_type"
-              label="Coverage"
-              placeholder="Select coverage"
-              selectList={[
-                { label: "None", value: "NONE" },
-                { label: "Insurance", value: "INSURANCE" },
-                { label: "NHIA", value: "NHIA" },
-                { label: "Waiver", value: "WAIVER" },
-                { label: "Other", value: "OTHER" },
-              ]}
-            />
-
-            <CustomInput
-              type="input"
-              control={form.control}
-              name="coverage_reference"
-              label="Coverage reference (Insurance/NHIA number)"
-              placeholder=""
-            />
-
-            <CustomInput
-              type="textarea"
-              control={form.control}
-              name="coverage_notes"
-              label="Coverage notes"
-              placeholder="Additional notes for cashier"
-            />
+            {method === "INSURANCE" && (
+              <>
+                <CustomInput
+                  type="select"
+                  control={form.control}
+                  name="coverage_notes"
+                  label="HMO / Insurance Provider"
+                  placeholder="Select provider"
+                  selectList={providers}
+                />
+                <CustomInput
+                  type="input"
+                  control={form.control}
+                  name="coverage_reference"
+                  label="Coverage reference"
+                  placeholder="Policy/Member number"
+                />
+              </>
+            )}
 
             <CustomInput
               type="textarea"

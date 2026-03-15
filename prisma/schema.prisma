@@ -58,6 +58,7 @@ enum AppointmentStatus {
 enum PaymentMethod {
   CASH
   CARD
+  INSURANCE
 }
 
 enum PaymentStatus {

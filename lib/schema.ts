@@ -209,15 +209,25 @@ export const PatientBillSchema = z.object({
   notes: z.string().optional(),
 });
 
-export const BillPaymentSchema = z.object({
-  patient_bill_id: z.string(),
-  amount_paid: z.string(),
-  payment_method: z.enum(["CASH", "CARD"]).optional(),
-  coverage_type: z.enum(["NONE", "INSURANCE", "NHIA", "WAIVER", "OTHER"]).optional(),
-  coverage_notes: z.string().optional(),
-  coverage_reference: z.string().optional(),
-  payment_reason: z.string().optional(),
-});
+export const BillPaymentSchema = z
+  .object({
+    patient_bill_id: z.string(),
+    amount_paid: z.string(),
+    payment_method: z.enum(["CASH", "CARD", "INSURANCE"]).optional(),
+    coverage_type: z.enum(["NONE", "INSURANCE", "NHIA", "WAIVER", "OTHER"]).optional(),
+    coverage_notes: z.string().optional(),
+    coverage_reference: z.string().optional(),
+    payment_reason: z.string().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.payment_method === "INSURANCE") {
+        return (data.coverage_type === "INSURANCE") && Boolean((data.coverage_reference ?? "").trim());
+      }
+      return true;
+    },
+    { message: "Insurance reference required for HMO/Insurance payments", path: ["coverage_reference"] }
+  );
 
 export const ServicesSchema = z.object({
   service_name: z.string({ message: "Service name is required" }),
