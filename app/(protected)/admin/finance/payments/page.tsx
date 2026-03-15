@@ -4,7 +4,8 @@ import SearchInput from "@/components/search-input";
 import { SelectFilter } from "@/components/filters/select-filter";
 import { DateRangeFilter } from "@/components/filters/date-range-filter";
 import { PaymentStatusDistributionChart, ReceivablesOverTimeChart } from "@/components/charts/admin-reports";
-import { downloadCSV, formatCurrency } from "@/lib/csv-export";
+import { ExportCsvButton } from "@/components/export-csv-button";
+import { formatCurrency } from "@/lib/csv-export";
 import { requireAuthUserId } from "@/lib/auth";
 import db from "@/lib/db";
 import { DATA_LIMIT } from "@/utils/seetings";
@@ -122,10 +123,7 @@ const AdminPaymentsPage = async ({
     "Payment Date": format(p.payment_date, "yyyy-MM-dd"),
   }));
 
-  const handleExportCSV = () => {
-    const timestamp = format(new Date(), "yyyy-MM-dd_HH-mm-ss");
-    downloadCSV(csvData, `payments_report_${timestamp}.csv`);
-  };
+  // CSV export handled in client component
 
   const renderRow = (p: any) => {
     const patient = p.patient;
@@ -213,12 +211,11 @@ const AdminPaymentsPage = async ({
             <div className="text-xs px-2 py-1 border rounded-md bg-slate-50">Unpaid: {unpaidCount}</div>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={handleExportCSV}
+            <ExportCsvButton
+              data={csvData as any[]}
+              filenamePrefix="payments_report"
               className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Export CSV
-            </button>
+            />
             <SearchInput />
             <DateRangeFilter />
             <SelectFilter

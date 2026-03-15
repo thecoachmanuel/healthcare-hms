@@ -42,7 +42,11 @@ export function LabVolumeByUnitChart({ data }: LabVolumeChartProps) {
           <YAxis />
           <Tooltip />
           <Legend />
-          <Bar dataKey="count" fill="#2563eb" name="Test Count" />
+          <Bar dataKey="count" name="Test Count">
+            {data.map((_, index) => (
+              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+            ))}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>
@@ -147,7 +151,27 @@ export function LabTestStatusChart({ data }: { data: { status: string; count: nu
           <YAxis />
           <Tooltip />
           <Legend />
-          <Bar dataKey="count" fill="#10b981" name="Test Count" />
+          <Bar dataKey="count" name="Test Count">
+            {data.map((d, index) => {
+              const c =
+                d.status === "REQUESTED"
+                  ? "#f59e0b"
+                  : d.status === "SAMPLE_COLLECTED"
+                  ? "#f97316"
+                  : d.status === "RECEIVED"
+                  ? "#d97706"
+                  : d.status === "IN_PROGRESS"
+                  ? "#2563eb"
+                  : d.status === "COMPLETED"
+                  ? "#10b981"
+                  : d.status === "APPROVED"
+                  ? "#059669"
+                  : d.status === "CANCELLED"
+                  ? "#ef4444"
+                  : COLORS[index % COLORS.length];
+              return <Cell key={`cell-${index}`} fill={c} />;
+            })}
+          </Bar>
         </BarChart>
       </ResponsiveContainer>
     </div>
