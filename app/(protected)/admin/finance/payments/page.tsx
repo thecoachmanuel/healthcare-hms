@@ -95,7 +95,7 @@ const AdminPaymentsPage = async ({
     db.payment.groupBy({
       by: ["status"],
       _count: { status: true },
-      _sum: { total_amount: true, amount_paid: true },
+      _sum: { total_amount: true, amount_paid: true, discount: true },
     }),
   ]);
 
@@ -110,7 +110,7 @@ const AdminPaymentsPage = async ({
   const chartData = paymentStats.map(stat => ({
     status: stat.status,
     count: stat._count.status,
-    amount: Number(stat._sum.total_amount || 0),
+    amount: Math.max(0, Number(stat._sum.total_amount || 0) - Number((stat as any)._sum.discount || 0)),
   }));
 
   // Prepare CSV data
