@@ -244,14 +244,7 @@ export async function updateLabTestResult(data: any) {
       return { success: false, message: "Approved results can only be modified by a lab scientist", status: 403 };
     }
 
-    let notesToSave = validated.notes ?? "";
-    if (existing && validated.status === "APPROVED" && existing.status !== "APPROVED") {
-      const alreadyTagged = /Approved By:/m.test(notesToSave ?? existing.notes ?? "");
-      if (!alreadyTagged) {
-        const approvalTag = `Approved By: SYSTEM at ${new Date().toISOString()}`;
-        notesToSave = [notesToSave || existing.notes || "", approvalTag].filter(Boolean).join("\n");
-      }
-    }
+    let notesToSave = validated.notes ?? existing?.notes ?? "";
 
     const tsUpdate: any = {};
     if (validated.status === "SAMPLE_COLLECTED" && !existing?.collected_at) tsUpdate.collected_at = new Date();

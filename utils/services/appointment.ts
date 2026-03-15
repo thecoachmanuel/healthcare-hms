@@ -59,6 +59,7 @@ interface AllAppointmentsProps {
   status?: string;
   type?: string;
   doctorId?: string;
+  paymentStatus?: string;
 }
 
 const buildQuery = (
@@ -69,7 +70,8 @@ const buildQuery = (
   to?: string,
   status?: string,
   type?: string,
-  doctorId?: string
+  doctorId?: string,
+  paymentStatus?: string
 ) => {
   // Base conditions for search if it exists
   const searchConditions: Prisma.AppointmentWhereInput = search
@@ -128,8 +130,24 @@ const buildQuery = (
     ? ({ type: { equals: type, mode: "insensitive" } } as any)
     : {};
 
+  let paymentStatusFilter: Prisma.AppointmentWhereInput = {};
+  if (paymentStatus) {
+    if (paymentStatus === "UNPAID") {
+      paymentStatusFilter = ({
+        OR: [
+          { bills: { none: {} } } as any,
+          { bills: { some: { status: "UNPAID" as any } } } as any,
+        ],
+      } as any);
+    } else if (paymentStatus === "PAID") {
+      paymentStatusFilter = ({ bills: { some: { status: "PAID" as any } } } as any);
+    } else if (paymentStatus === "PART") {
+      paymentStatusFilter = ({ bills: { some: { status: "PART" as any } } } as any);
+    }
+  }
+
   const combinedQuery: Prisma.AppointmentWhereInput =
-    id || search || dept || from || to || status || type || doctorId
+    id || search || dept || from || to || status || type || doctorId || paymentStatus
       ? {
           AND: [
             ...(Object.keys(searchConditions).length > 0
@@ -142,6 +160,7 @@ const buildQuery = (
             ...(Object.keys(dateRange).length > 0 ? [dateRange] : []),
             ...(Object.keys(statusFilter).length > 0 ? [statusFilter] : []),
             ...(Object.keys(typeFilter).length > 0 ? [typeFilter] : []),
+            ...(Object.keys(paymentStatusFilter).length > 0 ? [paymentStatusFilter] : []),
             ...(doctorId ? ([{ doctor_id: doctorId }] as any) : []),
           ],
         }
@@ -161,6 +180,7 @@ export async function getPatientAppointments({
   status,
   type,
   doctorId,
+  paymentStatus,
 }: AllAppointmentsProps) {
   try {
     const PAGE_NUMBER = Number(page) <= 0 ? 1 : Number(page);
@@ -170,7 +190,7 @@ export async function getPatientAppointments({
 
     const [data, totalRecord] = await Promise.all([
       db.appointment.findMany({
-        where: buildQuery(id, search, department, from, to, status, type, doctorId),
+        where: buildQuery(id, search, department, from, to, status, type, doctorId, paymentStatus),
         skip: SKIP,
         take: LIMIT,
         select: {

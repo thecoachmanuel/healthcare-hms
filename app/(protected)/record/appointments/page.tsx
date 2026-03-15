@@ -72,6 +72,7 @@ const Appointments = async (props: {
   const status = (searchParams?.status || "") as string;
   const type = (searchParams?.atype || "") as string;
   const doctorId = (searchParams?.doc || "") as string;
+  const pay = (searchParams?.pay || "") as string;
 
   const typeRows = await db.appointment.findMany({
     distinct: ["type"],
@@ -134,6 +135,7 @@ const Appointments = async (props: {
       status: status || undefined,
       type: type || undefined,
       doctorId: userRole === "admin" && doctorId ? doctorId : undefined,
+      paymentStatus: pay || undefined,
     });
 
   if (!data) return null;
@@ -251,6 +253,16 @@ const Appointments = async (props: {
             param="atype"
             label="Type"
             options={typeOptions}
+          />
+          <SelectFilter
+            param="pay"
+            label="Payment"
+            options={[
+              { label: "All", value: "" },
+              { label: "Paid", value: "PAID" },
+              { label: "Part", value: "PART" },
+              { label: "Unpaid", value: "UNPAID" },
+            ]}
           />
           {userRole === "admin" && (
             <>

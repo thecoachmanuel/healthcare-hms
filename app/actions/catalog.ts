@@ -502,12 +502,14 @@ export async function deletePendingLabTest(id: number) {
 
     const service = await db.services.findUnique({
       where: { id },
-      select: { id: true, approved: true, category: true, lab_unit_id: true },
+      select: { id: true, approved: true, category: true, lab_unit_id: true, created_by_id: true, created_by_role: true },
     });
     if (!service || service.category !== ("LAB_TEST" as any)) return { success: false, msg: "Item not found" };
     if (service.approved) return { success: false, msg: "Cannot delete an approved item" };
 
     if (!isAdmin && !isLabScientist) return { success: false, msg: "Unauthorized" };
+    
+    // Allow scientists and admin to delete tests created by technicians and receptionists
     if (isLabScientist && !isAdmin) {
       const me = await db.staff.findUnique({ where: { id: userId }, select: { lab_unit_id: true } });
       if (!me?.lab_unit_id || me.lab_unit_id !== service.lab_unit_id) {
@@ -515,7 +517,31 @@ export async function deletePendingLabTest(id: number) {
       }
     }
 
+    // Check for dependent records before deletion
+    const [billCount, labTestCount] = await Promise.all([
+      db.patientBills.count({ where: { service_id: id } }),
+      db.labTest.count({ where: { service_id: id } }),
+    ]);
+
+    if (billCount > 0) {
+      return { success: false, msg: "Cannot delete: item has associated billing records" };
+    }
+    if (labTestCount > 0) {
+      return { success: false, msg: "Cannot delete: item has associated lab tests" };
+    }
+
     await db.services.delete({ where: { id } });
+    
+    await db.auditLog.create({
+      data: {
+        user_id: userId,
+        record_id: String(id),
+        action: "DELETE",
+        model: "Services",
+        details: "Deleted lab test service",
+      },
+    });
+
     return { success: true, msg: "Deleted" };
   } catch (error: any) {
     return { success: false, msg: error?.message ?? "Internal Server Error" };

@@ -11,6 +11,7 @@ import { format } from "date-fns";
 import Link from "next/link";
 import React from "react";
 import { SelectFilter } from "@/components/filters/select-filter";
+import { DateRangeFilter } from "@/components/filters/date-range-filter";
 
 const columns = [
   { header: "S/N", key: "sn" },
@@ -37,6 +38,9 @@ const LabTestsPage = async ({
   const unit = (sp?.unit as string) || "";
   const q = (sp?.q as string) || "";
   const status = (sp?.status as string) || "";
+  const from = (sp?.from as string) || "";
+  const to = (sp?.to as string) || "";
+  const pay = (sp?.pay as string) || "";
   const limit = DATA_LIMIT;
   const skip = (page - 1) * limit;
 
@@ -54,6 +58,28 @@ const LabTestsPage = async ({
     orderBy: { name: "asc" },
   });
   const allowedUnitName = allowedUnitId ? (units.find((u: any) => String(u.id) === String(allowedUnitId))?.name ?? "") : "";
+
+  // Payment filter via appointment bills
+  let payFilter: any = {};
+  if (pay === "PAID") {
+    payFilter = { medical_record: { appointment: { bills: { some: { status: "PAID" as any } } } } } as any;
+  } else if (pay === "PART") {
+    payFilter = { medical_record: { appointment: { bills: { some: { status: "PART" as any } } } } } as any;
+  } else if (pay === "UNPAID") {
+    payFilter = {
+      OR: [
+        { medical_record: { appointment: { bills: { none: {} } } } } as any,
+        { medical_record: { appointment: { bills: { some: { status: "UNPAID" as any } } } } } as any,
+      ],
+    } as any;
+  }
+
+  const dateFilter: any = from || to ? ({
+    test_date: {
+      ...(from && { gte: new Date(from) }),
+      ...(to && { lte: new Date(to + 'T23:59:59') }),
+    },
+  } as any) : {};
 
   const [tests, totalRecords] = await Promise.all([
     db.labTest.findMany({
@@ -86,6 +112,8 @@ const LabTestsPage = async ({
                 },
               } as any)
             : {},
+          dateFilter,
+          payFilter,
           status ? ({ status: status as any } as any) : {},
           q
             ? ({
@@ -130,6 +158,8 @@ const LabTestsPage = async ({
                 },
               } as any)
             : {},
+          dateFilter,
+          payFilter,
           status ? ({ status: status as any } as any) : {},
           q
             ? ({
@@ -265,6 +295,7 @@ const LabTestsPage = async ({
         </div>
         <div className="flex items-center gap-2">
           <SearchInput />
+          <DateRangeFilter />
           <SelectFilter
             param="status"
             label="Status"
@@ -277,6 +308,16 @@ const LabTestsPage = async ({
               { label: "Completed", value: "COMPLETED" },
               { label: "Approved", value: "APPROVED" },
               { label: "Cancelled", value: "CANCELLED" },
+            ]}
+          />
+          <SelectFilter
+            param="pay"
+            label="Payment"
+            options={[
+              { label: "All", value: "" },
+              { label: "Paid", value: "PAID" },
+              { label: "Part", value: "PART" },
+              { label: "Unpaid", value: "UNPAID" },
             ]}
           />
           {allowedUnitId ? (
