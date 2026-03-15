@@ -18,6 +18,7 @@ export async function getAdminDashboardStats() {
       paidCount,
       partCount,
       unpaidCount,
+      paymentStatusAgg,
     ] =
       await Promise.all([
         db.patient.count(),
@@ -67,6 +68,7 @@ export async function getAdminDashboardStats() {
         db.payment.count({ where: { status: "PAID" as any } }),
         db.payment.count({ where: { status: "PART" as any } }),
         db.payment.count({ where: { status: "UNPAID" as any } }),
+        db.payment.groupBy({ by: ["status"], _sum: { total_amount: true, discount: true, amount_paid: true } }),
       ]);
 
     const { appointmentCounts, monthlyData } = await processAppointments(
@@ -79,7 +81,13 @@ export async function getAdminDashboardStats() {
     const totalDiscount = Number((paymentAgg as any)._sum.discount || 0);
     const totalPaid = Number(paymentAgg._sum.amount_paid || 0);
     const totalPayable = Math.max(0, totalBilled - totalDiscount);
-    const outstanding = Math.max(0, totalPayable - totalPaid);
+    const unpaidSum = paymentStatusAgg.find((s: any) => s.status === "UNPAID");
+    const partSum = paymentStatusAgg.find((s: any) => s.status === "PART");
+    const unpaidPayable = Math.max(0, Number(unpaidSum?._sum.total_amount || 0) - Number((unpaidSum as any)?._sum.discount || 0));
+    const partPayable = Math.max(0, Number(partSum?._sum.total_amount || 0) - Number((partSum as any)?._sum.discount || 0));
+    const partPaid = Number(partSum?._sum.amount_paid || 0);
+    const partOutstanding = Math.max(0, partPayable - partPaid);
+    const outstanding = unpaidPayable + partOutstanding;
 
     return {
       success: true,
