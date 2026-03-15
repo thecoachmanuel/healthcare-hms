@@ -44,14 +44,14 @@ const CashierDashboardPage = async () => {
           icon={Receipt}
           note="Total payment records today"
           value={todayPaymentsCount}
-          link="/cashier/finance/payments"
+          link="/record/payments"
         />
         <StatCard
           title="Inflow Today"
           icon={CircleDollarSign}
           note="Total amount received today"
           value={todayInflowValue}
-          link="/cashier/finance/payments"
+          link="/record/payments"
           iconClassName="text-emerald-600"
         />
       </div>
@@ -66,11 +66,8 @@ const CashierDashboardPage = async () => {
             <Link className="px-4 py-2 rounded-lg bg-blue-100 text-blue-600 text-sm" href="/record/billing">
               Billing overview
             </Link>
-            <Link className="px-4 py-2 rounded-lg bg-emerald-100 text-emerald-700 text-sm" href="/cashier/finance/payments">
+            <Link className="px-4 py-2 rounded-lg bg-emerald-100 text-emerald-700 text-sm" href="/record/payments">
               Payments report
-            </Link>
-            <Link className="px-4 py-2 rounded-lg bg-purple-100 text-purple-700 text-sm" href="/cashier/finance/payments">
-              Finance
             </Link>
           </div>
 

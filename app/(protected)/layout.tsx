@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 const ProtectedLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="w-full min-h-screen flex bg-gray-200 print:block">
+    <div className="w-full h-screen flex bg-gray-200 print:block">
       <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] print:hidden">
         <Sidebar />
       </div>
@@ -16,7 +16,7 @@ const ProtectedLayout = ({ children }: { children: React.ReactNode }) => {
           <Navbar />
         </div>
 
-        <div className="w-full p-2 print:overflow-visible print:p-0">{children}</div>
+        <div className="h-full w-full p-2 overflow-y-scroll print:overflow-visible print:p-0">{children}</div>
       </div>
     </div>
   );

@@ -7,14 +7,12 @@ import { Button } from "./ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import type { Session } from "@supabase/supabase-js";
 import { NotificationBell } from "@/components/notification-bell";
-import { PanelLeftOpen, PanelLeftClose } from "lucide-react";
 
 export const Navbar = () => {
   const router = useRouter();
   const pathname = usePathname();
   const [email, setEmail] = React.useState<string | null>(null);
   const [initial, setInitial] = React.useState<string>("U");
-  const [sidebarExpanded, setSidebarExpanded] = React.useState<boolean>(false);
 
   React.useEffect(() => {
     const supabase = createSupabaseBrowserClient();
@@ -45,29 +43,6 @@ export const Navbar = () => {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  React.useEffect(() => {
-    const stored = typeof window !== "undefined" ? localStorage.getItem("sidebar-expanded") : null;
-    const isMobile = typeof window !== "undefined" ? window.matchMedia("(max-width: 1023px)").matches : false;
-    const initial = stored ? stored === "true" : !isMobile;
-    setSidebarExpanded(initial);
-    if (typeof document !== "undefined") {
-      document.body.setAttribute("data-sidebar", initial ? "expanded" : "collapsed");
-    }
-  }, []);
-
-  const toggleSidebar = React.useCallback(() => {
-    setSidebarExpanded((prev) => {
-      const next = !prev;
-      if (typeof document !== "undefined") {
-        document.body.setAttribute("data-sidebar", next ? "expanded" : "collapsed");
-      }
-      if (typeof window !== "undefined") {
-        localStorage.setItem("sidebar-expanded", String(next));
-      }
-      return next;
-    });
-  }, []);
-
   function formatPathName(value: string | null): string {
     if (!value) return "Overview";
     const splitRoute = value.split("/");
@@ -89,14 +64,6 @@ export const Navbar = () => {
       </h1>
 
       <div className="flex items-center gap-4">
-        <button
-          type="button"
-          aria-label="Toggle sidebar"
-          onClick={toggleSidebar}
-          className="h-9 w-9 rounded-md border border-gray-200 flex items-center justify-center text-gray-600 hover:bg-gray-50"
-        >
-          {sidebarExpanded ? <PanelLeftClose className="size-4" /> : <PanelLeftOpen className="size-4" />}
-        </button>
         <NotificationBell />
 
         {email && (
