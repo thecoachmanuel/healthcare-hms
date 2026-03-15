@@ -35,7 +35,7 @@ const AuthLayout = async ({ children }: { children: React.ReactNode }) => {
 
   const authImageUrl =
     (settings as any)?.auth_image_url?.trim?.() ||
-    "https://images.pexels.com/photos/6129437/pexels-photo-6129437.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1";
+    "https://images.pexels.com/photos/3957987/pexels-photo-3957987.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1";
 
   return (
     <div className="w-full min-h-screen md:h-screen flex overflow-hidden">
@@ -54,7 +54,7 @@ const AuthLayout = async ({ children }: { children: React.ReactNode }) => {
           src={authImageUrl}
           width={1000}
           height={1000}
-          alt="LASUTH Doctors"
+          alt="Doctors"
           className="w-full h-full object-cover"
         />
         <div className="absolute top-0 w-full h-full bg-black bg-opacity-40 z-10 flex flex-col items-center justify-center">
