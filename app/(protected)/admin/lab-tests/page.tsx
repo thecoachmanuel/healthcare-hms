@@ -63,7 +63,13 @@ const AdminLabTestsPage = async ({
 
   const baseWhere: any = { AND: [patientFilter, dateFilter] };
 
-  if (status) baseWhere.AND.push({ status: status });
+  if (status) {
+    if (status === "PENDING") {
+      baseWhere.AND.push({ status: { in: ["REQUESTED", "SAMPLE_COLLECTED", "RECEIVED"] } as any });
+    } else {
+      baseWhere.AND.push({ status: status as any });
+    }
+  }
   if (unit) baseWhere.AND.push({ services: { lab_unit_id: Number(unit) } });
 
   const [rowsRaw, counts, labStats, units] = await Promise.all([
@@ -79,7 +85,7 @@ const AdminLabTestsPage = async ({
     }),
     Promise.all([
       db.labTest.count({ where: {} }),
-      db.labTest.count({ where: { status: "PENDING" as any } }),
+      db.labTest.count({ where: { status: { in: ["REQUESTED", "SAMPLE_COLLECTED", "RECEIVED"] } as any } }),
       db.labTest.count({ where: { status: "IN_PROGRESS" as any } }),
       db.labTest.count({ where: { status: "COMPLETED" as any } }),
     ]),
@@ -94,7 +100,7 @@ const AdminLabTestsPage = async ({
   ]);
 
   let rows = rowsRaw;
-  if (status === "PENDING") rows = rowsRaw.filter((t: any) => t.status === "PENDING");
+  if (status === "PENDING") rows = rowsRaw.filter((t: any) => ["REQUESTED", "SAMPLE_COLLECTED", "RECEIVED"].includes(t.status));
   else if (status === "IN_PROGRESS") rows = rowsRaw.filter((t: any) => t.status === "IN_PROGRESS");
   else if (status === "COMPLETED") rows = rowsRaw.filter((t: any) => t.status === "COMPLETED");
 
@@ -153,13 +159,18 @@ const AdminLabTestsPage = async ({
         <td>{t.services?.service_name}</td>
         <td>{t.services?.lab_unit?.name ?? '-'}</td>
         <td>
-          <span className={`px-2 py-0.5 rounded text-xs border ${
-            t.status === "PENDING" ? "bg-yellow-100 text-yellow-800 border-yellow-200" :
-            t.status === "IN_PROGRESS" ? "bg-blue-100 text-blue-800 border-blue-200" :
-            t.status === "COMPLETED" ? "bg-green-100 text-green-800 border-green-200" :
-            "bg-gray-100 text-gray-800 border-gray-200"
-          }`}>
-            {t.status}
+          <span
+            className={`px-2 py-0.5 rounded text-xs border ${
+              ["REQUESTED", "SAMPLE_COLLECTED", "RECEIVED"].includes(t.status)
+                ? "bg-yellow-100 text-yellow-800 border-yellow-200"
+                : t.status === "IN_PROGRESS"
+                ? "bg-blue-100 text-blue-800 border-blue-200"
+                : t.status === "COMPLETED"
+                ? "bg-green-100 text-green-800 border-green-200"
+                : "bg-gray-100 text-gray-800 border-gray-200"
+            }`}
+          >
+            {(["REQUESTED", "SAMPLE_COLLECTED", "RECEIVED"].includes(t.status) ? "PENDING" : t.status)}
           </span>
         </td>
         <td className="hidden lg:table-cell">
