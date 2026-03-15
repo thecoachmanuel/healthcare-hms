@@ -1,4 +1,6 @@
 import Image from "next/image";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 import React from "react";
 import db from "@/lib/db";
 import { unstable_cache } from "next/cache";
@@ -20,7 +22,13 @@ const AuthLayout = async ({ children }: { children: React.ReactNode }) => {
 
   return (
     <div className="w-full min-h-screen md:h-screen flex overflow-hidden">
-      <div className="w-full md:w-1/2 min-h-screen md:h-screen flex items-center justify-center px-4 sm:px-6 lg:px-10 py-10 md:py-0 overflow-y-auto">
+      <div className="w-full md:w-1/2 min-h-screen md:h-screen flex items-center justify-center px-4 sm:px-6 lg:px-10 py-10 md:py-0 overflow-y-auto relative">
+        <div className="absolute top-4 left-4">
+          <Link href="/" className="inline-flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900">
+            <ArrowLeft className="size-4" />
+            <span>Back to Home</span>
+          </Link>
+        </div>
         {children}
       </div>
       <div className="hidden md:flex w-1/2 h-screen relative overflow-hidden">

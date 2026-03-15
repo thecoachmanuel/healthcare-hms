@@ -4,6 +4,9 @@ import { unstable_cache } from "next/cache";
 import {
   Bell,
   CalendarDays,
+  CalendarRange,
+  CalendarClock,
+  CalendarCheck,
   ClipboardList,
   CreditCard,
   FileSignature,
@@ -15,12 +18,14 @@ import {
   Logs,
   LucideIcon,
   FolderOpen,
+  BookOpen,
   Pill,
   ScrollText,
   Settings,
   SquareActivity,
   Stethoscope,
   Syringe,
+  Receipt,
   UserCog,
   User,
   UserRound,
@@ -127,13 +132,13 @@ export const Sidebar = async () => {
           name: "Doctor Availability",
           href: "/schedule/doctor-availability",
           access: ["admin", "receptionist"],
-          icon: CalendarDays,
+          icon: CalendarClock,
         },
         {
           name: "Department Schedule",
           href: "/schedule/department",
           access: ["admin", "receptionist"],
-          icon: CalendarDays,
+          icon: CalendarRange,
         },
         {
           name: "Medical Records",
@@ -155,7 +160,7 @@ export const Sidebar = async () => {
         },
         {
           name: "Payments",
-          href: "/record/payments",
+          href: role.toLowerCase() === "cashier" ? "/cashier/finance/payments" : "/record/payments",
           access: ["admin", "cashier"],
           icon: HandCoins,
         },
@@ -205,13 +210,13 @@ export const Sidebar = async () => {
           name: "My Availability",
           href: "/doctor/availability",
           access: ["doctor"],
-          icon: CalendarDays,
+          icon: CalendarCheck,
         },
         {
           name: "Records",
           href: "/patient/self",
           access: ["patient"],
-          icon: FolderOpen,
+          icon: BookOpen,
         },
         {
           name: "Prescription",
@@ -229,7 +234,7 @@ export const Sidebar = async () => {
           name: "Billing",
           href: "/patient/self?cat=payments",
           access: ["patient"],
-          icon: CreditCard,
+          icon: Receipt,
         },
       ],
     },
@@ -259,7 +264,7 @@ export const Sidebar = async () => {
   ];
 
   return (
-    <div className="w-full p-4 flex flex-col justify-between gap-4 bg-white overflow-y-scroll min-h-full">
+    <div className="w-full p-4 flex flex-col justify-between gap-4 bg-white min-h-full" id="app-sidebar">
       <div className="">
         <div className="flex items-center justify-center lg:justify-start gap-2">
           <div className="p-1.5 rounded-md bg-blue-600 text-white">
@@ -291,7 +296,7 @@ export const Sidebar = async () => {
                       key={link.name}
                     >
                       <SidebarIcon icon={link.icon} />
-                      <span className="hidden lg:block">{link.name}</span>
+                      <span className="sidebar-label hidden lg:block">{link.name}</span>
                     </Link>
                   );
                 }
