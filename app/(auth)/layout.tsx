@@ -7,11 +7,23 @@ import db from "@/lib/db";
 import { unstable_cache } from "next/cache";
 
 const getSiteSettings = unstable_cache(
-  async () =>
-    db.siteSettings.findFirst({
-      orderBy: { id: "asc" },
-      select: { site_name: true, logo_url: true },
-    }),
+  async () => {
+    try {
+      return await db.siteSettings.findFirst({
+        orderBy: { id: "asc" },
+        select: { site_name: true, logo_url: true, auth_image_url: true },
+      } as any);
+    } catch {
+      try {
+        return await db.siteSettings.findFirst({
+          orderBy: { id: "asc" },
+          select: { site_name: true, logo_url: true },
+        });
+      } catch {
+        return null as any;
+      }
+    }
+  },
   ["site-settings"],
   { tags: ["site-settings"] }
 );
@@ -20,6 +32,10 @@ const AuthLayout = async ({ children }: { children: React.ReactNode }) => {
   const settings = await getSiteSettings();
   const siteName = (settings?.site_name ?? "").trim();
   const displaySiteName = siteName.length > 0 ? siteName : "Healthcare HMS";
+
+  const authImageUrl =
+    (settings as any)?.auth_image_url?.trim?.() ||
+    "https://images.pexels.com/photos/3957987/pexels-photo-3957987.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1";
 
   return (
     <div className="w-full min-h-screen md:h-screen flex overflow-hidden">
@@ -35,7 +51,7 @@ const AuthLayout = async ({ children }: { children: React.ReactNode }) => {
       </div>
       <div className="hidden md:flex w-1/2 h-screen relative overflow-hidden">
         <Image
-          src="https://images.pexels.com/photos/6129437/pexels-photo-6129437.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=1"
+          src={authImageUrl}
           width={1000}
           height={1000}
           alt="Doctors"

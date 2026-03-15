@@ -311,6 +311,7 @@ export async function setSiteSettings(data: {
   site_name: string;
   site_title?: string;
   logo_url?: string;
+  auth_image_url?: string;
   homepage_title?: string;
   homepage_subtitle?: string;
   homepage_text?: string;
@@ -324,6 +325,7 @@ export async function setSiteSettings(data: {
       site_name: data.site_name.trim(),
       site_title: data.site_title?.trim() || null,
       logo_url: data.logo_url?.trim() || null,
+      auth_image_url: data.auth_image_url?.trim() || null,
       homepage_title: data.homepage_title?.trim() || null,
       homepage_subtitle: data.homepage_subtitle?.trim() || null,
       homepage_text: data.homepage_text?.trim() || null,
