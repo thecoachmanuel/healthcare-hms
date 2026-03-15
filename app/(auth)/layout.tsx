@@ -25,10 +25,9 @@ const AuthLayout = async ({ children }: { children: React.ReactNode }) => {
     <div className="w-full min-h-screen md:h-screen flex overflow-hidden">
       <div className="w-full md:w-1/2 min-h-screen md:h-screen flex items-center justify-center px-4 sm:px-6 lg:px-10 py-10 md:py-0 overflow-y-auto relative">
         <div className="absolute top-4 left-4">
-          <Button asChild variant="ghost" size="sm" className="text-gray-700">
-            <Link href="/" aria-label="Back to Home">
+          <Button asChild variant="ghost" size="icon" className="text-gray-700" aria-label="Back to Home">
+            <Link href="/">
               <ArrowLeft className="size-4" />
-              <span>Back to Home</span>
             </Link>
           </Button>
         </div>
@@ -44,7 +43,7 @@ const AuthLayout = async ({ children }: { children: React.ReactNode }) => {
         />
         <div className="absolute top-0 w-full h-full bg-black bg-opacity-40 z-10 flex flex-col items-center justify-center">
           <Link href="/" aria-label="Go to homepage" className="focus:outline-none focus:ring-2 focus:ring-white/70 rounded">
-            <h1 className="text-3xl 2xl:text-5xl font-bold text-white hover:underline">
+            <h1 className="text-3xl 2xl:text-5xl font-bold text-white">
               {displaySiteName}
             </h1>
           </Link>
