@@ -37,8 +37,24 @@ export async function createNewAppointment(data: any) {
     const startHour = parseInt(hourStr, 10);
     const endHour = parseInt(endHourStr, 10);
     const allSlots = generateTimes(startHour, endHour, 30).map((t) => t.value);
-    if (!allSlots.includes(validated.time)) {
-      return { success: false, msg: "Selected time is outside doctor's working hours" };
+    if (data.window_start || data.window_end) {
+      if (!data.window_start || !data.window_end) {
+        return { success: false, msg: "Provide both window start and end" };
+      }
+      if (!allSlots.includes(data.window_start) || !allSlots.includes(data.window_end)) {
+        return { success: false, msg: "Window must be within working hours" };
+      }
+      const [sh, sm] = data.window_start.split(":").map((n: string) => parseInt(n, 10));
+      const [eh, em] = data.window_end.split(":").map((n: string) => parseInt(n, 10));
+      const sVal = sh * 60 + sm;
+      const eVal = eh * 60 + em;
+      if (eVal <= sVal) {
+        return { success: false, msg: "Window end must be after start" };
+      }
+    } else {
+      if (!allSlots.includes(validated.time)) {
+        return { success: false, msg: "Selected time is outside doctor's working hours" };
+      }
     }
 
     // For strict time bookings (no window), avoid double-booking exact slot
