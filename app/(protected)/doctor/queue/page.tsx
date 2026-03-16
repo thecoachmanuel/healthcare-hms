@@ -40,7 +40,7 @@ export default function DoctorQueuePage() {
       .channel("queue-doc")
       .on("postgres_changes", { event: "*", schema: "public", table: "QueueTicket" }, () => fetchQueue())
       .subscribe();
-    return () => supabase.removeChannel(channel);
+    return () => { supabase.removeChannel(channel); };
   }, [supabase, fetchQueue]);
 
   async function onCallNext() {

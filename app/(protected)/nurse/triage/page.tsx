@@ -37,7 +37,7 @@ export default function TriagePage() {
       .channel("triage")
       .on("postgres_changes", { event: "*", schema: "public", table: "Triage" }, () => fetchUntriaged())
       .subscribe();
-    return () => supabase.removeChannel(channel);
+    return () => { supabase.removeChannel(channel); };
   }, [supabase, fetchUntriaged]);
 
   async function assign() {

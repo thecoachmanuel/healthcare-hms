@@ -1,5 +1,6 @@
 "use server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import db from "@/lib/db";
 
 const EnqueueSchema = z.object({
@@ -39,7 +40,7 @@ export async function enqueueVisit(input: z.infer<typeof EnqueueSchema>) {
   return { success: true, ...result };
 }
 
-async function nextQueueNumber(tx: typeof db, scope: string) {
+async function nextQueueNumber(tx: Prisma.TransactionClient, scope: string) {
   const today = new Date();
   const y = today.getFullYear().toString().slice(-2);
   const m = String(today.getMonth() + 1).padStart(2, "0");
@@ -85,8 +86,6 @@ export async function callNextPatient(doctorId: string, department: string) {
   const row = rows[0];
   if (!row) return { success: false, msg: "No waiting patients" };
   const ticket = await db.queueTicket.update({ where: { id: row.id }, data: { status: "CALLED", called_at: new Date() }, include: { visit: true } });
-  const ticket = await db.queueTicket.update({ where: { id: row.id }, data: { status: "CALLED", called_at: new Date() }, include: { visit: true } });
-  return { success: true, ticketId: ticket.id, visitId: ticket.visit_id };
 
   // Notify called patient
   try {
@@ -111,6 +110,8 @@ export async function callNextPatient(doctorId: string, department: string) {
       }
     }
   } catch {}
+
+  return { success: true, ticketId: ticket.id, visitId: ticket.visit_id };
 }
 
 
