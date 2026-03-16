@@ -15,6 +15,9 @@ const ReceptionistDashboardPage = async () => {
         </CardHeader>
         <CardContent className="text-sm">
           <div className="flex flex-wrap gap-4">
+            <Link href="/receptionist/queue" className="text-blue-600 hover:underline">
+              Reception queue
+            </Link>
             <Link href="/record/appointments" className="text-blue-600 hover:underline">
               Appointments
             </Link>
@@ -29,4 +32,3 @@ const ReceptionistDashboardPage = async () => {
 };
 
 export default ReceptionistDashboardPage;
-

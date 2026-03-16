@@ -77,9 +77,17 @@ const DoctorDashboard = async () => {
               Welcome, Dr.{" "}
               {(user.user_metadata as { first_name?: string })?.first_name}
             </h1>
-            <Button size="sm" variant="outline" asChild>
-              <Link href={`/record/doctors/${user.id}`}>View profile</Link>
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button size="sm" asChild>
+                <Link href="/doctor/queue">Open queue</Link>
+              </Button>
+              <Button size="sm" variant="secondary" asChild>
+                <Link href="/doctor/availability">My availability</Link>
+              </Button>
+              <Button size="sm" variant="outline" asChild>
+                <Link href={`/record/doctors/${user.id}`}>View profile</Link>
+              </Button>
+            </div>
           </div>
 
           <div className="w-full flex flex-wrap gap-2">

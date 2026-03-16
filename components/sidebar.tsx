@@ -129,6 +129,24 @@ export const Sidebar = async () => {
           icon: CalendarDays,
         },
         {
+          name: "Reception Queue",
+          href: "/receptionist/queue",
+          access: ["admin", "receptionist"],
+          icon: ClipboardList,
+        },
+        {
+          name: "Nurse Triage",
+          href: "/nurse/triage",
+          access: ["admin", "nurse"],
+          icon: HeartPulse,
+        },
+        {
+          name: "Doctor Queue",
+          href: "/doctor/queue",
+          access: ["admin", "doctor"],
+          icon: ClipboardList,
+        },
+        {
           name: "Doctor Availability",
           href: "/schedule/doctor-availability",
           access: ["admin", "receptionist"],
