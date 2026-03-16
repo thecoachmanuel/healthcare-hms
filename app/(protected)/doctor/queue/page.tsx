@@ -3,7 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { callNextPatient, markInConsultation, completeConsultation, skipTicket } from "@/app/actions/queue";
+import { callNextPatient, markInConsultation, completeConsultation, skipTicket, setDoctorAvailability, setDoctorDelay } from "@/app/actions/queue";
 
 export default function DoctorQueuePage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
@@ -13,6 +13,9 @@ export default function DoctorQueuePage() {
   const [current, setCurrent] = useState<any | null>(null);
   const avgMinutesPerPatient = 10;
   const [checkinPatientId, setCheckinPatientId] = useState("");
+  const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+  const [delayMinutes, setDelayMinutes] = useState("0");
+  const [delayMessage, setDelayMessage] = useState("");
 
   const fetchQueue = useCallback(async () => {
     const qs = doctorId ? `doctorId=${doctorId}` : `department=${department}`;
@@ -38,6 +41,19 @@ export default function DoctorQueuePage() {
   }, [doctorId, department, fetchQueue]);
 
   useEffect(() => {
+    if (!doctorId) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/doctor/status?doctorId=${encodeURIComponent(doctorId)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setIsAvailable(Boolean(data?.is_available));
+        }
+      } catch {}
+    })();
+  }, [doctorId]);
+
+  useEffect(() => {
     const channel = supabase
       .channel("queue-doc")
       .on("postgres_changes", { event: "*", schema: "public", table: "QueueTicket" }, () => fetchQueue())
@@ -58,6 +74,19 @@ export default function DoctorQueuePage() {
     await fetchQueue();
   }
 
+  async function onToggleAvailability() {
+    if (!doctorId || isAvailable == null) return;
+    await setDoctorAvailability(doctorId, !isAvailable);
+    setIsAvailable(!isAvailable);
+  }
+
+  async function onBroadcastDelay() {
+    if (!doctorId) return;
+    const mins = parseInt(delayMinutes || "0", 10);
+    if (Number.isNaN(mins) || mins < 0) return;
+    await setDoctorDelay(doctorId, mins, delayMessage || undefined);
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="grid grid-cols-3 gap-3">
@@ -69,7 +98,10 @@ export default function DoctorQueuePage() {
           <label className="text-sm font-medium">Department</label>
           <Input value={department} onChange={(e) => setDepartment(e.target.value)} />
         </div>
-        <div className="flex items-end"><Button onClick={onCallNext}>Call Next</Button></div>
+        <div className="flex items-end gap-2">
+          <Button onClick={onCallNext}>Call Next</Button>
+          <Button variant={isAvailable ? "secondary" : "default"} onClick={onToggleAvailability}>{isAvailable ? "Set Unavailable" : "Set Available"}</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3">
@@ -78,6 +110,11 @@ export default function DoctorQueuePage() {
           <Input value={checkinPatientId} onChange={(e) => setCheckinPatientId(e.target.value)} />
         </div>
         <div className="flex items-end"><Button onClick={onCheckinPatient}>Check-in</Button></div>
+        <div className="flex items-end gap-2">
+          <Input value={delayMinutes} onChange={(e) => setDelayMinutes(e.target.value)} placeholder="Delay minutes" />
+          <Input value={delayMessage} onChange={(e) => setDelayMessage(e.target.value)} placeholder="Optional message" />
+          <Button variant="secondary" onClick={onBroadcastDelay}>Notify Delay</Button>
+        </div>
       </div>
 
       <div className="border rounded-md">

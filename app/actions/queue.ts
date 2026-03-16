@@ -209,3 +209,12 @@ export async function setDoctorDelay(doctorId: string, minutes: number, message?
   }
   return { success: true, count: rows.length };
 }
+
+export async function setDoctorAvailability(doctorId: string, isAvailable: boolean) {
+  await db.doctorStatus.upsert({
+    where: { doctor_id: doctorId },
+    update: { is_available: isAvailable, current_visit_id: isAvailable ? null : undefined },
+    create: { doctor_id: doctorId, is_available: isAvailable, current_visit_id: null },
+  });
+  return { success: true };
+}
