@@ -10,6 +10,7 @@ export default function ReceptionQueuePage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [department, setDepartment] = useState("GEN");
   const [patientId, setPatientId] = useState("");
+  const [appointmentId, setAppointmentId] = useState("");
   const [tickets, setTickets] = useState<any[]>([]);
 
   const fetchQueue = useCallback(async () => {
@@ -49,6 +50,13 @@ export default function ReceptionQueuePage() {
     await fetchQueue();
   }
 
+  async function onCheckInAppointment() {
+    if (!appointmentId) return;
+    await enqueueVisit({ appointmentId: Number(appointmentId), intakeType: "APPOINTMENT" });
+    setAppointmentId("");
+    await fetchQueue();
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-end gap-3">
@@ -61,6 +69,14 @@ export default function ReceptionQueuePage() {
           <Input value={patientId} onChange={(e) => setPatientId(e.target.value)} placeholder="patient-id" />
         </div>
         <Button onClick={onEnqueue}>Enqueue Walk-in</Button>
+      </div>
+
+      <div className="flex items-end gap-3">
+        <div className="flex-1">
+          <label className="text-sm font-medium">Appointment ID</label>
+          <Input value={appointmentId} onChange={(e) => setAppointmentId(e.target.value)} placeholder="appointment-id" />
+        </div>
+        <Button onClick={onCheckInAppointment}>Check-in Appointment</Button>
       </div>
 
       <div className="border rounded-md">

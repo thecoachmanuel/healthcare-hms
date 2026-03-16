@@ -11,6 +11,8 @@ export default function TriagePage() {
   const [visitId, setVisitId] = useState("");
   const [priority, setPriority] = useState("GREEN");
   const [nurseId, setNurseId] = useState("");
+  const [checkinPatientId, setCheckinPatientId] = useState("");
+  const [checkinAppointmentId, setCheckinAppointmentId] = useState("");
 
   const fetchUntriaged = useCallback(async () => {
     const res = await fetch(`/api/triage`);
@@ -44,6 +46,17 @@ export default function TriagePage() {
     if (!visitId || !nurseId) return;
     await setTriage({ visitId: Number(visitId), nurseId, priority: priority as any });
     setVisitId("");
+    await fetchUntriaged();
+  }
+
+  async function checkin() {
+    if (!checkinPatientId && !checkinAppointmentId) return;
+    const body: any = { intakeType: checkinAppointmentId ? "APPOINTMENT" : "WALK_IN" };
+    if (checkinPatientId) body.patientId = checkinPatientId;
+    if (checkinAppointmentId) body.appointmentId = Number(checkinAppointmentId);
+    await (await import("@/app/actions/queue")).enqueueVisit(body);
+    setCheckinPatientId("");
+    setCheckinAppointmentId("");
     await fetchUntriaged();
   }
 
@@ -82,6 +95,21 @@ export default function TriagePage() {
             </div>
           ))}
           {untriaged.length === 0 && <div className="px-4 py-6 text-sm text-gray-500">No pending triage</div>}
+        </div>
+      </div>
+
+      <div className="border rounded-md">
+        <div className="px-4 py-2 text-sm font-semibold bg-gray-50">Check-in</div>
+        <div className="p-4 grid grid-cols-4 gap-3">
+          <div>
+            <label className="text-sm font-medium">Patient ID</label>
+            <Input value={checkinPatientId} onChange={(e) => setCheckinPatientId(e.target.value)} />
+          </div>
+          <div>
+            <label className="text-sm font-medium">Appointment ID</label>
+            <Input value={checkinAppointmentId} onChange={(e) => setCheckinAppointmentId(e.target.value)} />
+          </div>
+          <div className="col-span-2 flex items-end"><Button onClick={checkin}>Check-in</Button></div>
         </div>
       </div>
     </div>

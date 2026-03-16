@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import db from "@/lib/db";
 
 const EnqueueSchema = z.object({
-  patientId: z.string().min(1),
+  patientId: z.string().min(1).optional(),
   department: z.string().optional(),
   doctorId: z.string().optional(),
   intakeType: z.enum(["WALK_IN", "APPOINTMENT"]),
@@ -14,24 +14,41 @@ const EnqueueSchema = z.object({
 export async function enqueueVisit(input: z.infer<typeof EnqueueSchema>) {
   const data = EnqueueSchema.parse(input);
   const result = await db.$transaction(async (tx) => {
+    let patientId = data.patientId ?? null as null | string;
+    let doctorId = data.doctorId ?? null as null | string;
+    let department = data.department ?? null as null | string;
+    let intakeType = data.intakeType;
+
+    if (data.appointmentId) {
+      const appt = await tx.appointment.findUnique({ where: { id: data.appointmentId }, select: { patient_id: true, doctor_id: true } });
+      if (!appt) throw new Error("Appointment not found");
+      patientId = patientId ?? appt.patient_id;
+      doctorId = doctorId ?? appt.doctor_id;
+      const doc = await tx.doctor.findUnique({ where: { id: doctorId! }, select: { department: true } });
+      department = department ?? doc?.department ?? null;
+      intakeType = "APPOINTMENT";
+    }
+
+    if (!patientId) throw new Error("patientId required");
+
     const visit = await tx.visit.create({
       data: {
-        patient_id: data.patientId,
-        doctor_id: data.doctorId ?? null,
-        department: data.department ?? null,
-        intake_type: data.intakeType,
+        patient_id: patientId,
+        doctor_id: doctorId,
+        department: department,
+        intake_type: intakeType,
         appointment_id: data.appointmentId ?? null,
       },
     });
 
-    const queueNumber = await nextQueueNumber(tx, data.department ?? "GEN");
+    const queueNumber = await nextQueueNumber(tx, department ?? "GEN");
 
     const ticket = await tx.queueTicket.create({
       data: {
         visit_id: visit.id,
         queue_number: queueNumber,
-        department: data.department ?? null,
-        doctor_id: data.doctorId ?? null,
+        department: department,
+        doctor_id: doctorId,
       },
     });
 

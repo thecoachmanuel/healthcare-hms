@@ -12,6 +12,7 @@ export default function DoctorQueuePage() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [current, setCurrent] = useState<any | null>(null);
   const avgMinutesPerPatient = 10;
+  const [checkinPatientId, setCheckinPatientId] = useState("");
 
   const fetchQueue = useCallback(async () => {
     const qs = doctorId ? `doctorId=${doctorId}` : `department=${department}`;
@@ -50,6 +51,13 @@ export default function DoctorQueuePage() {
     if ((res as any).success) await fetchQueue();
   }
 
+  async function onCheckinPatient() {
+    if (!checkinPatientId) return;
+    await (await import("@/app/actions/queue")).enqueueVisit({ patientId: checkinPatientId, doctorId, department, intakeType: "WALK_IN" });
+    setCheckinPatientId("");
+    await fetchQueue();
+  }
+
   return (
     <div className="p-6 space-y-6">
       <div className="grid grid-cols-3 gap-3">
@@ -62,6 +70,14 @@ export default function DoctorQueuePage() {
           <Input value={department} onChange={(e) => setDepartment(e.target.value)} />
         </div>
         <div className="flex items-end"><Button onClick={onCallNext}>Call Next</Button></div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <div>
+          <label className="text-sm font-medium">Patient ID</label>
+          <Input value={checkinPatientId} onChange={(e) => setCheckinPatientId(e.target.value)} />
+        </div>
+        <div className="flex items-end"><Button onClick={onCheckinPatient}>Check-in</Button></div>
       </div>
 
       <div className="border rounded-md">
