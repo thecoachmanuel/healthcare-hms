@@ -60,6 +60,7 @@ export const BookAppointment = ({
   }, [physicians, doctorQuery]);
 
   const appointmentTimes = generateTimes(8, 17, 30);
+  const [useWindow, setUseWindow] = useState(false);
 
   const patientName = `${data?.first_name} ${data?.last_name}`;
 
@@ -69,6 +70,8 @@ export const BookAppointment = ({
       doctor_id: "",
       appointment_date: "",
       time: "",
+      window_start: "",
+      window_end: "",
       type: "",
       note: "",
     },
@@ -79,7 +82,11 @@ export const BookAppointment = ({
   ) => {
     try {
       setIsSubmitting(true);
-      const newData = { ...values, patient_id: data?.id! };
+      const newData = {
+        ...values,
+        patient_id: data?.id!,
+        time: useWindow ? values.window_start || values.time : values.time,
+      };
 
       const res = await createNewAppointment(newData);
 
@@ -202,23 +209,51 @@ export const BookAppointment = ({
                   )}
                 />
 
-                <div className="flex items-center gap-2">
-                  <CustomInput
-                    type="input"
-                    control={form.control}
-                    name="appointment_date"
-                    placeholder=""
-                    label="Date"
-                    inputType="date"
-                  />
-                  <CustomInput
-                    type="select"
-                    control={form.control}
-                    name="time"
-                    placeholder="Select time"
-                    label="Time"
-                    selectList={appointmentTimes}
-                  />
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <CustomInput
+                      type="input"
+                      control={form.control}
+                      name="appointment_date"
+                      placeholder=""
+                      label="Date"
+                      inputType="date"
+                    />
+                    <div className="flex items-center gap-2 mt-6">
+                      <input id="useWindow" type="checkbox" className="h-4 w-4" checked={useWindow} onChange={(e) => setUseWindow(e.target.checked)} />
+                      <label htmlFor="useWindow" className="text-sm">Use time window</label>
+                    </div>
+                  </div>
+                  {!useWindow ? (
+                    <CustomInput
+                      type="select"
+                      control={form.control}
+                      name="time"
+                      placeholder="Select time"
+                      label="Time"
+                      selectList={appointmentTimes}
+                    />
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <CustomInput
+                        type="select"
+                        control={form.control}
+                        name="window_start"
+                        placeholder="Start"
+                        label="Window Start"
+                        selectList={appointmentTimes}
+                      />
+                      <CustomInput
+                        type="select"
+                        control={form.control}
+                        name="window_end"
+                        placeholder="End"
+                        label="Window End"
+                        selectList={appointmentTimes}
+                      />
+                      {/* If using window, set time to window_start for backward compatibility */}
+                    </div>
+                  )}
                 </div>
 
                 <CustomInput

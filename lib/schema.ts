@@ -76,6 +76,8 @@ export const AppointmentSchema = z.object({
   type: z.string().min(1, "Select type of appointment"),
   appointment_date: z.string().min(1, "Select appointment date"),
   time: z.string().min(1, "Select appointment time"),
+  window_start: z.string().optional(),
+  window_end: z.string().optional(),
   note: z.string().optional(),
 });
 

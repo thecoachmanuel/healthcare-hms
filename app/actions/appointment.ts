@@ -41,16 +41,23 @@ export async function createNewAppointment(data: any) {
       return { success: false, msg: "Selected time is outside doctor's working hours" };
     }
 
-    const conflict = await db.appointment.findFirst({
-      where: {
-        doctor_id: validated.doctor_id,
-        appointment_date: { gte: startOfDay, lte: endOfDay },
-        time: validated.time,
-        status: { in: ["PENDING", "SCHEDULED"] },
-      },
-      select: { id: true },
-    });
-    if (conflict) return { success: false, msg: "Time already booked" };
+    // For strict time bookings (no window), avoid double-booking exact slot
+    if (!data.window_start && !data.window_end) {
+      const conflict = await db.appointment.findFirst({
+        where: {
+          doctor_id: validated.doctor_id,
+          appointment_date: { gte: startOfDay, lte: endOfDay },
+          time: validated.time,
+          status: { in: ["PENDING", "SCHEDULED"] },
+        },
+        select: { id: true },
+      });
+      if (conflict) return { success: false, msg: "Time already booked" };
+    }
+
+    // Compute optional window_start/window_end Date values when provided
+    const windowStartDate = data.window_start ? new Date(`${validated.appointment_date}T${data.window_start}:00`) : null;
+    const windowEndDate = data.window_end ? new Date(`${validated.appointment_date}T${data.window_end}:00`) : null;
 
     await db.appointment.create({
       data: {
@@ -59,6 +66,8 @@ export async function createNewAppointment(data: any) {
         time: validated.time,
         type: validated.type,
         appointment_date: apptDate,
+        window_start: windowStartDate,
+        window_end: windowEndDate,
         note: validated.note,
       },
     });

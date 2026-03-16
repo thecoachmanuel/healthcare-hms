@@ -85,9 +85,34 @@ export async function callNextPatient(doctorId: string, department: string) {
   const row = rows[0];
   if (!row) return { success: false, msg: "No waiting patients" };
   const ticket = await db.queueTicket.update({ where: { id: row.id }, data: { status: "CALLED", called_at: new Date() }, include: { visit: true } });
-  await db.doctorStatus.upsert({ where: { doctor_id: doctorId }, update: { is_available: true, current_visit_id: ticket.visit_id }, create: { doctor_id: doctorId, is_available: true, current_visit_id: ticket.visit_id } });
+  const ticket = await db.queueTicket.update({ where: { id: row.id }, data: { status: "CALLED", called_at: new Date() }, include: { visit: true } });
   return { success: true, ticketId: ticket.id, visitId: ticket.visit_id };
+
+  // Notify called patient
+  try {
+    const calledVisit = await db.visit.findUnique({ where: { id: ticket.visit_id }, select: { patient_id: true } });
+    if (calledVisit) {
+      await db.notification.create({ data: { user_id: calledVisit.patient_id, title: 'You are being called', body: 'Please proceed to the consulting room.' } });
+    }
+  } catch {}
+
+  // Notify next in line (up to 2) that it's almost their turn
+  try {
+    const nextRows = await db.$queryRaw<Array<{ id: number, visit_id: number }>>`
+      SELECT id, visit_id FROM "QueueTicket"
+      WHERE status = 'WAITING' AND (doctor_id = ${doctorId} OR department = ${department})
+      ORDER BY CASE priority WHEN 'RED' THEN 1 WHEN 'YELLOW' THEN 2 ELSE 3 END ASC, arrival_time ASC
+      LIMIT 2
+    `;
+    for (const n of nextRows) {
+      const v = await db.visit.findUnique({ where: { id: n.visit_id }, select: { patient_id: true } });
+      if (v) {
+        await db.notification.create({ data: { user_id: v.patient_id, title: 'Almost your turn', body: 'Please stay nearby, you will be called shortly.' } });
+      }
+    }
+  } catch {}
 }
+
 
 export async function markInConsultation(ticketId: number, doctorId: string) {
   const ticket = await db.queueTicket.update({ where: { id: ticketId }, data: { status: "IN_CONSULTATION", started_at: new Date() } });
@@ -136,3 +161,33 @@ export async function getPatientPosition(visitId: number) {
   return { position };
 }
 
+// Mark no-shows for appointments whose window_end has passed and no visit exists
+export async function sweepNoShows(nowISO?: string) {
+  const now = nowISO ? new Date(nowISO) : new Date();
+  const appts = await db.appointment.findMany({
+    where: { window_end: { lt: now }, status: { in: ["PENDING", "SCHEDULED"] } },
+    select: { id: true, patient_id: true }
+  });
+  let count = 0;
+  for (const a of appts) {
+    const v = await db.visit.findFirst({ where: { appointment_id: a.id } });
+    if (!v) {
+      await db.appointment.update({ where: { id: a.id }, data: { status: 'CANCELLED', reason: 'No-show after window' } });
+      await db.notification.create({ data: { user_id: a.patient_id, title: 'Appointment marked no-show', body: 'Your time window elapsed without check-in. Please reschedule.' } });
+      count++;
+    }
+  }
+  return { success: true, count };
+}
+
+// Notify patients of doctor delays for all waiting tickets assigned to a doctor
+export async function setDoctorDelay(doctorId: string, minutes: number, message?: string) {
+  const rows = await db.queueTicket.findMany({ where: { doctor_id: doctorId, status: 'WAITING' }, select: { visit_id: true } });
+  for (const r of rows) {
+    const v = await db.visit.findUnique({ where: { id: r.visit_id }, select: { patient_id: true } });
+    if (v) {
+      await db.notification.create({ data: { user_id: v.patient_id, title: 'Doctor delayed', body: message ?? `Doctor delayed by ~${minutes} minutes. Thank you for your patience.` } });
+    }
+  }
+  return { success: true, count: rows.length };
+}
