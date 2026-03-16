@@ -12,6 +12,8 @@ export default function ReceptionQueuePage() {
   const [patientId, setPatientId] = useState("");
   const [appointmentId, setAppointmentId] = useState("");
   const [tickets, setTickets] = useState<any[]>([]);
+  const [appointments, setAppointments] = useState<any[]>([]);
+  const [apptQuery, setApptQuery] = useState("");
 
   const fetchQueue = useCallback(async () => {
     const res = await fetch(`/api/queue?department=${encodeURIComponent(department)}`);
@@ -34,6 +36,16 @@ export default function ReceptionQueuePage() {
   }, [department, fetchQueue]);
 
   useEffect(() => {
+    (async () => {
+      const res = await fetch(`/api/appointments/today?department=${encodeURIComponent(department)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setAppointments(data.items ?? []);
+      }
+    })();
+  }, [department]);
+
+  useEffect(() => {
     const channel = supabase
       .channel("queue-tickets")
       .on("postgres_changes", { event: "*", schema: "public", table: "QueueTicket" }, () => fetchQueue())
@@ -54,6 +66,11 @@ export default function ReceptionQueuePage() {
     if (!appointmentId) return;
     await enqueueVisit({ appointmentId: Number(appointmentId), intakeType: "APPOINTMENT" });
     setAppointmentId("");
+    await fetchQueue();
+  }
+
+  async function onCheckInAppointmentFromList(id: number) {
+    await enqueueVisit({ appointmentId: id, intakeType: "APPOINTMENT" });
     await fetchQueue();
   }
 
@@ -99,6 +116,43 @@ export default function ReceptionQueuePage() {
           {tickets.length === 0 && (
             <div className="px-4 py-6 text-sm text-gray-500">No waiting patients</div>
           )}
+        </div>
+      </div>
+
+      <div className="border rounded-md">
+        <div className="px-4 py-2 text-sm font-semibold bg-gray-50">Today's Appointments</div>
+        <div className="p-4">
+          <div className="flex items-end gap-3 mb-3">
+            <div className="flex-1">
+              <label className="text-sm font-medium">Search</label>
+              <Input value={apptQuery} onChange={(e) => setApptQuery(e.target.value)} placeholder="Search by time or type" />
+            </div>
+          </div>
+          <div className="divide-y">
+            {appointments
+              .filter((a) => {
+                const t = `${a.time ?? ""} ${a.type ?? ""}`.toLowerCase();
+                return apptQuery.trim() ? t.includes(apptQuery.toLowerCase()) : true;
+              })
+              .map((a) => (
+              <div key={a.id} className="flex items-center justify-between px-2 py-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-xs px-2 py-1 rounded bg-gray-100">#{a.id}</span>
+                  <span className="text-sm">{a.type}</span>
+                  <span className="text-xs text-gray-600">{new Date(a.appointment_date).toISOString().slice(0,10)} {a.time}</span>
+                  {a.window_start && a.window_end && (
+                    <span className="text-xs text-gray-500">[{new Date(a.window_start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})} - {new Date(a.window_end).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}]</span>
+                  )}
+                </div>
+                <div>
+                  <Button size="sm" onClick={async () => { await onCheckInAppointmentFromList(a.id); }}>Check-in</Button>
+                </div>
+              </div>
+            ))}
+            {appointments.length === 0 && (
+              <div className="px-2 py-4 text-sm text-gray-500">No appointments for today</div>
+            )}
+          </div>
         </div>
       </div>
     </div>
