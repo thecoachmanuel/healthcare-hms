@@ -13,6 +13,16 @@ export default function TriagePage() {
   const [nurseId, setNurseId] = useState("");
 
   useEffect(() => {
+    // Autofill nurse id
+    (async () => {
+      try {
+        const res = await fetch('/api/me');
+        if (res.ok) {
+          const me = await res.json();
+          if (me?.id) setNurseId(me.id);
+        }
+      } catch {}
+    })();
     fetchUntriaged();
   }, []);
 
@@ -77,4 +87,3 @@ export default function TriagePage() {
     </div>
   );
 }
-

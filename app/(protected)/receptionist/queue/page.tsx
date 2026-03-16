@@ -13,6 +13,16 @@ export default function ReceptionQueuePage() {
   const [tickets, setTickets] = useState<any[]>([]);
 
   useEffect(() => {
+    // Autofill department from current user if available
+    (async () => {
+      try {
+        const res = await fetch('/api/me');
+        if (res.ok) {
+          const me = await res.json();
+          if (me?.department) setDepartment(me.department);
+        }
+      } catch {}
+    })();
     fetchQueue();
   }, [department]);
 
@@ -78,4 +88,3 @@ export default function ReceptionQueuePage() {
     </div>
   );
 }
-

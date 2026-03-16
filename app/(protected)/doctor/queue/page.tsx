@@ -13,6 +13,17 @@ export default function DoctorQueuePage() {
   const [current, setCurrent] = useState<any | null>(null);
 
   useEffect(() => {
+    // Autofill doctor id and department from current user
+    (async () => {
+      try {
+        const res = await fetch('/api/me');
+        if (res.ok) {
+          const me = await res.json();
+          if (me?.id) setDoctorId(me.id);
+          if (me?.department) setDepartment(me.department);
+        }
+      } catch {}
+    })();
     if (!doctorId && !department) return;
     fetchQueue();
   }, [doctorId, department]);
@@ -89,4 +100,3 @@ export default function DoctorQueuePage() {
     </div>
   );
 }
-
