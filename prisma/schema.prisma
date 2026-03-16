@@ -122,6 +122,7 @@ model Patient {
   prescriptions            Prescription[]
   medication_administrations MedicationAdministration[]
   admissions               InpatientAdmission[]
+  visits                   Visit[]
 
   created_at               DateTime @default(now())
   updated_at               DateTime @updatedAt
@@ -149,6 +150,7 @@ model Doctor {
   prescriptions         Prescription[]
   queue_tickets         QueueTicket[]
   doctor_status         DoctorStatus?
+  visits                Visit[]
   ward                  Ward? @relation(fields: [ward_id], references: [id])
   admissions            InpatientAdmission[]
 
@@ -191,6 +193,7 @@ model Staff {
   ward          Ward? @relation(fields: [ward_id], references: [id])
   medication_administrations MedicationAdministration[]
   approved_lab_tests   LabTest[] @relation(name: "LabTestApprovedBy")
+  triages       Triage[]
 
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
@@ -267,6 +270,7 @@ model Appointment {
   note              String?
   patient           Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
   doctor            Doctor   @relation(fields: [doctor_id], references: [id],  onDelete:  Cascade)
+  visits            Visit[]
 
   bills             Payment[]
   medical           MedicalRecords[]
