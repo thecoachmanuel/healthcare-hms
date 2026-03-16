@@ -11,6 +11,7 @@ export default function DoctorQueuePage() {
   const [department, setDepartment] = useState("GEN");
   const [tickets, setTickets] = useState<any[]>([]);
   const [current, setCurrent] = useState<any | null>(null);
+  const avgMinutesPerPatient = 10;
 
   const fetchQueue = useCallback(async () => {
     const qs = doctorId ? `doctorId=${doctorId}` : `department=${department}`;
@@ -66,12 +67,13 @@ export default function DoctorQueuePage() {
       <div className="border rounded-md">
         <div className="px-4 py-2 text-sm font-semibold bg-gray-50">Waiting Queue</div>
         <div className="divide-y">
-          {tickets.map((t) => (
+          {tickets.map((t, idx) => (
             <div key={t.id} className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
                 <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">{t.queue_number}</span>
                 <span className="text-sm">{t.priority}</span>
                 <span className="text-xs text-gray-500">{new Date(t.arrival_time).toLocaleTimeString()}</span>
+                <span className="text-xs text-gray-600">~{Math.max(idx, 0) * avgMinutesPerPatient} min</span>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="secondary" onClick={async () => { await markInConsultation(t.id, doctorId); setCurrent(t); }}>Start</Button>

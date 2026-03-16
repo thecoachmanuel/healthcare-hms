@@ -8,6 +8,8 @@ export default async function PatientQueuePage({ params }: Props) {
   const ticket = await db.queueTicket.findUnique({ where: { visit_id: Number(visitId) } });
   const pos = await getPatientPosition(Number(visitId));
   const position = pos.position ?? null;
+  const avgMinutesPerPatient = 10;
+  const estimate = position !== null ? position * avgMinutesPerPatient : null;
   return (
     <div className="p-6 space-y-4">
       <div className="text-2xl font-bold">Queue Tracking</div>
@@ -20,9 +22,11 @@ export default async function PatientQueuePage({ params }: Props) {
           {position !== null && ticket.status === "WAITING" && (
             <div className="text-sm">Position in Queue: {position}</div>
           )}
+          {estimate !== null && ticket.status === "WAITING" && (
+            <div className="text-sm">Estimated Wait: ~{estimate} min</div>
+          )}
         </div>
       )}
     </div>
   );
 }
-
