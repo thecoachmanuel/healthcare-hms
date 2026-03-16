@@ -67,6 +67,27 @@ enum PaymentStatus {
   PART
 }
 
+enum TriagePriority {
+  RED
+  YELLOW
+  GREEN
+}
+
+enum IntakeType {
+  WALK_IN
+  APPOINTMENT
+}
+
+enum QueueStatus {
+  WAITING
+  CALLED
+  IN_CONSULTATION
+  COMPLETED
+  SKIPPED
+  NO_SHOW
+  CANCELLED
+}
+
 
 model Patient {
   id                       String   @id //clerk userId
@@ -237,6 +258,8 @@ model Appointment {
   doctor_id         String
   appointment_date  DateTime
   time              String
+  window_start      DateTime?
+  window_end        DateTime?
   status            AppointmentStatus @default(PENDING)
   type              String
   note              String?
@@ -249,6 +272,8 @@ model Appointment {
   reason            String?
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
+
+  @@index([doctor_id, appointment_date])
 }
 
 model Payment {
@@ -368,6 +393,88 @@ model MedicalRecords {
 
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+}
+
+model Visit {
+  id                 Int      @id @default(autoincrement())
+  patient_id         String
+  doctor_id          String?
+  department         String?
+  intake_type        IntakeType
+  appointment_id     Int?
+  arrived_at         DateTime @default(now())
+  completed_at       DateTime?
+  created_by_id      String?
+  created_by_role    Role?
+
+  patient            Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  doctor             Doctor?  @relation(fields: [doctor_id], references: [id])
+  appointment        Appointment? @relation(fields: [appointment_id], references: [id])
+  triage             Triage?
+  queue_ticket       QueueTicket?
+
+  created_at         DateTime @default(now())
+  updated_at         DateTime @updatedAt
+
+  @@index([patient_id])
+  @@index([doctor_id])
+  @@index([department])
+  @@index([arrived_at])
+}
+
+model Triage {
+  id           Int            @id @default(autoincrement())
+  visit_id     Int            @unique
+  nurse_id     String
+  priority     TriagePriority
+  notes        String?
+  triaged_at   DateTime       @default(now())
+
+  visit        Visit          @relation(fields: [visit_id], references: [id], onDelete: Cascade)
+  nurse        Staff          @relation(fields: [nurse_id], references: [id])
+
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  @@index([priority])
+  @@index([triaged_at])
+}
+
+model QueueTicket {
+  id              Int            @id @default(autoincrement())
+  visit_id        Int            @unique
+  queue_number    String         @unique
+  department      String?
+  doctor_id       String?
+  priority        TriagePriority @default(GREEN)
+  status          QueueStatus    @default(WAITING)
+  arrival_time    DateTime       @default(now())
+  called_at       DateTime?
+  started_at      DateTime?
+  completed_at    DateTime?
+  skip_count      Int            @default(0)
+  no_show_marked  Boolean        @default(false)
+
+  visit           Visit          @relation(fields: [visit_id], references: [id], onDelete: Cascade)
+  doctor          Doctor?        @relation(fields: [doctor_id], references: [id])
+
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  @@index([status, priority, arrival_time])
+  @@index([doctor_id, status, priority, arrival_time])
+  @@index([department, status, priority, arrival_time])
+}
+
+model DoctorStatus {
+  doctor_id       String   @id
+  is_available    Boolean  @default(true)
+  current_visit_id Int?
+  updated_at      DateTime @updatedAt
+
+  doctor          Doctor   @relation(fields: [doctor_id], references: [id])
+
+  @@index([is_available])
 }
 
 model VitalSigns {
