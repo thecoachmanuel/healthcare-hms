@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,13 @@ export default function DoctorQueuePage() {
   const [department, setDepartment] = useState("GEN");
   const [tickets, setTickets] = useState<any[]>([]);
   const [current, setCurrent] = useState<any | null>(null);
+
+  const fetchQueue = useCallback(async () => {
+    const qs = doctorId ? `doctorId=${doctorId}` : `department=${department}`;
+    const res = await fetch(`/api/queue?${qs}`);
+    const data = await res.json();
+    setTickets(data.tickets ?? []);
+  }, [doctorId, department]);
 
   useEffect(() => {
     // Autofill doctor id and department from current user
@@ -26,7 +33,7 @@ export default function DoctorQueuePage() {
     })();
     if (!doctorId && !department) return;
     fetchQueue();
-  }, [doctorId, department]);
+  }, [doctorId, department, fetchQueue]);
 
   useEffect(() => {
     const channel = supabase
@@ -34,14 +41,7 @@ export default function DoctorQueuePage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "QueueTicket" }, () => fetchQueue())
       .subscribe();
     return () => supabase.removeChannel(channel);
-  }, [supabase, doctorId, department]);
-
-  async function fetchQueue() {
-    const qs = doctorId ? `doctorId=${doctorId}` : `department=${department}`;
-    const res = await fetch(`/api/queue?${qs}`);
-    const data = await res.json();
-    setTickets(data.tickets ?? []);
-  }
+  }, [supabase, fetchQueue]);
 
   async function onCallNext() {
     if (!doctorId) return;

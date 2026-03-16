@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,12 @@ export default function ReceptionQueuePage() {
   const [department, setDepartment] = useState("GEN");
   const [patientId, setPatientId] = useState("");
   const [tickets, setTickets] = useState<any[]>([]);
+
+  const fetchQueue = useCallback(async () => {
+    const res = await fetch(`/api/queue?department=${encodeURIComponent(department)}`);
+    const data = await res.json();
+    setTickets(data.tickets ?? []);
+  }, [department]);
 
   useEffect(() => {
     // Autofill department from current user if available
@@ -24,7 +30,7 @@ export default function ReceptionQueuePage() {
       } catch {}
     })();
     fetchQueue();
-  }, [department]);
+  }, [department, fetchQueue]);
 
   useEffect(() => {
     const channel = supabase
@@ -34,13 +40,7 @@ export default function ReceptionQueuePage() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase, department]);
-
-  async function fetchQueue() {
-    const res = await fetch(`/api/queue?department=${encodeURIComponent(department)}`);
-    const data = await res.json();
-    setTickets(data.tickets ?? []);
-  }
+  }, [supabase, fetchQueue]);
 
   async function onEnqueue() {
     if (!patientId) return;

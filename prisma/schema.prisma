@@ -147,6 +147,8 @@ model Doctor {
   ratings               Rating[]
   diagnosis             Diagnosis[] 
   prescriptions         Prescription[]
+  queue_tickets         QueueTicket[]
+  doctor_status         DoctorStatus?
   ward                  Ward? @relation(fields: [ward_id], references: [id])
   admissions            InpatientAdmission[]
 

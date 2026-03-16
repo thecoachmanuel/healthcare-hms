@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,12 @@ export default function TriagePage() {
   const [visitId, setVisitId] = useState("");
   const [priority, setPriority] = useState("GREEN");
   const [nurseId, setNurseId] = useState("");
+
+  const fetchUntriaged = useCallback(async () => {
+    const res = await fetch(`/api/triage`);
+    const data = await res.json();
+    setUntriaged(data.items ?? []);
+  }, []);
 
   useEffect(() => {
     // Autofill nurse id
@@ -24,7 +30,7 @@ export default function TriagePage() {
       } catch {}
     })();
     fetchUntriaged();
-  }, []);
+  }, [fetchUntriaged]);
 
   useEffect(() => {
     const channel = supabase
@@ -32,13 +38,7 @@ export default function TriagePage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "Triage" }, () => fetchUntriaged())
       .subscribe();
     return () => supabase.removeChannel(channel);
-  }, [supabase]);
-
-  async function fetchUntriaged() {
-    const res = await fetch(`/api/triage`);
-    const data = await res.json();
-    setUntriaged(data.items ?? []);
-  }
+  }, [supabase, fetchUntriaged]);
 
   async function assign() {
     if (!visitId || !nurseId) return;
