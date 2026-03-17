@@ -1,5 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,6 +8,7 @@ import { callNextPatient, markInConsultation, completeConsultation, skipTicket, 
 
 export default function DoctorQueuePage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
+  const router = useRouter();
   const [doctorId, setDoctorId] = useState("");
   const [department, setDepartment] = useState("GEN");
   const [tickets, setTickets] = useState<any[]>([]);
@@ -286,7 +288,7 @@ export default function DoctorQueuePage() {
               <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(current.priority)}`}>{current.priority}</span>
               {current.patient_first_name ? <span className="text-sm text-gray-700">{current.patient_first_name} {current.patient_last_name}</span> : null}
             </div>
-            <Button onClick={async () => { await completeConsultation(current.id, doctorId); setCurrent(null); setIsAvailable(true); await fetchQueue(); }}>Complete</Button>
+            <Button onClick={async () => { await completeConsultation(current.id, doctorId); const apptId = (current as any)?.appointment_id; setCurrent(null); setIsAvailable(true); await fetchQueue(); if (apptId) { router.push(`/record/appointments/${apptId}?cat=diagnosis`); } }}>Complete</Button>
           </div>
         </div>
       )}

@@ -12,7 +12,18 @@ export async function updateMyWorkingDays(schedule: any) {
     const isAdmin = await checkRole("ADMIN");
     if (!isDoctor && !isAdmin) return { success: false, msg: "Unauthorized" };
 
-    const parsed = WorkingDaysSchema.safeParse(schedule);
+    const incoming = Array.isArray(schedule) ? schedule : [];
+    const normalized = incoming
+      .map((d: any) => ({
+        day: String(d?.day ?? "").toLowerCase(),
+        start_time: String(d?.start_time ?? "09:00"),
+        close_time: String(d?.close_time ?? "17:00"),
+      }))
+      .filter((d: any) => [
+        "sunday","monday","tuesday","wednesday","thursday","friday","saturday"
+      ].includes(d.day));
+
+    const parsed = WorkingDaysSchema.safeParse(normalized);
     if (!parsed.success) return { success: false, msg: "Invalid schedule" };
     const data = parsed.data ?? [];
 
@@ -29,4 +40,3 @@ export async function updateMyWorkingDays(schedule: any) {
     return { success: false, msg: "Internal Server Error" };
   }
 }
-
