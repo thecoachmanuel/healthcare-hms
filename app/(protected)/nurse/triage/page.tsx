@@ -5,11 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { setTriage } from "@/app/actions/queue";
+import { PatientSearchSelect } from "@/components/patient-search-select";
 
 export default function TriagePage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [untriaged, setUntriaged] = useState<any[]>([]);
-  const [currentTickets, setCurrentTickets] = useState<any[]>([]);
+  const [waitingTickets, setWaitingTickets] = useState<any[]>([]);
   const [visitId, setVisitId] = useState<string>("");
   const [priority, setPriority] = useState("GREEN");
   const [nurseId, setNurseId] = useState("");
@@ -27,6 +28,11 @@ export default function TriagePage() {
     if (p === "YELLOW") return "bg-yellow-100 text-yellow-800";
     return "bg-green-100 text-green-800";
   };
+  const priorityLabel = (p: string | null | undefined) => {
+    if (p === "RED") return "HIGH";
+    if (p === "YELLOW") return "MEDIUM";
+    return "LOW";
+  };
 
   const fetchUntriaged = useCallback(async () => {
     const res = await fetch(`/api/triage`);
@@ -34,10 +40,11 @@ export default function TriagePage() {
     setUntriaged(data.items ?? []);
   }, []);
 
-  const fetchCurrent = useCallback(async () => {
-    const res = await fetch(`/api/queue/current?department=${encodeURIComponent(department)}`);
+  const fetchWaiting = useCallback(async () => {
+    const qs = `department=${encodeURIComponent(department)}`;
+    const res = await fetch(`/api/queue?${qs}`);
     const data = await res.json();
-    setCurrentTickets(data.tickets ?? []);
+    setWaitingTickets(data.tickets ?? []);
   }, [department]);
 
   useEffect(() => {
@@ -53,8 +60,8 @@ export default function TriagePage() {
       } catch {}
     })();
     fetchUntriaged();
-    fetchCurrent();
-  }, [fetchUntriaged, fetchCurrent]);
+    fetchWaiting();
+  }, [fetchUntriaged, fetchWaiting]);
 
   useEffect(() => {
     (async () => {
@@ -79,11 +86,11 @@ export default function TriagePage() {
       .channel("queue-nurse")
       .on("postgres_changes", { event: "*", schema: "public", table: "QueueTicket" }, () => {
         fetchUntriaged();
-        fetchCurrent();
+        fetchWaiting();
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [supabase, fetchUntriaged, fetchCurrent]);
+  }, [supabase, fetchUntriaged, fetchWaiting]);
 
   useEffect(() => {
     const q = patientQuery.trim();
@@ -187,7 +194,7 @@ export default function TriagePage() {
         <div className="col-span-4 flex justify-end"><Button onClick={assign} disabled={!visitId || !nurseId}>Set Triage</Button></div>
       </div>
 
-      <div className="border rounded-md">
+      <div className="border rounded-md overflow-x-auto">
         <div className="px-4 py-2 text-sm font-semibold bg-gray-50">Untriaged Visits</div>
         <div className="divide-y">
           {untriaged.map((v) => (
@@ -205,89 +212,33 @@ export default function TriagePage() {
         </div>
       </div>
 
-      <div className="border rounded-md">
-        <div className="px-4 py-2 text-sm font-semibold bg-gray-50">In Consultation</div>
+      <div className="border rounded-md overflow-x-auto">
+        <div className="px-4 py-2 text-sm font-semibold bg-gray-50">Waiting Queue</div>
         <div className="divide-y">
-          {currentTickets.map((t) => (
+          {waitingTickets.map((t) => (
             <div key={t.id} className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
-                <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800">{t.queue_number}</span>
-                <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(t.priority)}`}>{t.priority}</span>
-                <span className="text-xs text-gray-500">Started {t.started_at ? new Date(t.started_at).toLocaleTimeString() : ""}</span>
+                <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">{t.queue_number}</span>
+                <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(t.priority)}`}>{priorityLabel(t.priority)}</span>
+                <span className="text-xs text-gray-500">Arrived {new Date(t.arrival_time).toLocaleTimeString()}</span>
                 <span className="text-sm text-gray-700">{t.patient_first_name} {t.patient_last_name}</span>
                 {t.patient_hospital_number ? <span className="text-xs text-gray-500">HN {t.patient_hospital_number}</span> : null}
                 {t.doctor_name ? <span className="text-xs text-gray-500">Dr. {t.doctor_name}</span> : null}
               </div>
             </div>
           ))}
-          {currentTickets.length === 0 && (
-            <div className="px-4 py-6 text-sm text-gray-500">No patients currently in consultation</div>
+          {waitingTickets.length === 0 && (
+            <div className="px-4 py-6 text-sm text-gray-500">No waiting patients</div>
           )}
         </div>
       </div>
 
-      <div className="border rounded-md">
+      <div className="border rounded-md overflow-x-auto">
         <div className="px-4 py-2 text-sm font-semibold bg-gray-50">Check-in</div>
         <div className="p-4 grid grid-cols-4 gap-3">
           <div className="col-span-2">
             <label className="text-sm font-medium">Patient</label>
-            <Input
-              value={selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : patientQuery}
-              onChange={(e) => {
-                setSelectedPatient(null);
-                setPatientQuery(e.target.value);
-                setPatientActiveIndex(-1);
-              }}
-              onKeyDown={(e) => {
-                if (!patientResults.length) return;
-                if (e.key === 'ArrowDown') {
-                  e.preventDefault();
-                  setPatientActiveIndex((prev) => (prev + 1) % patientResults.length);
-                } else if (e.key === 'ArrowUp') {
-                  e.preventDefault();
-                  setPatientActiveIndex((prev) => (prev <= 0 ? patientResults.length - 1 : prev - 1));
-                } else if (e.key === 'Enter') {
-                  if (patientActiveIndex >= 0 && patientActiveIndex < patientResults.length) {
-                    const p = patientResults[patientActiveIndex];
-                    setSelectedPatient(p);
-                    setPatientResults([]);
-                    setPatientQuery("");
-                    setPatientActiveIndex(-1);
-                  }
-                } else if (e.key === 'Escape') {
-                  setPatientResults([]);
-                  setPatientActiveIndex(-1);
-                }
-              }}
-              placeholder="Search name, hospital number, phone"
-            />
-            <div className="mt-1 text-xs text-gray-500">Type to search. Use ↑/↓ then Enter to select.</div>
-            {!selectedPatient && patientResults.length > 0 ? (
-              <div className="mt-2 border rounded-md bg-white overflow-hidden" role="listbox">
-                {patientResults.map((p, idx) => (
-                  <button
-                    key={p.id}
-                    type="button"
-                    className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 ${idx === patientActiveIndex ? 'bg-blue-100' : ''}`}
-                    onMouseEnter={() => setPatientActiveIndex(idx)}
-                    onMouseLeave={() => setPatientActiveIndex(-1)}
-                    onClick={() => {
-                      setSelectedPatient(p);
-                      setPatientResults([]);
-                      setPatientQuery("");
-                      setPatientActiveIndex(-1);
-                    }}
-                    role="option"
-                    aria-selected={idx === patientActiveIndex}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="font-medium">{p.first_name} {p.last_name}</span>
-                      <span className="text-xs text-gray-500">{p.hospital_number ? `HN ${p.hospital_number}` : p.phone}</span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            ) : null}
+            <PatientSearchSelect onSelect={(p) => { setSelectedPatient(p); setPatientResults([]); setPatientQuery(""); setPatientActiveIndex(-1); }} />
           </div>
           <div className="col-span-1 flex items-end"><Button onClick={checkin} disabled={!selectedPatient?.id}>Check-in</Button></div>
         </div>

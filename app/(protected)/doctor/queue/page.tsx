@@ -4,6 +4,9 @@ import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { toast } from "sonner";
+import { PatientSearchSelect } from "@/components/patient-search-select";
 import { callNextPatient, markInConsultation, completeConsultation, skipTicket, setDoctorAvailability, setDoctorDelay } from "@/app/actions/queue";
 
 export default function DoctorQueuePage() {
@@ -14,16 +17,16 @@ export default function DoctorQueuePage() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [current, setCurrent] = useState<any | null>(null);
   const avgMinutesPerPatient = 10;
-  const [patientQuery, setPatientQuery] = useState("");
-  const [patientResults, setPatientResults] = useState<any[]>([]);
+  
   const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
   const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [delayMinutes, setDelayMinutes] = useState("0");
   const [delayMessage, setDelayMessage] = useState("");
+  const [delaySending, setDelaySending] = useState(false);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [apptQuery, setApptQuery] = useState("");
-  const [patientActiveIndex, setPatientActiveIndex] = useState(-1);
+  
 
   const fetchQueue = useCallback(async () => {
     const qs = doctorId ? `doctorId=${doctorId}` : `department=${department}`;
@@ -48,31 +51,7 @@ export default function DoctorQueuePage() {
     fetchQueue();
   }, [doctorId, department, fetchQueue]);
 
-  useEffect(() => {
-    const q = patientQuery.trim();
-    if (q.length < 1) {
-      setPatientResults([]);
-      return;
-    }
-    const ctrl = new AbortController();
-    const t = setTimeout(() => {
-      (async () => {
-        try {
-          const res = await fetch(`/api/patients/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
-          if (res.ok) {
-            const data = await res.json();
-            setPatientResults(data.items ?? []);
-          }
-        } catch {
-          setPatientResults([]);
-        }
-      })();
-    }, 250);
-    return () => {
-      ctrl.abort();
-      clearTimeout(t);
-    };
-  }, [patientQuery]);
+  // replaced by PatientSearchSelect dropdown
 
   const fetchAvailability = useCallback(async () => {
     if (!doctorId) return;
@@ -125,8 +104,6 @@ export default function DoctorQueuePage() {
     if (!selectedPatient?.id) return;
     await (await import("@/app/actions/queue")).enqueueVisit({ patientId: selectedPatient.id, doctorId, department, intakeType: "WALK_IN" });
     setSelectedPatient(null);
-    setPatientQuery("");
-    setPatientResults([]);
     await fetchQueue();
   }
 
@@ -151,15 +128,32 @@ export default function DoctorQueuePage() {
 
   async function onBroadcastDelay() {
     if (!doctorId) return;
-    const mins = parseInt(delayMinutes || "0", 10);
-    if (Number.isNaN(mins) || mins < 0) return;
-    await setDoctorDelay(doctorId, mins, delayMessage || undefined);
+    const minsRaw = parseInt(delayMinutes || "0", 10);
+    const mins = Number.isNaN(minsRaw) ? NaN : Math.min(Math.max(minsRaw, 0), 240);
+    if (Number.isNaN(mins)) {
+      toast.error("Enter a valid delay in minutes");
+      return;
+    }
+    setDelaySending(true);
+    try {
+      const res = await setDoctorDelay(doctorId, mins, delayMessage || undefined);
+      toast.success(`Delay sent to ${(res as any)?.count ?? 0} patients`);
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to notify delay");
+    } finally {
+      setDelaySending(false);
+    }
   }
 
   const priorityBadgeClass = (p: string | null | undefined) => {
     if (p === "RED") return "bg-red-100 text-red-800";
     if (p === "YELLOW") return "bg-yellow-100 text-yellow-800";
     return "bg-green-100 text-green-800";
+  };
+  const priorityLabel = (p: string | null | undefined) => {
+    if (p === "RED") return "HIGH";
+    if (p === "YELLOW") return "MEDIUM";
+    return "LOW";
   };
 
   return (
@@ -188,88 +182,78 @@ export default function DoctorQueuePage() {
       <div className="grid grid-cols-3 gap-3">
         <div className="col-span-2">
           <label className="text-sm font-medium">Patient</label>
-          <Input
-            value={selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : patientQuery}
-            onChange={(e) => {
-              setSelectedPatient(null);
-              setPatientQuery(e.target.value);
-              setPatientActiveIndex(-1);
-            }}
-            onKeyDown={(e) => {
-              if (!patientResults.length) return;
-              if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                setPatientActiveIndex((prev) => (prev + 1) % patientResults.length);
-              } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                setPatientActiveIndex((prev) => (prev <= 0 ? patientResults.length - 1 : prev - 1));
-              } else if (e.key === 'Enter') {
-                if (patientActiveIndex >= 0 && patientActiveIndex < patientResults.length) {
-                  const p = patientResults[patientActiveIndex];
-                  setSelectedPatient(p);
-                  setPatientResults([]);
-                  setPatientQuery("");
-                  setPatientActiveIndex(-1);
-                }
-              } else if (e.key === 'Escape') {
-                setPatientResults([]);
-                setPatientActiveIndex(-1);
-              }
-            }}
-            placeholder="Search name, hospital number, phone"
-          />
-          <div className="mt-1 text-xs text-gray-500">Type to search. Use ↑/↓ then Enter to select.</div>
-          {!selectedPatient && patientResults.length > 0 ? (
-            <div className="mt-2 border rounded-md bg-white overflow-hidden" role="listbox">
-              {patientResults.map((p, idx) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 ${idx === patientActiveIndex ? 'bg-blue-100' : ''}`}
-                  onMouseEnter={() => setPatientActiveIndex(idx)}
-                  onMouseLeave={() => setPatientActiveIndex(-1)}
-                  onClick={() => {
-                    setSelectedPatient(p);
-                    setPatientResults([]);
-                    setPatientQuery("");
-                    setPatientActiveIndex(-1);
-                  }}
-                  role="option"
-                  aria-selected={idx === patientActiveIndex}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium">{p.first_name} {p.last_name}</span>
-                    <span className="text-xs text-gray-500">{p.hospital_number ? `HN ${p.hospital_number}` : p.phone}</span>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : null}
+          <PatientSearchSelect onSelect={(p) => { setSelectedPatient(p); setPatientResults([]); setPatientQuery(""); setPatientActiveIndex(-1); }} />
         </div>
         <div className="flex items-end"><Button onClick={onCheckinPatient} disabled={!selectedPatient?.id}>Check-in</Button></div>
-        <div className="flex items-end gap-2">
-          <Input value={delayMinutes} onChange={(e) => setDelayMinutes(e.target.value)} placeholder="Delay minutes" />
-          <Input value={delayMessage} onChange={(e) => setDelayMessage(e.target.value)} placeholder="Optional message" />
-          <Button variant="secondary" onClick={onBroadcastDelay}>Notify Delay</Button>
-        </div>
       </div>
 
-      <div className="border rounded-md">
+      <Card>
+        <CardHeader className="py-4">
+          <CardTitle className="text-base">Notify Delay</CardTitle>
+          <CardDescription className="text-xs">Sends a notification to patients waiting in your queue.</CardDescription>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <div className="flex flex-col gap-3">
+            <div>
+              <div className="text-sm font-medium">Quick presets</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {[0, 5, 10, 15, 20, 30, 45, 60].map((m) => (
+                  <Button
+                    key={m}
+                    type="button"
+                    size="sm"
+                    variant={parseInt(delayMinutes || "0", 10) === m ? "default" : "outline"}
+                    onClick={() => setDelayMinutes(String(m))}
+                  >
+                    {m === 0 ? "Clear" : `${m}m`}
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <div className="text-sm font-medium">Delay (minutes)</div>
+                <Input type="number" min={0} max={240} value={delayMinutes} onChange={(e) => setDelayMinutes(e.target.value)} placeholder="e.g. 10" />
+              </div>
+              <div className="md:col-span-2">
+                <div className="text-sm font-medium">Message (optional)</div>
+                <Input value={delayMessage} onChange={(e) => setDelayMessage(e.target.value)} placeholder="Optional message to patients" />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end">
+              <Button variant="secondary" onClick={onBroadcastDelay} disabled={!doctorId || delaySending}>
+                {delaySending ? "Sending…" : "Send Delay Notification"}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="border rounded-md overflow-x-auto">
         <div className="px-4 py-2 text-sm font-semibold bg-gray-50">Waiting Queue</div>
         <div className="divide-y">
           {tickets.map((t, idx) => (
             <div key={t.id} className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
                 <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">{t.queue_number}</span>
-                <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(t.priority)}`}>{t.priority}</span>
+                <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(t.priority)}`}>{priorityLabel(t.priority)}</span>
                 <span className="text-xs text-gray-500">{new Date(t.arrival_time).toLocaleTimeString()}</span>
                 <span className="text-xs text-gray-600">~{Math.max(idx, 0) * avgMinutesPerPatient} min</span>
                 <span className="text-sm text-gray-700">{t.patient_first_name} {t.patient_last_name}</span>
                 {t.patient_hospital_number ? <span className="text-xs text-gray-500">HN {t.patient_hospital_number}</span> : null}
               </div>
-              <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2">
                 <Button variant="secondary" onClick={async () => { await markInConsultation(t.id, doctorId); setCurrent(t); setIsAvailable(false); }}>Start</Button>
-                <Button variant="destructive" onClick={async () => { await skipTicket(t.id); await fetchQueue(); }}>Skip</Button>
+                {t.appointment_id ? (
+                  <>
+                    <Button size="sm" variant="destructive" onClick={async () => { const fn = (await import("@/app/actions/queue")).skipTicketWithReason; await fn(t.id, "CANCELLED"); await fetchQueue(); }}>Cancel</Button>
+                    <Button size="sm" variant="destructive" onClick={async () => { const fn = (await import("@/app/actions/queue")).skipTicketWithReason; await fn(t.id, "NO_SHOW"); await fetchQueue(); }}>No-show</Button>
+                  </>
+                ) : (
+                  <Button variant="destructive" onClick={async () => { await skipTicket(t.id); await fetchQueue(); }}>Skip</Button>
+                )}
               </div>
             </div>
           ))}
@@ -280,12 +264,12 @@ export default function DoctorQueuePage() {
       </div>
 
       {current && (
-        <div className="border rounded-md">
+        <div className="border rounded-md overflow-x-auto">
           <div className="px-4 py-2 text-sm font-semibold bg-gray-50">In Consultation</div>
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800">{current.queue_number}</span>
-              <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(current.priority)}`}>{current.priority}</span>
+              <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(current.priority)}`}>{priorityLabel(current.priority)}</span>
               {current.patient_first_name ? <span className="text-sm text-gray-700">{current.patient_first_name} {current.patient_last_name}</span> : null}
             </div>
             <Button onClick={async () => { await completeConsultation(current.id, doctorId); const apptId = (current as any)?.appointment_id; setCurrent(null); setIsAvailable(true); await fetchQueue(); if (apptId) { router.push(`/record/appointments/${apptId}?cat=diagnosis`); } }}>Complete</Button>
@@ -293,7 +277,7 @@ export default function DoctorQueuePage() {
         </div>
       )}
 
-      <div className="border rounded-md">
+      <div className="border rounded-md overflow-x-auto">
         <div className="px-4 py-2 text-sm font-semibold bg-gray-50">Today's Appointments</div>
         <div className="p-4">
           <div className="flex items-end gap-3 mb-3">

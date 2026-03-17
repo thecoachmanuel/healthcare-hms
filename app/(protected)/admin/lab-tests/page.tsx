@@ -122,7 +122,7 @@ const AdminLabTestsPage = async ({
   const payments = appointmentIds.length
     ? await db.payment.findMany({ where: { appointment_id: { in: appointmentIds } }, select: { appointment_id: true, status: true } })
     : [];
-  const payMap = new Map(payments.map((p: any) => [p.appointment_id, p.status]));
+  const payMap = new Map<number, "PAID" | "PART" | "UNPAID">(payments.map((p: any) => [p.appointment_id as number, p.status as "PAID" | "PART" | "UNPAID"]));
 
   const renderRow = (item: any) => {
     const patient = item.medical_record.patient;
@@ -145,7 +145,7 @@ const AdminLabTestsPage = async ({
           <div className="flex items-center gap-2">
             <span>{item.services?.service_name}</span>
             {(() => {
-              const st = payMap.get(item.medical_record.appointment_id);
+              const st: "PAID" | "PART" | "UNPAID" | undefined = payMap.get(item.medical_record.appointment_id as number);
               const cls =
                 st === "PAID"
                   ? "bg-emerald-100 text-emerald-700 border-emerald-200"
@@ -154,7 +154,7 @@ const AdminLabTestsPage = async ({
                   : "bg-rose-100 text-rose-700 border-rose-200";
               return (
                 <span title={`Payment: ${st || "UNPAID"}`} className={`text-[10px] px-2 py-0.5 rounded border ${cls}`}>
-                  {st || "UNPAID"}
+                  {st ?? "UNPAID"}
                 </span>
               );
             })()}

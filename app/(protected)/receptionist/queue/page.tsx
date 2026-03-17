@@ -5,13 +5,13 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { PatientSearchSelect } from "@/components/patient-search-select";
 import { enqueueVisit, skipTicket, markNoShow } from "@/app/actions/queue";
 
 export default function ReceptionQueuePage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [department, setDepartment] = useState("GEN");
-  const [patientQuery, setPatientQuery] = useState("");
-  const [patientResults, setPatientResults] = useState<any[]>([]);
+  
   const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
   const [doctorOptions, setDoctorOptions] = useState<any[]>([]);
   const [doctorId, setDoctorId] = useState<string>("");
@@ -20,7 +20,7 @@ export default function ReceptionQueuePage() {
   const [currentTickets, setCurrentTickets] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [apptQuery, setApptQuery] = useState("");
-  const [patientActiveIndex, setPatientActiveIndex] = useState(-1);
+  
 
   const fetchQueue = useCallback(async () => {
     const res = await fetch(`/api/queue?department=${encodeURIComponent(department)}`);
@@ -38,6 +38,11 @@ export default function ReceptionQueuePage() {
     if (p === "RED") return "bg-red-100 text-red-800";
     if (p === "YELLOW") return "bg-yellow-100 text-yellow-800";
     return "bg-green-100 text-green-800";
+  };
+  const priorityLabel = (p: string | null | undefined) => {
+    if (p === 'RED') return 'HIGH';
+    if (p === 'YELLOW') return 'MEDIUM';
+    return 'LOW';
   };
 
   useEffect(() => {
@@ -86,31 +91,7 @@ export default function ReceptionQueuePage() {
     if (docDept.length > 0 && docDept !== department) setDepartment(docDept);
   }, [doctorId, doctorOptions, department]);
 
-  useEffect(() => {
-    const q = patientQuery.trim();
-    if (q.length < 1) {
-      setPatientResults([]);
-      return;
-    }
-    const ctrl = new AbortController();
-    const t = setTimeout(() => {
-      (async () => {
-        try {
-          const res = await fetch(`/api/patients/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
-          if (res.ok) {
-            const data = await res.json();
-            setPatientResults(data.items ?? []);
-          }
-        } catch {
-          setPatientResults([]);
-        }
-      })();
-    }, 250);
-    return () => {
-      ctrl.abort();
-      clearTimeout(t);
-    };
-  }, [patientQuery]);
+  
 
   useEffect(() => {
     const channel = supabase
@@ -155,67 +136,11 @@ export default function ReceptionQueuePage() {
         </div>
         <div className="flex-[2]">
           <label className="text-sm font-medium">Patient</label>
-          <Input
-            value={selectedPatient ? `${selectedPatient.first_name} ${selectedPatient.last_name}` : patientQuery}
-            onChange={(e) => {
-              setSelectedPatient(null);
-              setPatientQuery(e.target.value);
-              setPatientActiveIndex(-1);
-            }}
-            onKeyDown={(e) => {
-              if (!patientResults.length) return;
-              if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                setPatientActiveIndex((prev) => (prev + 1) % patientResults.length);
-              } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                setPatientActiveIndex((prev) => (prev <= 0 ? patientResults.length - 1 : prev - 1));
-              } else if (e.key === 'Enter') {
-                if (patientActiveIndex >= 0 && patientActiveIndex < patientResults.length) {
-                  const p = patientResults[patientActiveIndex];
-                  setSelectedPatient(p);
-                  setPatientResults([]);
-                  setPatientQuery("");
-                  setPatientActiveIndex(-1);
-                }
-              } else if (e.key === 'Escape') {
-                setPatientResults([]);
-                setPatientActiveIndex(-1);
-              }
-            }}
-            placeholder="Search name, hospital number, phone"
-          />
-          <div className="mt-1 text-xs text-gray-500">Type to search. Use ↑/↓ then Enter to select.</div>
+          <PatientSearchSelect onSelect={(p) => { setSelectedPatient(p); setPatientResults([]); setPatientQuery(""); setPatientActiveIndex(-1); }} />
           {selectedPatient ? (
             <div className="mt-1 text-xs text-gray-600">
               {selectedPatient.hospital_number ? `HN ${selectedPatient.hospital_number}` : null}
               {selectedPatient.phone ? ` ${selectedPatient.phone}` : null}
-            </div>
-          ) : null}
-          {!selectedPatient && patientResults.length > 0 ? (
-            <div className="mt-2 border rounded-md bg-white overflow-hidden" role="listbox">
-              {patientResults.map((p, idx) => (
-                <button
-                  key={p.id}
-                  type="button"
-                  className={`w-full text-left px-3 py-2 text-sm hover:bg-blue-50 ${idx === patientActiveIndex ? 'bg-blue-100' : ''}`}
-                  onMouseEnter={() => setPatientActiveIndex(idx)}
-                  onMouseLeave={() => setPatientActiveIndex(-1)}
-                  onClick={() => {
-                    setSelectedPatient(p);
-                    setPatientResults([]);
-                    setPatientQuery("");
-                    setPatientActiveIndex(-1);
-                  }}
-                  role="option"
-                  aria-selected={idx === patientActiveIndex}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className="font-medium">{p.first_name} {p.last_name}</span>
-                    <span className="text-xs text-gray-500">{p.hospital_number ? `HN ${p.hospital_number}` : p.phone}</span>
-                  </div>
-                </button>
-              ))}
             </div>
           ) : null}
         </div>
@@ -238,14 +163,14 @@ export default function ReceptionQueuePage() {
 
       {/* Removed Appointment ID input in favor of searchable appointment list below */}
 
-      <div className="border rounded-md">
+      <div className="border rounded-md overflow-x-auto">
         <div className="px-4 py-2 text-sm font-semibold bg-gray-50">In Consultation</div>
         <div className="divide-y">
           {currentTickets.map((t) => (
             <div key={t.id} className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
                 <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800">{t.queue_number}</span>
-                <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(t.priority)}`}>{t.priority}</span>
+                <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(t.priority)}`}>{t.priority === 'RED' ? 'HIGH' : t.priority === 'YELLOW' ? 'MEDIUM' : 'LOW'}</span>
                 <span className="text-xs text-gray-500">Started {t.started_at ? new Date(t.started_at).toLocaleTimeString() : ""}</span>
                 <span className="text-sm text-gray-700">{t.patient_first_name} {t.patient_last_name}</span>
                 {t.patient_hospital_number ? <span className="text-xs text-gray-500">HN {t.patient_hospital_number}</span> : null}
@@ -259,14 +184,14 @@ export default function ReceptionQueuePage() {
         </div>
       </div>
 
-      <div className="border rounded-md">
+      <div className="border rounded-md overflow-x-auto">
         <div className="px-4 py-2 text-sm font-semibold bg-gray-50">Waiting Queue</div>
         <div className="divide-y">
           {tickets.map((t) => (
             <div key={t.id} className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
                 <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">{t.queue_number}</span>
-                <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(t.priority)}`}>{t.priority}</span>
+                <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(t.priority)}`}>{priorityLabel(t.priority)}</span>
                 <span className="text-xs text-gray-500">{new Date(t.arrival_time).toLocaleTimeString()}</span>
                 <span className="text-sm text-gray-700">{t.patient_first_name} {t.patient_last_name}</span>
                 {t.patient_hospital_number ? <span className="text-xs text-gray-500">HN {t.patient_hospital_number}</span> : null}

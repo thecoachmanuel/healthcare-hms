@@ -4,7 +4,15 @@ import { Table } from "@/components/tables/table";
 import { SearchParamsProps } from "@/types";
 import { DATA_LIMIT } from "@/utils/seetings";
 import { getAuditLogs } from "@/utils/services/audit-logs";
-import { AuditLog } from "@prisma/client";
+type AuditLogRow = {
+  id: number;
+  user_id: string;
+  record_id: string;
+  action: string;
+  details: string | null;
+  model: string;
+  created_at: Date;
+};
 import { format } from "date-fns";
 import React from "react";
 
@@ -28,7 +36,7 @@ const AuditLogsPage = async (props: SearchParamsProps) => {
     limit: DATA_LIMIT,
   });
 
-  const renderRow = (item: AuditLog) => (
+  const renderRow = (item: AuditLogRow) => (
     <tr
       key={item.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-slate-50"
@@ -65,4 +73,3 @@ const AuditLogsPage = async (props: SearchParamsProps) => {
 };
 
 export default AuditLogsPage;
-

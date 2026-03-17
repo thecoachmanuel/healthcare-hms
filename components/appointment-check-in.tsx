@@ -30,8 +30,7 @@ export function AppointmentCheckInButton({ appointmentId, disabled }: { appointm
 
   return (
     <Button size="sm" variant="outline" disabled={disabled || loading} onClick={onCheckIn}>
-      {loading ? "Checking in…" : "Check-in to Queue"}
+      {disabled ? "Checked-in" : loading ? "Checking in…" : "Check-in to Queue"}
     </Button>
   );
 }
-

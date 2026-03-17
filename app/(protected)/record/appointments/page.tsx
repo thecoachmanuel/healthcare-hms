@@ -147,9 +147,22 @@ const Appointments = async (props: {
     : [];
   const payMap = new Map(payments.map((p: any) => [p.appointment_id, p.status]));
 
+  const visits = apptIds.length
+    ? await db.visit.findMany({
+        where: { appointment_id: { in: apptIds } },
+        select: { appointment_id: true, queue_ticket: { select: { id: true } } },
+      })
+    : [];
+  const checkedInSet = new Set<number>(
+    visits
+      .filter((v: any) => Boolean(v.queue_ticket?.id) && typeof v.appointment_id === "number")
+      .map((v: any) => v.appointment_id as number)
+  );
+
   const renderItem = (item: DataProps) => {
     const patient_name = `${item?.patient?.first_name} ${item?.patient?.last_name}`;
     const st = payMap.get(item.id);
+    const isCheckedIn = checkedInSet.has(item.id);
 
     return (
       <tr
@@ -209,7 +222,7 @@ const Appointments = async (props: {
               appointmentId={item.id}
             />
             {(item.status === "PENDING" || item.status === "SCHEDULED") && (
-              <AppointmentCheckInButton appointmentId={item.id} />
+              <AppointmentCheckInButton appointmentId={item.id} disabled={isCheckedIn} />
             )}
           </div>
         </td>

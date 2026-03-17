@@ -11,6 +11,12 @@ import { checkRole } from "@/utils/roles";
 import { format } from "date-fns";
 import React from "react";
 
+type Stat = {
+  status: "PAID" | "PART" | "UNPAID";
+  _count: { status: number };
+  _sum: { total_amount: number | null; amount_paid: number | null; discount: number | null };
+};
+
 const columns = [
   { header: "S/N", key: "sn" },
   { header: "Patient", key: "patient" },
@@ -69,7 +75,7 @@ const CashierPaymentsPage = async ({
   else if (status === "PART") baseWhere.AND.push({ status: "PART" });
   else if (status === "UNPAID") baseWhere.AND.push({ status: "UNPAID" });
 
-  const [rowsRaw, paymentStats] = await Promise.all([
+  const [rowsRaw, paymentStats]: [any[], Stat[]] = await Promise.all([
     db.payment.findMany({
       include: {
         patient: { select: { first_name: true, last_name: true, hospital_number: true } },
@@ -92,7 +98,7 @@ const CashierPaymentsPage = async ({
 
   const totalCount = rowsRaw.length;
 
-  const chartData = paymentStats.map(stat => ({
+  const chartData = paymentStats.map((stat: Stat) => ({
     status: stat.status,
     count: stat._count.status,
     amount: Math.max(0, Number(stat._sum.total_amount || 0) - Number((stat as any)._sum.discount || 0)),

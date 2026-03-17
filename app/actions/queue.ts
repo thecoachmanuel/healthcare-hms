@@ -231,13 +231,27 @@ export async function markInConsultation(ticketId: number, doctorId: string) {
 }
 
 export async function completeConsultation(ticketId: number, doctorId: string) {
-  await db.queueTicket.update({ where: { id: ticketId }, data: { status: "COMPLETED", completed_at: new Date() } });
+  const ticket = await db.queueTicket.update({ where: { id: ticketId }, data: { status: "COMPLETED", completed_at: new Date() }, include: { visit: true } });
   await db.doctorStatus.upsert({ where: { doctor_id: doctorId }, update: { is_available: true, current_visit_id: null }, create: { doctor_id: doctorId, is_available: true, current_visit_id: null } });
+  if (ticket.visit?.appointment_id) {
+    await db.appointment.update({ where: { id: ticket.visit.appointment_id }, data: { status: 'COMPLETED' } });
+  }
   return { success: true };
 }
 
 export async function skipTicket(ticketId: number) {
   await db.queueTicket.update({ where: { id: ticketId }, data: { status: "SKIPPED", skip_count: { increment: 1 } } });
+  return { success: true };
+}
+
+export async function skipTicketWithReason(ticketId: number, reason: 'CANCELLED' | 'NO_SHOW') {
+  const ticket = await db.queueTicket.update({ where: { id: ticketId }, data: { status: "SKIPPED", skip_count: { increment: 1 } }, include: { visit: true } });
+  const apptId = ticket.visit?.appointment_id;
+  if (apptId) {
+    const data: any = { status: 'CANCELLED' };
+    if (reason === 'NO_SHOW') data.reason = 'NO_SHOW';
+    await db.appointment.update({ where: { id: apptId }, data });
+  }
   return { success: true };
 }
 
