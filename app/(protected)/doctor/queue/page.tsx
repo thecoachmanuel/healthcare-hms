@@ -16,6 +16,7 @@ export default function DoctorQueuePage() {
   const [patientResults, setPatientResults] = useState<any[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
   const [isAvailable, setIsAvailable] = useState<boolean | null>(null);
+  const [availabilityLoading, setAvailabilityLoading] = useState(false);
   const [delayMinutes, setDelayMinutes] = useState("0");
   const [delayMessage, setDelayMessage] = useState("");
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -47,7 +48,7 @@ export default function DoctorQueuePage() {
 
   useEffect(() => {
     const q = patientQuery.trim();
-    if (q.length < 2) {
+    if (q.length < 1) {
       setPatientResults([]);
       return;
     }
@@ -71,6 +72,24 @@ export default function DoctorQueuePage() {
     };
   }, [patientQuery]);
 
+  const fetchAvailability = useCallback(async () => {
+    if (!doctorId) return;
+    setAvailabilityLoading(true);
+    try {
+      const res = await fetch(`/api/doctor/status?doctorId=${encodeURIComponent(doctorId)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setIsAvailable(typeof data?.is_available === "boolean" ? data.is_available : Boolean(data?.is_available));
+      } else {
+        setIsAvailable(true);
+      }
+    } catch {
+      setIsAvailable(true);
+    } finally {
+      setAvailabilityLoading(false);
+    }
+  }, [doctorId]);
+
   useEffect(() => {
     if (!department) return;
     (async () => {
@@ -83,17 +102,8 @@ export default function DoctorQueuePage() {
   }, [department, doctorId]);
 
   useEffect(() => {
-    if (!doctorId) return;
-    (async () => {
-      try {
-        const res = await fetch(`/api/doctor/status?doctorId=${encodeURIComponent(doctorId)}`);
-        if (res.ok) {
-          const data = await res.json();
-          setIsAvailable(Boolean(data?.is_available));
-        }
-      } catch {}
-    })();
-  }, [doctorId]);
+    fetchAvailability();
+  }, [fetchAvailability]);
 
   useEffect(() => {
     const channel = supabase
@@ -124,9 +134,17 @@ export default function DoctorQueuePage() {
   }
 
   async function onToggleAvailability() {
-    if (!doctorId || isAvailable == null) return;
-    await setDoctorAvailability(doctorId, !isAvailable);
-    setIsAvailable(!isAvailable);
+    if (!doctorId || isAvailable == null) {
+      await fetchAvailability();
+      return;
+    }
+    setAvailabilityLoading(true);
+    try {
+      await setDoctorAvailability(doctorId, !isAvailable);
+      await fetchAvailability();
+    } finally {
+      setAvailabilityLoading(false);
+    }
   }
 
   async function onBroadcastDelay() {
@@ -135,6 +153,12 @@ export default function DoctorQueuePage() {
     if (Number.isNaN(mins) || mins < 0) return;
     await setDoctorDelay(doctorId, mins, delayMessage || undefined);
   }
+
+  const priorityBadgeClass = (p: string | null | undefined) => {
+    if (p === "RED") return "bg-red-100 text-red-800";
+    if (p === "YELLOW") return "bg-yellow-100 text-yellow-800";
+    return "bg-green-100 text-green-800";
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -149,7 +173,13 @@ export default function DoctorQueuePage() {
         </div>
         <div className="flex items-end gap-2">
           <Button onClick={onCallNext}>Call Next</Button>
-          <Button variant={isAvailable ? "secondary" : "default"} onClick={onToggleAvailability}>{isAvailable ? "Set Unavailable" : "Set Available"}</Button>
+          <Button
+            variant={isAvailable ? "secondary" : "default"}
+            onClick={onToggleAvailability}
+            disabled={!doctorId || isAvailable == null || availabilityLoading}
+          >
+            {availabilityLoading ? "Updating…" : isAvailable ? "Set Unavailable" : "Set Available"}
+          </Button>
         </div>
       </div>
 
@@ -186,6 +216,7 @@ export default function DoctorQueuePage() {
             }}
             placeholder="Search name, hospital number, phone"
           />
+          <div className="mt-1 text-xs text-gray-500">Type to search. Use ↑/↓ then Enter to select.</div>
           {!selectedPatient && patientResults.length > 0 ? (
             <div className="mt-2 border rounded-md bg-white overflow-hidden" role="listbox">
               {patientResults.map((p, idx) => (
@@ -228,14 +259,14 @@ export default function DoctorQueuePage() {
             <div key={t.id} className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
                 <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">{t.queue_number}</span>
-                <span className="text-sm">{t.priority}</span>
+                <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(t.priority)}`}>{t.priority}</span>
                 <span className="text-xs text-gray-500">{new Date(t.arrival_time).toLocaleTimeString()}</span>
                 <span className="text-xs text-gray-600">~{Math.max(idx, 0) * avgMinutesPerPatient} min</span>
                 <span className="text-sm text-gray-700">{t.patient_first_name} {t.patient_last_name}</span>
                 {t.patient_hospital_number ? <span className="text-xs text-gray-500">HN {t.patient_hospital_number}</span> : null}
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="secondary" onClick={async () => { await markInConsultation(t.id, doctorId); setCurrent(t); }}>Start</Button>
+                <Button variant="secondary" onClick={async () => { await markInConsultation(t.id, doctorId); setCurrent(t); setIsAvailable(false); }}>Start</Button>
                 <Button variant="destructive" onClick={async () => { await skipTicket(t.id); await fetchQueue(); }}>Skip</Button>
               </div>
             </div>
@@ -252,10 +283,10 @@ export default function DoctorQueuePage() {
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800">{current.queue_number}</span>
-              <span className="text-sm">{current.priority}</span>
+              <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(current.priority)}`}>{current.priority}</span>
               {current.patient_first_name ? <span className="text-sm text-gray-700">{current.patient_first_name} {current.patient_last_name}</span> : null}
             </div>
-            <Button onClick={async () => { await completeConsultation(current.id, doctorId); setCurrent(null); await fetchQueue(); }}>Complete</Button>
+            <Button onClick={async () => { await completeConsultation(current.id, doctorId); setCurrent(null); setIsAvailable(true); await fetchQueue(); }}>Complete</Button>
           </div>
         </div>
       )}

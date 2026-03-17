@@ -9,6 +9,7 @@ import { setTriage } from "@/app/actions/queue";
 export default function TriagePage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [untriaged, setUntriaged] = useState<any[]>([]);
+  const [currentTickets, setCurrentTickets] = useState<any[]>([]);
   const [visitId, setVisitId] = useState<string>("");
   const [priority, setPriority] = useState("GREEN");
   const [nurseId, setNurseId] = useState("");
@@ -21,11 +22,23 @@ export default function TriagePage() {
   const [apptQuery, setApptQuery] = useState("");
   const [patientActiveIndex, setPatientActiveIndex] = useState(-1);
 
+  const priorityBadgeClass = (p: string | null | undefined) => {
+    if (p === "RED") return "bg-red-100 text-red-800";
+    if (p === "YELLOW") return "bg-yellow-100 text-yellow-800";
+    return "bg-green-100 text-green-800";
+  };
+
   const fetchUntriaged = useCallback(async () => {
     const res = await fetch(`/api/triage`);
     const data = await res.json();
     setUntriaged(data.items ?? []);
   }, []);
+
+  const fetchCurrent = useCallback(async () => {
+    const res = await fetch(`/api/queue/current?department=${encodeURIComponent(department)}`);
+    const data = await res.json();
+    setCurrentTickets(data.tickets ?? []);
+  }, [department]);
 
   useEffect(() => {
     // Autofill nurse id
@@ -40,7 +53,8 @@ export default function TriagePage() {
       } catch {}
     })();
     fetchUntriaged();
-  }, [fetchUntriaged]);
+    fetchCurrent();
+  }, [fetchUntriaged, fetchCurrent]);
 
   useEffect(() => {
     (async () => {
@@ -61,8 +75,19 @@ export default function TriagePage() {
   }, [supabase, fetchUntriaged]);
 
   useEffect(() => {
+    const channel = supabase
+      .channel("queue-nurse")
+      .on("postgres_changes", { event: "*", schema: "public", table: "QueueTicket" }, () => {
+        fetchUntriaged();
+        fetchCurrent();
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [supabase, fetchUntriaged, fetchCurrent]);
+
+  useEffect(() => {
     const q = patientQuery.trim();
-    if (q.length < 2) {
+    if (q.length < 1) {
       setPatientResults([]);
       return;
     }
@@ -138,9 +163,24 @@ export default function TriagePage() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="RED">RED</SelectItem>
-              <SelectItem value="YELLOW">YELLOW</SelectItem>
-              <SelectItem value="GREEN">GREEN</SelectItem>
+              <SelectItem value="RED">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-red-500" />
+                  <span>RED</span>
+                </span>
+              </SelectItem>
+              <SelectItem value="YELLOW">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-yellow-400" />
+                  <span>YELLOW</span>
+                </span>
+              </SelectItem>
+              <SelectItem value="GREEN">
+                <span className="inline-flex items-center gap-2">
+                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  <span>GREEN</span>
+                </span>
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -162,6 +202,27 @@ export default function TriagePage() {
             </div>
           ))}
           {untriaged.length === 0 && <div className="px-4 py-6 text-sm text-gray-500">No pending triage</div>}
+        </div>
+      </div>
+
+      <div className="border rounded-md">
+        <div className="px-4 py-2 text-sm font-semibold bg-gray-50">In Consultation</div>
+        <div className="divide-y">
+          {currentTickets.map((t) => (
+            <div key={t.id} className="flex items-center justify-between px-4 py-3">
+              <div className="flex items-center gap-3">
+                <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800">{t.queue_number}</span>
+                <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(t.priority)}`}>{t.priority}</span>
+                <span className="text-xs text-gray-500">Started {t.started_at ? new Date(t.started_at).toLocaleTimeString() : ""}</span>
+                <span className="text-sm text-gray-700">{t.patient_first_name} {t.patient_last_name}</span>
+                {t.patient_hospital_number ? <span className="text-xs text-gray-500">HN {t.patient_hospital_number}</span> : null}
+                {t.doctor_name ? <span className="text-xs text-gray-500">Dr. {t.doctor_name}</span> : null}
+              </div>
+            </div>
+          ))}
+          {currentTickets.length === 0 && (
+            <div className="px-4 py-6 text-sm text-gray-500">No patients currently in consultation</div>
+          )}
         </div>
       </div>
 
@@ -200,6 +261,7 @@ export default function TriagePage() {
               }}
               placeholder="Search name, hospital number, phone"
             />
+            <div className="mt-1 text-xs text-gray-500">Type to search. Use ↑/↓ then Enter to select.</div>
             {!selectedPatient && patientResults.length > 0 ? (
               <div className="mt-2 border rounded-md bg-white overflow-hidden" role="listbox">
                 {patientResults.map((p, idx) => (

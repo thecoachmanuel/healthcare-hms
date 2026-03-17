@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const q = (searchParams.get("q") ?? "").trim();
-  if (q.length < 2) return NextResponse.json({ items: [] });
+  if (q.length < 1) return NextResponse.json({ items: [] });
 
   const items = await db.patient.findMany({
     where: {
@@ -23,4 +23,3 @@ export async function GET(req: Request) {
 
   return NextResponse.json({ items });
 }
-
