@@ -203,12 +203,12 @@ export default function ReceptionQueuePage() {
         </div>
         <div className="flex-1">
           <label className="text-sm font-medium">Assign Doctor (optional)</label>
-          <Select value={doctorId} onValueChange={setDoctorId}>
+          <Select value={doctorId} onValueChange={(val) => setDoctorId(val === "any" ? "" : val)}>
             <SelectTrigger>
               <SelectValue placeholder="Any doctor" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Any doctor</SelectItem>
+              <SelectItem value="any">Any doctor</SelectItem>
               {doctorOptions.map((d) => (
                 <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
               ))}
