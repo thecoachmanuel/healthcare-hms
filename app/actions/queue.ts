@@ -2,6 +2,8 @@
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import db from "@/lib/db";
+import { getAuthUser } from "@/lib/auth";
+import { getRole } from "@/utils/roles";
 
 const EnqueueSchema = z.object({
   patientId: z.string().min(1).optional(),
@@ -13,15 +15,68 @@ const EnqueueSchema = z.object({
 
 export async function enqueueVisit(input: z.infer<typeof EnqueueSchema>) {
   const data = EnqueueSchema.parse(input);
+
+  const actor = await getAuthUser();
+  const actorId = actor?.id ?? null;
+  const role = await getRole();
+  const actorRole = (() => {
+    const r = role.trim().toLowerCase();
+    if (r === "admin") return "ADMIN" as const;
+    if (r === "doctor") return "DOCTOR" as const;
+    if (r === "nurse") return "NURSE" as const;
+    if (r === "receptionist") return "RECEPTIONIST" as const;
+    if (r === "record_officer") return "RECORD_OFFICER" as const;
+    if (r === "cashier") return "CASHIER" as const;
+    if (r === "lab_scientist") return "LAB_SCIENTIST" as const;
+    if (r === "lab_technician") return "LAB_TECHNICIAN" as const;
+    if (r === "lab_receptionist") return "LAB_RECEPTIONIST" as const;
+    if (r === "pharmacist") return "PHARMACIST" as const;
+    if (r === "patient") return "PATIENT" as const;
+    return null;
+  })();
+
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+
   const result = await db.$transaction(async (tx) => {
     let patientId = data.patientId ?? null as null | string;
     let doctorId = data.doctorId ?? null as null | string;
     let department = data.department ?? null as null | string;
     let intakeType = data.intakeType;
 
+    if (!department && actorId) {
+      const [staff, doctor] = await Promise.all([
+        tx.staff.findUnique({ where: { id: actorId }, select: { department: true } }),
+        tx.doctor.findUnique({ where: { id: actorId }, select: { department: true } }),
+      ]);
+      department = staff?.department ?? doctor?.department ?? null;
+      doctorId = doctorId ?? (doctor ? actorId : null);
+    }
+
     if (data.appointmentId) {
       const appt = await tx.appointment.findUnique({ where: { id: data.appointmentId }, select: { patient_id: true, doctor_id: true } });
       if (!appt) throw new Error("Appointment not found");
+
+      const scopeDept = (department ?? "GEN").trim();
+
+      const existingVisit = await tx.visit.findFirst({ where: { appointment_id: data.appointmentId }, select: { id: true } });
+      if (existingVisit) {
+        const existingTicket = await tx.queueTicket.findUnique({ where: { visit_id: existingVisit.id }, select: { id: true, visit_id: true, queue_number: true } });
+        if (existingTicket) {
+          return { visitId: existingTicket.visit_id, ticketId: existingTicket.id, queueNumber: existingTicket.queue_number };
+        }
+        const queueNumber = await nextQueueNumber(tx, scopeDept);
+        const ticket = await tx.queueTicket.create({
+          data: {
+            visit_id: existingVisit.id,
+            queue_number: queueNumber,
+            department: scopeDept,
+            doctor_id: doctorId,
+          },
+        });
+        return { visitId: existingVisit.id, ticketId: ticket.id, queueNumber };
+      }
+
       patientId = patientId ?? appt.patient_id;
       doctorId = doctorId ?? appt.doctor_id;
       const doc = await tx.doctor.findUnique({ where: { id: doctorId! }, select: { department: true } });
@@ -29,7 +84,42 @@ export async function enqueueVisit(input: z.infer<typeof EnqueueSchema>) {
       intakeType = "APPOINTMENT";
     }
 
+    if (doctorId && !department) {
+      const doc = await tx.doctor.findUnique({ where: { id: doctorId }, select: { department: true } });
+      department = doc?.department ?? null;
+    }
+
+    if (!doctorId && department) {
+      const doctors = await tx.doctor.findMany({ where: { department: { equals: department, mode: 'insensitive' } }, select: { id: true } });
+      if (doctors.length > 0) {
+        const loads = await Promise.all(
+          doctors.map(async (d) => {
+            const cnt = await tx.queueTicket.count({ where: { status: { in: ['WAITING','CALLED','IN_CONSULTATION'] }, doctor_id: d.id } });
+            const avail = await tx.doctorStatus.findUnique({ where: { doctor_id: d.id }, select: { is_available: true } });
+            return { id: d.id, load: cnt, available: Boolean(avail?.is_available) };
+          })
+        );
+        const available = loads.filter((l) => l.available).sort((a,b) => a.load - b.load);
+        doctorId = (available[0] ?? loads.sort((a,b)=>a.load-b.load)[0])?.id ?? null;
+      }
+    }
+
+    department = (department ?? "GEN").trim();
+
     if (!patientId) throw new Error("patientId required");
+
+    const existing = await tx.queueTicket.findFirst({
+      where: {
+        status: { in: ["WAITING", "CALLED", "IN_CONSULTATION"] },
+        arrival_time: { gte: startOfDay },
+        visit: {
+          patient_id: patientId,
+          ...(doctorId ? { doctor_id: doctorId } : { department: department }),
+        },
+      },
+      select: { id: true, visit_id: true, queue_number: true },
+    });
+    if (existing) return { visitId: existing.visit_id, ticketId: existing.id, queueNumber: existing.queue_number };
 
     const visit = await tx.visit.create({
       data: {
@@ -38,10 +128,12 @@ export async function enqueueVisit(input: z.infer<typeof EnqueueSchema>) {
         department: department,
         intake_type: intakeType,
         appointment_id: data.appointmentId ?? null,
+        created_by_id: actorId,
+        created_by_role: actorRole,
       },
     });
 
-    const queueNumber = await nextQueueNumber(tx, department ?? "GEN");
+    const queueNumber = await nextQueueNumber(tx, department);
 
     const ticket = await tx.queueTicket.create({
       data: {

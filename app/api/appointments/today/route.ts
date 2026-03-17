@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const department = searchParams.get("department");
+  const doctorId = searchParams.get("doctorId");
   const now = new Date();
   const start = new Date(now);
   start.setHours(0, 0, 0, 0);
@@ -14,6 +15,9 @@ export async function GET(req: Request) {
     appointment_date: { gte: start, lte: end },
     status: { in: ["PENDING", "SCHEDULED"] },
   };
+  if (doctorId) {
+    where.doctor_id = doctorId;
+  }
   if (department) {
     where.doctor = { department: { contains: department, mode: "insensitive" } };
   }
@@ -29,6 +33,8 @@ export async function GET(req: Request) {
       window_start: true,
       window_end: true,
       type: true,
+      patient: { select: { first_name: true, last_name: true, hospital_number: true } },
+      doctor: { select: { name: true, department: true } },
     },
     orderBy: [{ appointment_date: "asc" }, { time: "asc" }],
     take: 200,
@@ -36,4 +42,3 @@ export async function GET(req: Request) {
 
   return NextResponse.json({ items: appts });
 }
-

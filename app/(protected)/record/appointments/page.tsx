@@ -249,32 +249,9 @@ const Appointments = async (props: {
               { label: "Cancelled", value: "CANCELLED" },
             ]}
           />
-          {userRole !== "admin" && (
-            <SelectFilter
-              param="atype"
-              label="Type"
-              options={typeOptions}
-            />
-          )}
-          <SelectFilter
-            param="pay"
-            label="Payment"
-            options={[
-              { label: "All", value: "" },
-              { label: "Paid", value: "PAID" },
-              { label: "Part", value: "PART" },
-              { label: "Unpaid", value: "UNPAID" },
-            ]}
-          />
           {userRole === "admin" && (
-            <>
-              <DepartmentFilter label="Doctor Dept" placeholder="e.g. OPD" />
-              {doctorOptions.length > 0 && (
-                <SelectFilter param="doc" label="Doctor" options={doctorOptions} />
-              )}
-            </>
+            <DepartmentFilter label="Department" placeholder="e.g. OPD" />
           )}
-
           {(userRole === "nurse" || userRole === "receptionist") && (
             <DepartmentFilter placeholder="e.g. OPD" />
           )}

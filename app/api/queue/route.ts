@@ -5,23 +5,42 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const department = searchParams.get("department");
   const doctorId = searchParams.get("doctorId");
-  const where = ["status = 'WAITING'"];
+  const where = ["qt.status = 'WAITING'"];
   const params: any[] = [];
   if (doctorId) {
-    where.push("doctor_id = $1");
+    where.push("qt.doctor_id = $1");
     params.push(doctorId);
   } else if (department) {
-    where.push("department = $1");
+    where.push("qt.department = $1");
     params.push(department);
   }
   const clause = where.join(" AND ");
   const sql = `
-    SELECT id, visit_id, queue_number, department, doctor_id, priority, status, arrival_time
-    FROM "QueueTicket"
+    SELECT
+      qt.id,
+      qt.visit_id,
+      qt.queue_number,
+      qt.department,
+      qt.doctor_id,
+      qt.priority,
+      qt.status,
+      qt.arrival_time,
+      v.patient_id,
+      v.doctor_id AS visit_doctor_id,
+      v.intake_type,
+      v.appointment_id,
+      p.first_name AS patient_first_name,
+      p.last_name AS patient_last_name,
+      p.hospital_number AS patient_hospital_number,
+      d.name AS doctor_name
+    FROM "QueueTicket" qt
+    JOIN "Visit" v ON v.id = qt.visit_id
+    JOIN "Patient" p ON p.id = v.patient_id
+    LEFT JOIN "Doctor" d ON d.id = COALESCE(qt.doctor_id, v.doctor_id)
     WHERE ${clause}
     ORDER BY CASE priority WHEN 'RED' THEN 1 WHEN 'YELLOW' THEN 2 ELSE 3 END ASC, arrival_time ASC
+    LIMIT 200
   `;
   const rows = await db.$queryRawUnsafe<any[]>(sql, ...params);
   return NextResponse.json({ tickets: rows });
 }
-
