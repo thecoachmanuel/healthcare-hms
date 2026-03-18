@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { setTriage } from "@/app/actions/queue";
 import { PatientSearchSelect } from "@/components/patient-search-select";
+import { toast } from "sonner";
 
 export default function TriagePage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
@@ -72,14 +73,25 @@ export default function TriagePage() {
   async function checkin() {
     if (!selectedPatient?.id) return;
     const body: any = { intakeType: "WALK_IN", patientId: selectedPatient.id, department };
-    await (await import("@/app/actions/queue")).enqueueVisit(body);
-    setSelectedPatient(null);
-    await fetchWaiting();
+    try {
+      await (await import("@/app/actions/queue")).enqueueVisit(body);
+      setSelectedPatient(null);
+      await fetchWaiting();
+      toast.success("Patient checked in");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to check in");
+    }
   }
 
   async function checkinFromList(id: number) {
-    await (await import("@/app/actions/queue")).enqueueVisit({ appointmentId: id, intakeType: "APPOINTMENT" });
-    await fetchWaiting();
+    try {
+      await (await import("@/app/actions/queue")).enqueueVisit({ appointmentId: id, intakeType: "APPOINTMENT" });
+      setAppointments((prev) => prev.filter((a) => a.id !== id));
+      await fetchWaiting();
+      toast.success("Appointment checked in");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to check in appointment");
+    }
   }
 
   return (

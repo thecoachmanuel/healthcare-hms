@@ -108,8 +108,14 @@ export default function DoctorQueuePage() {
   }
 
   async function onCheckInAppointmentFromList(id: number) {
-    await (await import("@/app/actions/queue")).enqueueVisit({ appointmentId: id, intakeType: "APPOINTMENT" });
-    await fetchQueue();
+    try {
+      await (await import("@/app/actions/queue")).enqueueVisit({ appointmentId: id, intakeType: "APPOINTMENT" });
+      setAppointments((prev) => prev.filter((a) => a.id !== id));
+      await fetchQueue();
+      toast.success("Appointment checked in");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to check in appointment");
+    }
   }
 
   async function onToggleAvailability() {

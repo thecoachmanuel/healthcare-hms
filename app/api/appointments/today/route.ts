@@ -14,6 +14,17 @@ export async function GET(req: Request) {
   const where: any = {
     appointment_date: { gte: start, lte: end },
     status: { in: ["PENDING", "SCHEDULED"] },
+    NOT: {
+      visits: {
+        some: {
+          queue_ticket: {
+            is: {
+              status: { in: ["WAITING", "CALLED", "IN_CONSULTATION"] },
+            },
+          },
+        },
+      },
+    },
   };
   if (doctorId) {
     where.doctor_id = doctorId;

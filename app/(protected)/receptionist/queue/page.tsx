@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { PatientSearchSelect } from "@/components/patient-search-select";
 import { enqueueVisit, skipTicket, markNoShow } from "@/app/actions/queue";
+import { toast } from "sonner";
 
 export default function ReceptionQueuePage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
@@ -108,21 +109,39 @@ export default function ReceptionQueuePage() {
 
   async function onEnqueue() {
     if (!selectedPatient?.id) return;
-    await enqueueVisit({ patientId: selectedPatient.id, department, doctorId: doctorId || undefined, intakeType: "WALK_IN" });
-    setSelectedPatient(null);
-    await fetchQueue();
+    try {
+      await enqueueVisit({ patientId: selectedPatient.id, department, doctorId: doctorId || undefined, intakeType: "WALK_IN" });
+      setSelectedPatient(null);
+      await fetchQueue();
+      toast.success("Patient checked in");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to check in");
+    }
   }
 
   async function onCheckInAppointment() {
     if (!appointmentId) return;
-    await enqueueVisit({ appointmentId: Number(appointmentId), intakeType: "APPOINTMENT" });
-    setAppointmentId("");
-    await fetchQueue();
+    try {
+      const id = Number(appointmentId);
+      await enqueueVisit({ appointmentId: id, intakeType: "APPOINTMENT" });
+      setAppointments((prev) => prev.filter((a) => a.id !== id));
+      setAppointmentId("");
+      await fetchQueue();
+      toast.success("Appointment checked in");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to check in appointment");
+    }
   }
 
   async function onCheckInAppointmentFromList(id: number) {
-    await enqueueVisit({ appointmentId: id, intakeType: "APPOINTMENT" });
-    await fetchQueue();
+    try {
+      await enqueueVisit({ appointmentId: id, intakeType: "APPOINTMENT" });
+      setAppointments((prev) => prev.filter((a) => a.id !== id));
+      await fetchQueue();
+      toast.success("Appointment checked in");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to check in appointment");
+    }
   }
 
   return (
