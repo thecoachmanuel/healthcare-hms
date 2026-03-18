@@ -96,15 +96,29 @@ export default function DoctorQueuePage() {
 
   async function onCallNext() {
     if (!doctorId) return;
-    const res = await callNextPatient(doctorId, department);
-    if ((res as any).success) await fetchQueue();
+    try {
+      const res = await callNextPatient(doctorId, department);
+      if ((res as any).success) {
+        await fetchQueue();
+        toast.success("Next patient called");
+      } else {
+        toast.error((res as any)?.msg ?? "No waiting patients");
+      }
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to call next patient");
+    }
   }
 
   async function onCheckinPatient() {
     if (!selectedPatient?.id) return;
-    await (await import("@/app/actions/queue")).enqueueVisit({ patientId: selectedPatient.id, doctorId, department, intakeType: "WALK_IN" });
-    setSelectedPatient(null);
-    await fetchQueue();
+    try {
+      await (await import("@/app/actions/queue")).enqueueVisit({ patientId: selectedPatient.id, doctorId, department, intakeType: "WALK_IN" });
+      setSelectedPatient(null);
+      await fetchQueue();
+      toast.success("Patient checked in");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to check in");
+    }
   }
 
   async function onCheckInAppointmentFromList(id: number) {
@@ -127,6 +141,9 @@ export default function DoctorQueuePage() {
     try {
       await setDoctorAvailability(doctorId, !isAvailable);
       await fetchAvailability();
+      toast.success(!isAvailable ? "Status: available" : "Status: unavailable");
+    } catch (e: any) {
+      toast.error(e?.message ?? "Failed to update availability");
     } finally {
       setAvailabilityLoading(false);
     }
@@ -255,22 +272,73 @@ export default function DoctorQueuePage() {
                   variant="secondary"
                   onClick={async () => {
                     if (!doctorId) return;
-                    await markInConsultation(t.id, doctorId);
-                    setCurrent(t);
-                    setIsAvailable(false);
-                    setTickets((prev) => prev.filter((x) => x.id !== t.id));
-                    await fetchQueue();
+                    try {
+                      await markInConsultation(t.id, doctorId);
+                      setCurrent(t);
+                      setIsAvailable(false);
+                      setTickets((prev) => prev.filter((x) => x.id !== t.id));
+                      await fetchQueue();
+                      toast.success("Consultation started");
+                    } catch (e: any) {
+                      toast.error(e?.message ?? "Failed to start consultation");
+                    }
                   }}
                 >
                   Start
                 </Button>
                 {t.appointment_id ? (
                   <>
-                    <Button size="sm" variant="destructive" onClick={async () => { const fn = (await import("@/app/actions/queue")).skipTicketWithReason; await fn(t.id, "CANCELLED"); await fetchQueue(); }}>Cancel</Button>
-                    <Button size="sm" variant="destructive" onClick={async () => { const fn = (await import("@/app/actions/queue")).skipTicketWithReason; await fn(t.id, "NO_SHOW"); await fetchQueue(); }}>No-show</Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={async () => {
+                        try {
+                          const fn = (await import("@/app/actions/queue")).skipTicketWithReason;
+                          await fn(t.id, "CANCELLED");
+                          setTickets((prev) => prev.filter((x) => x.id !== t.id));
+                          await fetchQueue();
+                          toast.success("Appointment cancelled");
+                        } catch (e: any) {
+                          toast.error(e?.message ?? "Failed to cancel appointment");
+                        }
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={async () => {
+                        try {
+                          const fn = (await import("@/app/actions/queue")).skipTicketWithReason;
+                          await fn(t.id, "NO_SHOW");
+                          setTickets((prev) => prev.filter((x) => x.id !== t.id));
+                          await fetchQueue();
+                          toast.success("Marked as no-show");
+                        } catch (e: any) {
+                          toast.error(e?.message ?? "Failed to mark no-show");
+                        }
+                      }}
+                    >
+                      No-show
+                    </Button>
                   </>
                 ) : (
-                  <Button variant="destructive" onClick={async () => { await skipTicket(t.id); await fetchQueue(); }}>Skip</Button>
+                  <Button
+                    variant="destructive"
+                    onClick={async () => {
+                      try {
+                        await skipTicket(t.id);
+                        setTickets((prev) => prev.filter((x) => x.id !== t.id));
+                        await fetchQueue();
+                        toast.success("Ticket skipped");
+                      } catch (e: any) {
+                        toast.error(e?.message ?? "Failed to skip ticket");
+                      }
+                    }}
+                  >
+                    Skip
+                  </Button>
                 )}
               </div>
             </div>
@@ -290,7 +358,26 @@ export default function DoctorQueuePage() {
               <span className={priorityBadgeClass(current.priority)}>{priorityLabel(current.priority)}</span>
               {current.patient_first_name ? <span className="text-sm text-gray-700">{current.patient_first_name} {current.patient_last_name}</span> : null}
             </div>
-            <Button onClick={async () => { await completeConsultation(current.id, doctorId); const apptId = (current as any)?.appointment_id; setCurrent(null); setIsAvailable(true); await fetchQueue(); if (apptId) { router.push(`/record/appointments/${apptId}?cat=diagnosis`); } }}>Complete</Button>
+            <Button
+              onClick={async () => {
+                if (!doctorId) return;
+                try {
+                  await completeConsultation(current.id, doctorId);
+                  const apptId = (current as any)?.appointment_id;
+                  setCurrent(null);
+                  setIsAvailable(true);
+                  await fetchQueue();
+                  toast.success("Consultation completed");
+                  if (apptId) {
+                    router.push(`/record/appointments/${apptId}?cat=diagnosis`);
+                  }
+                } catch (e: any) {
+                  toast.error(e?.message ?? "Failed to complete consultation");
+                }
+              }}
+            >
+              Complete
+            </Button>
           </div>
         </div>
       )}

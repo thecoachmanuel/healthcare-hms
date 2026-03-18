@@ -16,7 +16,6 @@ export default function ReceptionQueuePage() {
   const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
   const [doctorOptions, setDoctorOptions] = useState<any[]>([]);
   const [doctorId, setDoctorId] = useState<string>("");
-  const [appointmentId, setAppointmentId] = useState("");
   const [tickets, setTickets] = useState<any[]>([]);
   const [currentTickets, setCurrentTickets] = useState<any[]>([]);
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -119,20 +118,6 @@ export default function ReceptionQueuePage() {
     }
   }
 
-  async function onCheckInAppointment() {
-    if (!appointmentId) return;
-    try {
-      const id = Number(appointmentId);
-      await enqueueVisit({ appointmentId: id, intakeType: "APPOINTMENT" });
-      setAppointments((prev) => prev.filter((a) => a.id !== id));
-      setAppointmentId("");
-      await fetchQueue();
-      toast.success("Appointment checked in");
-    } catch (e: any) {
-      toast.error(e?.message ?? "Failed to check in appointment");
-    }
-  }
-
   async function onCheckInAppointmentFromList(id: number) {
     try {
       await enqueueVisit({ appointmentId: id, intakeType: "APPOINTMENT" });
@@ -215,8 +200,38 @@ export default function ReceptionQueuePage() {
                 {t.doctor_name ? <span className="text-xs text-gray-500">Dr. {t.doctor_name}</span> : null}
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="secondary" onClick={async () => { await skipTicket(t.id); await fetchQueue(); }}>Skip</Button>
-                <Button variant="destructive" onClick={async () => { await markNoShow(t.id); await fetchQueue(); }}>No-show</Button>
+                <Button
+                  variant="secondary"
+                  onClick={async () => {
+                    try {
+                      await skipTicket(t.id);
+                      setTickets((prev) => prev.filter((x) => x.id !== t.id));
+                      await fetchQueue();
+                      await fetchCurrent();
+                      toast.success("Ticket skipped");
+                    } catch (e: any) {
+                      toast.error(e?.message ?? "Failed to skip ticket");
+                    }
+                  }}
+                >
+                  Skip
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={async () => {
+                    try {
+                      await markNoShow(t.id);
+                      setTickets((prev) => prev.filter((x) => x.id !== t.id));
+                      await fetchQueue();
+                      await fetchCurrent();
+                      toast.success("Marked as no-show");
+                    } catch (e: any) {
+                      toast.error(e?.message ?? "Failed to mark no-show");
+                    }
+                  }}
+                >
+                  No-show
+                </Button>
                 <Link className="text-blue-600 text-sm" href={`/patient/queue/${t.visit_id}`}>Track</Link>
               </div>
             </div>

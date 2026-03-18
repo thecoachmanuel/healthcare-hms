@@ -3,7 +3,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { setTriage } from "@/app/actions/queue";
 import { PatientSearchSelect } from "@/components/patient-search-select";
 import { toast } from "sonner";
@@ -121,9 +120,54 @@ export default function TriagePage() {
                 {t.doctor_name ? <span className="text-xs text-gray-500">Dr. {t.doctor_name}</span> : null}
               </div>
               <div className="flex items-center gap-2">
-                <Button size="sm" variant="outline" onClick={async () => { if (!nurseId) return; await setTriage({ visitId: Number(t.visit_id), nurseId, priority: "GREEN" as any }); await fetchWaiting(); }}>Low</Button>
-                <Button size="sm" variant="outline" onClick={async () => { if (!nurseId) return; await setTriage({ visitId: Number(t.visit_id), nurseId, priority: "YELLOW" as any }); await fetchWaiting(); }}>Medium</Button>
-                <Button size="sm" variant="destructive" onClick={async () => { if (!nurseId) return; await setTriage({ visitId: Number(t.visit_id), nurseId, priority: "RED" as any }); await fetchWaiting(); }}>High</Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    if (!nurseId) return;
+                    try {
+                      await setTriage({ visitId: Number(t.visit_id), nurseId, priority: "GREEN" as any });
+                      await fetchWaiting();
+                      toast.success("Triage set to Low");
+                    } catch (e: any) {
+                      toast.error(e?.message ?? "Failed to update triage");
+                    }
+                  }}
+                >
+                  Low
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={async () => {
+                    if (!nurseId) return;
+                    try {
+                      await setTriage({ visitId: Number(t.visit_id), nurseId, priority: "YELLOW" as any });
+                      await fetchWaiting();
+                      toast.success("Triage set to Medium");
+                    } catch (e: any) {
+                      toast.error(e?.message ?? "Failed to update triage");
+                    }
+                  }}
+                >
+                  Medium
+                </Button>
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={async () => {
+                    if (!nurseId) return;
+                    try {
+                      await setTriage({ visitId: Number(t.visit_id), nurseId, priority: "RED" as any });
+                      await fetchWaiting();
+                      toast.success("Triage set to High");
+                    } catch (e: any) {
+                      toast.error(e?.message ?? "Failed to update triage");
+                    }
+                  }}
+                >
+                  High
+                </Button>
               </div>
             </div>
           ))}
