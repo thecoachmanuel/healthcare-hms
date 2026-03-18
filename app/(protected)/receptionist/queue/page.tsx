@@ -35,9 +35,9 @@ export default function ReceptionQueuePage() {
   }, [department]);
 
   const priorityBadgeClass = (p: string | null | undefined) => {
-    if (p === "RED") return "bg-red-100 text-red-800";
-    if (p === "YELLOW") return "bg-yellow-100 text-yellow-800";
-    return "bg-green-100 text-green-800";
+    if (p === "RED") return "badge badge-high";
+    if (p === "YELLOW") return "badge badge-medium";
+    return "badge badge-low";
   };
   const priorityLabel = (p: string | null | undefined) => {
     if (p === 'RED') return 'HIGH';
@@ -110,8 +110,6 @@ export default function ReceptionQueuePage() {
     if (!selectedPatient?.id) return;
     await enqueueVisit({ patientId: selectedPatient.id, department, doctorId: doctorId || undefined, intakeType: "WALK_IN" });
     setSelectedPatient(null);
-    setPatientQuery("");
-    setPatientResults([]);
     await fetchQueue();
   }
 
@@ -136,7 +134,7 @@ export default function ReceptionQueuePage() {
         </div>
         <div className="flex-[2]">
           <label className="text-sm font-medium">Patient</label>
-          <PatientSearchSelect onSelect={(p) => { setSelectedPatient(p); setPatientResults([]); setPatientQuery(""); setPatientActiveIndex(-1); }} />
+          <PatientSearchSelect onSelect={(p) => { setSelectedPatient(p); }} />
           {selectedPatient ? (
             <div className="mt-1 text-xs text-gray-600">
               {selectedPatient.hospital_number ? `HN ${selectedPatient.hospital_number}` : null}
@@ -170,7 +168,7 @@ export default function ReceptionQueuePage() {
             <div key={t.id} className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
                 <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800">{t.queue_number}</span>
-                <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(t.priority)}`}>{t.priority === 'RED' ? 'HIGH' : t.priority === 'YELLOW' ? 'MEDIUM' : 'LOW'}</span>
+                <span className={priorityBadgeClass(t.priority)}>{t.priority === 'RED' ? 'HIGH' : t.priority === 'YELLOW' ? 'MEDIUM' : 'LOW'}</span>
                 <span className="text-xs text-gray-500">Started {t.started_at ? new Date(t.started_at).toLocaleTimeString() : ""}</span>
                 <span className="text-sm text-gray-700">{t.patient_first_name} {t.patient_last_name}</span>
                 {t.patient_hospital_number ? <span className="text-xs text-gray-500">HN {t.patient_hospital_number}</span> : null}
@@ -191,7 +189,7 @@ export default function ReceptionQueuePage() {
             <div key={t.id} className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
                 <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">{t.queue_number}</span>
-                <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(t.priority)}`}>{priorityLabel(t.priority)}</span>
+                <span className={priorityBadgeClass(t.priority)}>{priorityLabel(t.priority)}</span>
                 <span className="text-xs text-gray-500">{new Date(t.arrival_time).toLocaleTimeString()}</span>
                 <span className="text-sm text-gray-700">{t.patient_first_name} {t.patient_last_name}</span>
                 {t.patient_hospital_number ? <span className="text-xs text-gray-500">HN {t.patient_hospital_number}</span> : null}

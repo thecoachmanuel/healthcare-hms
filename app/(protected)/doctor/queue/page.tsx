@@ -146,9 +146,9 @@ export default function DoctorQueuePage() {
   }
 
   const priorityBadgeClass = (p: string | null | undefined) => {
-    if (p === "RED") return "bg-red-100 text-red-800";
-    if (p === "YELLOW") return "bg-yellow-100 text-yellow-800";
-    return "bg-green-100 text-green-800";
+    if (p === "RED") return "badge badge-high";
+    if (p === "YELLOW") return "badge badge-medium";
+    return "badge badge-low";
   };
   const priorityLabel = (p: string | null | undefined) => {
     if (p === "RED") return "HIGH";
@@ -182,7 +182,7 @@ export default function DoctorQueuePage() {
       <div className="grid grid-cols-3 gap-3">
         <div className="col-span-2">
           <label className="text-sm font-medium">Patient</label>
-          <PatientSearchSelect onSelect={(p) => { setSelectedPatient(p); setPatientResults([]); setPatientQuery(""); setPatientActiveIndex(-1); }} />
+          <PatientSearchSelect onSelect={(p) => { setSelectedPatient(p); }} />
         </div>
         <div className="flex items-end"><Button onClick={onCheckinPatient} disabled={!selectedPatient?.id}>Check-in</Button></div>
       </div>
@@ -238,7 +238,7 @@ export default function DoctorQueuePage() {
             <div key={t.id} className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
                 <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">{t.queue_number}</span>
-                <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(t.priority)}`}>{priorityLabel(t.priority)}</span>
+                <span className={priorityBadgeClass(t.priority)}>{priorityLabel(t.priority)}</span>
                 <span className="text-xs text-gray-500">{new Date(t.arrival_time).toLocaleTimeString()}</span>
                 <span className="text-xs text-gray-600">~{Math.max(idx, 0) * avgMinutesPerPatient} min</span>
                 <span className="text-sm text-gray-700">{t.patient_first_name} {t.patient_last_name}</span>
@@ -269,7 +269,7 @@ export default function DoctorQueuePage() {
           <div className="px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="text-xs px-2 py-1 rounded bg-green-100 text-green-800">{current.queue_number}</span>
-              <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(current.priority)}`}>{priorityLabel(current.priority)}</span>
+              <span className={priorityBadgeClass(current.priority)}>{priorityLabel(current.priority)}</span>
               {current.patient_first_name ? <span className="text-sm text-gray-700">{current.patient_first_name} {current.patient_last_name}</span> : null}
             </div>
             <Button onClick={async () => { await completeConsultation(current.id, doctorId); const apptId = (current as any)?.appointment_id; setCurrent(null); setIsAvailable(true); await fetchQueue(); if (apptId) { router.push(`/record/appointments/${apptId}?cat=diagnosis`); } }}>Complete</Button>

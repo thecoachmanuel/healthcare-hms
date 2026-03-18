@@ -28,6 +28,12 @@
   --chart-3: 197 37% 24%;
   --chart-4: 43 74% 66%;
   --chart-5: 27 87% 67%;
+  --severity-low-bg: 142.1 76.2% 96.9%;
+  --severity-low-fg: 142.1 70% 29%;
+  --severity-medium-bg: 54 97% 88%;
+  --severity-medium-fg: 40 85% 34%;
+  --severity-high-bg: 0 93% 94%;
+  --severity-high-fg: 0 85.7% 29.4%;
 }
 
 .dark {
@@ -55,6 +61,12 @@
   --chart-3: 30 80% 55%;
   --chart-4: 280 65% 60%;
   --chart-5: 340 75% 55%;
+  --severity-low-bg: 142.1 30% 20%;
+  --severity-low-fg: 142.1 60% 80%;
+  --severity-medium-bg: 54 30% 20%;
+  --severity-medium-fg: 40 70% 75%;
+  --severity-high-bg: 0 30% 20%;
+  --severity-high-fg: 0 70% 75%;
 }
 
 @layer base {
@@ -65,6 +77,27 @@
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+@layer components {
+  .badge {
+    @apply inline-flex items-center text-xs px-2 py-1 rounded font-medium;
+  }
+  .badge-low {
+    background-color: hsl(var(--severity-low-bg));
+    color: hsl(var(--severity-low-fg));
+  }
+  .badge-medium {
+    background-color: hsl(var(--severity-medium-bg));
+    color: hsl(var(--severity-medium-fg));
+  }
+  .badge-high {
+    background-color: hsl(var(--severity-high-bg));
+    color: hsl(var(--severity-high-fg));
+  }
+  .dot-low { background-color: hsl(var(--severity-low-fg)); }
+  .dot-medium { background-color: hsl(var(--severity-medium-fg)); }
+  .dot-high { background-color: hsl(var(--severity-high-fg)); }
 }
 
 @media print {

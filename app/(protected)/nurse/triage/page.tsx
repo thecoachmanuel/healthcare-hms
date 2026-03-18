@@ -24,9 +24,9 @@ export default function TriagePage() {
   const [patientActiveIndex, setPatientActiveIndex] = useState(-1);
 
   const priorityBadgeClass = (p: string | null | undefined) => {
-    if (p === "RED") return "bg-red-100 text-red-800";
-    if (p === "YELLOW") return "bg-yellow-100 text-yellow-800";
-    return "bg-green-100 text-green-800";
+    if (p === "RED") return "badge badge-high";
+    if (p === "YELLOW") return "badge badge-medium";
+    return "badge badge-low";
   };
   const priorityLabel = (p: string | null | undefined) => {
     if (p === "RED") return "HIGH";
@@ -172,19 +172,19 @@ export default function TriagePage() {
             <SelectContent>
               <SelectItem value="RED">
                 <span className="inline-flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-red-500" />
+                  <span className="h-2 w-2 rounded-full dot-high" />
                   <span>RED</span>
                 </span>
               </SelectItem>
               <SelectItem value="YELLOW">
                 <span className="inline-flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-yellow-400" />
+                  <span className="h-2 w-2 rounded-full dot-medium" />
                   <span>YELLOW</span>
                 </span>
               </SelectItem>
               <SelectItem value="GREEN">
                 <span className="inline-flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  <span className="h-2 w-2 rounded-full dot-low" />
                   <span>GREEN</span>
                 </span>
               </SelectItem>
@@ -219,7 +219,7 @@ export default function TriagePage() {
             <div key={t.id} className="flex items-center justify-between px-4 py-3">
               <div className="flex items-center gap-3">
                 <span className="text-xs px-2 py-1 rounded bg-blue-100 text-blue-800">{t.queue_number}</span>
-                <span className={`text-xs px-2 py-1 rounded ${priorityBadgeClass(t.priority)}`}>{priorityLabel(t.priority)}</span>
+                <span className={priorityBadgeClass(t.priority)}>{priorityLabel(t.priority)}</span>
                 <span className="text-xs text-gray-500">Arrived {new Date(t.arrival_time).toLocaleTimeString()}</span>
                 <span className="text-sm text-gray-700">{t.patient_first_name} {t.patient_last_name}</span>
                 {t.patient_hospital_number ? <span className="text-xs text-gray-500">HN {t.patient_hospital_number}</span> : null}
@@ -238,7 +238,7 @@ export default function TriagePage() {
         <div className="p-4 grid grid-cols-4 gap-3">
           <div className="col-span-2">
             <label className="text-sm font-medium">Patient</label>
-            <PatientSearchSelect onSelect={(p) => { setSelectedPatient(p); setPatientResults([]); setPatientQuery(""); setPatientActiveIndex(-1); }} />
+            <PatientSearchSelect onSelect={(p) => { setSelectedPatient(p); }} />
           </div>
           <div className="col-span-1 flex items-end"><Button onClick={checkin} disabled={!selectedPatient?.id}>Check-in</Button></div>
         </div>
