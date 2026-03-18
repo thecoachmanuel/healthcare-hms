@@ -245,7 +245,19 @@ export default function DoctorQueuePage() {
                 {t.patient_hospital_number ? <span className="text-xs text-gray-500">HN {t.patient_hospital_number}</span> : null}
               </div>
                   <div className="flex items-center gap-2">
-                <Button variant="secondary" onClick={async () => { await markInConsultation(t.id, doctorId); setCurrent(t); setIsAvailable(false); }}>Start</Button>
+                <Button
+                  variant="secondary"
+                  onClick={async () => {
+                    if (!doctorId) return;
+                    await markInConsultation(t.id, doctorId);
+                    setCurrent(t);
+                    setIsAvailable(false);
+                    setTickets((prev) => prev.filter((x) => x.id !== t.id));
+                    await fetchQueue();
+                  }}
+                >
+                  Start
+                </Button>
                 {t.appointment_id ? (
                   <>
                     <Button size="sm" variant="destructive" onClick={async () => { const fn = (await import("@/app/actions/queue")).skipTicketWithReason; await fn(t.id, "CANCELLED"); await fetchQueue(); }}>Cancel</Button>
