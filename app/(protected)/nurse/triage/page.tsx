@@ -9,19 +9,12 @@ import { PatientSearchSelect } from "@/components/patient-search-select";
 
 export default function TriagePage() {
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
-  const [untriaged, setUntriaged] = useState<any[]>([]);
   const [waitingTickets, setWaitingTickets] = useState<any[]>([]);
-  const [visitId, setVisitId] = useState<string>("");
-  const [priority, setPriority] = useState("GREEN");
   const [nurseId, setNurseId] = useState("");
-  const [patientQuery, setPatientQuery] = useState("");
-  const [patientResults, setPatientResults] = useState<any[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<any | null>(null);
-  const [checkinAppointmentId, setCheckinAppointmentId] = useState("");
   const [department, setDepartment] = useState("GEN");
   const [appointments, setAppointments] = useState<any[]>([]);
   const [apptQuery, setApptQuery] = useState("");
-  const [patientActiveIndex, setPatientActiveIndex] = useState(-1);
 
   const priorityBadgeClass = (p: string | null | undefined) => {
     if (p === "RED") return "badge badge-high";
@@ -33,12 +26,6 @@ export default function TriagePage() {
     if (p === "YELLOW") return "MEDIUM";
     return "LOW";
   };
-
-  const fetchUntriaged = useCallback(async () => {
-    const res = await fetch(`/api/triage`);
-    const data = await res.json();
-    setUntriaged(data.items ?? []);
-  }, []);
 
   const fetchWaiting = useCallback(async () => {
     const qs = `department=${encodeURIComponent(department)}`;
@@ -59,9 +46,8 @@ export default function TriagePage() {
         }
       } catch {}
     })();
-    fetchUntriaged();
     fetchWaiting();
-  }, [fetchUntriaged, fetchWaiting]);
+  }, [fetchWaiting]);
 
   useEffect(() => {
     (async () => {
@@ -75,140 +61,37 @@ export default function TriagePage() {
 
   useEffect(() => {
     const channel = supabase
-      .channel("triage")
-      .on("postgres_changes", { event: "*", schema: "public", table: "Triage" }, () => fetchUntriaged())
-      .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [supabase, fetchUntriaged]);
-
-  useEffect(() => {
-    const channel = supabase
       .channel("queue-nurse")
       .on("postgres_changes", { event: "*", schema: "public", table: "QueueTicket" }, () => {
-        fetchUntriaged();
         fetchWaiting();
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [supabase, fetchUntriaged, fetchWaiting]);
-
-  useEffect(() => {
-    const q = patientQuery.trim();
-    if (q.length < 1) {
-      setPatientResults([]);
-      return;
-    }
-    const ctrl = new AbortController();
-    const t = setTimeout(() => {
-      (async () => {
-        try {
-          const res = await fetch(`/api/patients/search?q=${encodeURIComponent(q)}`, { signal: ctrl.signal });
-          if (res.ok) {
-            const data = await res.json();
-            setPatientResults(data.items ?? []);
-          }
-        } catch {
-          setPatientResults([]);
-        }
-      })();
-    }, 250);
-    return () => {
-      ctrl.abort();
-      clearTimeout(t);
-    };
-  }, [patientQuery]);
-
-  async function assign() {
-    if (!visitId || !nurseId) return;
-    await setTriage({ visitId: Number(visitId), nurseId, priority: priority as any });
-    setVisitId("");
-    await fetchUntriaged();
-  }
+  }, [supabase, fetchWaiting]);
 
   async function checkin() {
     if (!selectedPatient?.id) return;
     const body: any = { intakeType: "WALK_IN", patientId: selectedPatient.id, department };
     await (await import("@/app/actions/queue")).enqueueVisit(body);
     setSelectedPatient(null);
-    setPatientQuery("");
-    setPatientResults([]);
-    await fetchUntriaged();
+    await fetchWaiting();
   }
 
   async function checkinFromList(id: number) {
     await (await import("@/app/actions/queue")).enqueueVisit({ appointmentId: id, intakeType: "APPOINTMENT" });
-    await fetchUntriaged();
+    await fetchWaiting();
   }
 
   return (
     <div className="p-6 space-y-6">
-      <div className="grid grid-cols-4 gap-3">
-        <div className="col-span-2">
-          <label className="text-sm font-medium">Select Visit</label>
-          <Select value={visitId} onValueChange={setVisitId}>
-            <SelectTrigger>
-              <SelectValue placeholder="Pick an untriaged visit" />
-            </SelectTrigger>
-            <SelectContent>
-              {untriaged.map((v) => (
-                <SelectItem key={v.id} value={String(v.id)}>
-                  Visit {v.id} - {v.patient_first_name} {v.patient_last_name}
-                  {v.patient_hospital_number ? ` (HN ${v.patient_hospital_number})` : ""}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="col-span-1">
+      <div className="grid grid-cols-2 gap-3">
+        <div>
           <label className="text-sm font-medium">Nurse ID</label>
           <Input value={nurseId} disabled />
         </div>
-        <div className="col-span-1">
-          <label className="text-sm font-medium">Priority</label>
-          <Select value={priority} onValueChange={setPriority}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="RED">
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full dot-high" />
-                  <span>RED</span>
-                </span>
-              </SelectItem>
-              <SelectItem value="YELLOW">
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full dot-medium" />
-                  <span>YELLOW</span>
-                </span>
-              </SelectItem>
-              <SelectItem value="GREEN">
-                <span className="inline-flex items-center gap-2">
-                  <span className="h-2 w-2 rounded-full dot-low" />
-                  <span>GREEN</span>
-                </span>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="col-span-4 flex justify-end"><Button onClick={assign} disabled={!visitId || !nurseId}>Set Triage</Button></div>
-      </div>
-
-      <div className="border rounded-md overflow-x-auto">
-        <div className="px-4 py-2 text-sm font-semibold bg-gray-50">Untriaged Visits</div>
-        <div className="divide-y">
-          {untriaged.map((v) => (
-            <div key={v.id} className="flex items-center justify-between px-4 py-3">
-              <div className="flex items-center gap-3">
-                <span className="text-sm">Visit {v.id}</span>
-                <span className="text-sm text-gray-700">{v.patient_first_name} {v.patient_last_name}</span>
-                {v.patient_hospital_number ? <span className="text-xs text-gray-500">HN {v.patient_hospital_number}</span> : null}
-                <span className="text-xs text-gray-500">Arrived {new Date(v.arrived_at).toLocaleTimeString()}</span>
-              </div>
-              <div className="text-xs text-gray-500">Dept {v.department ?? "-"}{v.doctor_name ? ` • Dr. ${v.doctor_name}` : ""}</div>
-            </div>
-          ))}
-          {untriaged.length === 0 && <div className="px-4 py-6 text-sm text-gray-500">No pending triage</div>}
+        <div>
+          <label className="text-sm font-medium">Department</label>
+          <Input value={department} disabled />
         </div>
       </div>
 
@@ -224,6 +107,11 @@ export default function TriagePage() {
                 <span className="text-sm text-gray-700">{t.patient_first_name} {t.patient_last_name}</span>
                 {t.patient_hospital_number ? <span className="text-xs text-gray-500">HN {t.patient_hospital_number}</span> : null}
                 {t.doctor_name ? <span className="text-xs text-gray-500">Dr. {t.doctor_name}</span> : null}
+              </div>
+              <div className="flex items-center gap-2">
+                <Button size="sm" variant="outline" onClick={async () => { if (!nurseId) return; await setTriage({ visitId: Number(t.visit_id), nurseId, priority: "GREEN" as any }); await fetchWaiting(); }}>Low</Button>
+                <Button size="sm" variant="outline" onClick={async () => { if (!nurseId) return; await setTriage({ visitId: Number(t.visit_id), nurseId, priority: "YELLOW" as any }); await fetchWaiting(); }}>Medium</Button>
+                <Button size="sm" variant="destructive" onClick={async () => { if (!nurseId) return; await setTriage({ visitId: Number(t.visit_id), nurseId, priority: "RED" as any }); await fetchWaiting(); }}>High</Button>
               </div>
             </div>
           ))}

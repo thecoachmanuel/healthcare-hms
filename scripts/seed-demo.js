@@ -471,7 +471,7 @@ async function main() {
       },
     });
 
-    await prisma.diagnosis.create({
+        await prisma.diagnosis.create({
       data: {
         patient_id: patient.id,
         medical_id: med.id,
@@ -495,7 +495,7 @@ async function main() {
           test_date: new Date(),
           result: st === "APPROVED" || st === "COMPLETED" ? "Within reference range" : "PENDING",
           status: st,
-          notes: "Demo lab test",
+          notes: "",
           sample_id: st !== "REQUESTED" ? `LAB-${1000 + i}` : null,
           approved_by_id: st === "APPROVED" ? ids.lab_scientist : null,
           service_id: labService.id,

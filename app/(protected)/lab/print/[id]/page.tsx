@@ -72,6 +72,8 @@ const PrintLabResultPage = async (props: ParamsProps) => {
   const siteName = (settings?.site_name ?? "").trim();
   const siteLogoUrl = (settings?.logo_url ?? "").trim();
   const displaySiteName = siteName.length > 0 ? siteName : "Healthcare HMS";
+  const rawNotes = (test.notes ?? "").trim();
+  const hasNotes = rawNotes.length > 0 && rawNotes !== "Demo lab test";
   const approvedByStaff = approvedById
     ? await db.staff.findUnique({ where: { id: approvedById }, select: { name: true } })
     : null;
@@ -143,10 +145,10 @@ const PrintLabResultPage = async (props: ParamsProps) => {
           <pre className="whitespace-pre-wrap text-sm border rounded-md p-3">{test.result}</pre>
         </div>
 
-        {test.notes && (
+        {hasNotes && (
           <div className="mt-4">
             <div className="text-gray-500 text-sm">Notes</div>
-            <pre className="whitespace-pre-wrap text-sm border rounded-md p-3">{test.notes}</pre>
+            <pre className="whitespace-pre-wrap text-sm border rounded-md p-3">{rawNotes}</pre>
           </div>
         )}
 
